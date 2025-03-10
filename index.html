@@ -1,4 +1,142 @@
-<!DOCTYPE html>
+// Show edit customer modal
+    function showEditCustomer(index) {
+      if (index >= 0 && index < customers.length) {
+        const customer = customers[index];
+        document.getElementById('edit-customer-name').value = customer.name;
+        document.getElementById('edit-customer-hours').value = customer.availableHours;
+        document.getElementById('edit-customer-id').value = index;
+        
+        document.getElementById('editCustomerModal').style.display = 'block';
+      }
+    }
+    
+    // Update customer information
+    function updateCustomer() {
+      const index = parseInt(document.getElementById('edit-customer-id').value);
+      const name = document.getElementById('edit-customer-name').value.trim();
+      const hours = parseFloat(document.getElementById('edit-customer-hours').value) || 0;
+      
+      if (!name) {
+        alert('Vennligst skriv inn et kundenavn.');
+        return;
+      }
+      
+      if (index >= 0 && index < customers.length) {
+        // Prepare data for Google Sheets
+        const data = {
+          action: "updateCustomer",
+          oldName: customers[index].name,
+          customerName: name,
+          availableHours: hours
+        };
+        
+        // Send data to Google Sheets
+        fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify(data)
+        })
+          .then(response => response.json())
+          .then(result => {
+            if (result.success) {
+              // Update local data
+              customers[index].name = name;
+              customers[index].availableHours = hours;
+              
+              // Sort and re-render
+              customers.sort((a, b) => a.name.localeCompare(b.name));
+              renderCustomers();
+              
+              // Close modal
+              closeModal('editCustomerModal');
+              
+              // Show confirmation
+              alert('Kunde oppdatert!');
+            } else {
+              alert('Kunne ikke oppdatere kunde: ' + (result.message || 'Ukjent feil'));
+            }
+          })
+          .catch(error => {
+            console.error('Error updating customer:', error);
+            
+            // Offline fallback - update locally
+            customers[index].name = name;
+            customers[index].availableHours = hours;
+            
+            // Sort and re-render
+            customers.sort((a, b) => a.name.localeCompare(b.name));
+            renderCustomers();
+            
+            // Close modal
+            closeModal('editCustomerModal');
+            
+            alert('Kunne ikke koble til Google Sheets. Kunden er bare oppdatert lokalt.');
+          });
+      }
+    }
+    
+    // Show delete confirmation
+    function confirmDeleteCustomer(index) {
+      if (index >= 0 && index < customers.length) {
+        const customer = customers[index];
+        document.getElementById('delete-customer-name').textContent = customer.name;
+        document.getElementById('delete-customer-id').value = index;
+        
+        document.getElementById('confirmDeleteModal').style.display = 'block';
+      }
+    }
+    
+    // Delete customer
+    function deleteCustomer() {
+      const index = parseInt(document.getElementById('delete-customer-id').value);
+      
+      if (index >= 0 && index < customers.length) {
+        const customerName = customers[index].name;
+        
+        // Prepare data for Google Sheets
+        const data = {
+          action: "deleteCustomer",
+          customerName: customerName
+        };
+        
+        // Send data to Google Sheets
+        fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify(data)
+        })
+          .then(response => response.json())
+          .then(result => {
+            if (result.success) {
+              // Remove from local array
+              customers.splice(index, 1);
+              
+              // Re-render
+              renderCustomers();
+              
+              // Close modal
+              closeModal('confirmDeleteModal');
+              
+              // Show confirmation
+              alert('Kunde slettet!');
+            } else {
+              alert('Kunne ikke slette kunde: ' + (result.message || 'Ukjent feil'));
+            }
+          })
+          .catch(error => {
+            console.error('Error deleting customer:', error);
+            
+            // Offline fallback - delete locally
+            customers.splice(index, 1);
+            
+            // Re-render
+            renderCustomers();
+            
+            // Close modal
+            closeModal('confirmDeleteModal');
+            
+            alert('Kunne ikke koble til Google Sheets. Kunden er bare slettet lokalt.');
+          });
+      }
+    }<!DOCTYPE html>
 <html lang="no">
 <head>
   <meta charset="UTF-8">
