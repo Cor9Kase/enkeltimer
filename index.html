@@ -75,6 +75,41 @@
       background: linear-gradient(to bottom, var(--bg-card), rgba(123, 44, 191, 0.1));
     }
     
+    .customer-actions {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 10px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .customer-box:hover .customer-actions {
+      opacity: 1;
+    }
+    
+    .customer-action-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      transition: var(--transition);
+    }
+    
+    .customer-action-btn:hover {
+      color: var(--accent-primary);
+      background-color: rgba(157, 78, 221, 0.1);
+    }
+    
     .customer-name {
       font-size: 18px;
       font-weight: bold;
@@ -285,6 +320,59 @@
     #modal-time-spent {
       color: var(--text-secondary);
     }
+    
+    /* Modal for editing customer */
+    #editCustomerModal .modal-content {
+      width: 40%;
+      max-height: 80vh;
+      overflow-y: auto;
+      margin: 10% auto;
+    }
+    
+    /* Confirmation modal */
+    #confirmDeleteModal .modal-content {
+      width: 30%;
+      text-align: center;
+    }
+    
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    
+    .cancel-btn {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-inactive);
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: var(--transition);
+    }
+    
+    .cancel-btn:hover {
+      background: var(--bg-modal);
+      border-color: var(--text-secondary);
+    }
+    
+    .delete-btn {
+      background: #e53935;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: var(--transition);
+    }
+    
+    .delete-btn:hover {
+      background: #c62828;
+      transform: translateY(-2px);
+    }
   </style>
 </head>
 <body>
@@ -340,9 +428,46 @@
     </div>
   </div>
   
+  <!-- Modal for editing customer -->
+  <div id="editCustomerModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('editCustomerModal')">&times;</span>
+      <h2>Rediger kunde</h2>
+      
+      <div class="form-group">
+        <label for="edit-customer-name">Kundenavn:</label>
+        <input type="text" id="edit-customer-name">
+      </div>
+      
+      <div class="form-group">
+        <label for="edit-customer-hours">Timer tilgjengelig:</label>
+        <input type="number" id="edit-customer-hours">
+      </div>
+      
+      <input type="hidden" id="edit-customer-id">
+      <button class="submit-btn" onclick="updateCustomer()">Lagre endringer</button>
+    </div>
+  </div>
+  
+  <!-- Confirmation modal for delete -->
+  <div id="confirmDeleteModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('confirmDeleteModal')">&times;</span>
+      <h2>Bekreft sletting</h2>
+      <p>Er du sikker på at du vil slette kunden <span id="delete-customer-name"></span>?</p>
+      <p>Denne handlingen kan ikke angres.</p>
+      
+      <input type="hidden" id="delete-customer-id">
+      <div class="modal-buttons">
+        <button class="cancel-btn" onclick="closeModal('confirmDeleteModal')">Avbryt</button>
+        <button class="delete-btn" onclick="deleteCustomer()">Slett kunde</button>
+      </div>
+    </div>
+  </div>
+  
   <script>
     // Google Script URL - Erstatt denne med din egen URL fra Google Apps Script
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxuA6snPxVx5pTrbE1SaONIc6jAnroH5FpAEvDsUADxYNg1veipInqRWbEMkenNWPPe/exec';
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/DITTWEB-APP-ID-HER/exec';
     
     // Store active timers and their data
     const timers = {};
@@ -403,13 +528,22 @@
         const customerBox = document.createElement('div');
         customerBox.className = 'customer-box';
         customerBox.setAttribute('data-id', index + 1);
-        customerBox.onclick = function() { toggleTimer(this); };
+        customerBox.onclick = function(e) { 
+          // Only toggle timer if we clicked on the box itself, not on the action buttons
+          if (e.target.closest('.customer-actions') === null) {
+            toggleTimer(this); 
+          }
+        };
         
         customerBox.innerHTML = `
           <div class="customer-name">${customer.name}</div>
           <div class="available-hours">Timer tilgjengelig: ${customer.availableHours.toFixed(1)}</div>
           <div class="timer">00:00:00</div>
           <div class="status">Inaktiv</div>
+          <div class="customer-actions">
+            <button class="customer-action-btn" title="Rediger kunde" onclick="showEditCustomer(${index})">✏️</button>
+            <button class="customer-action-btn" title="Slett kunde" onclick="confirmDeleteCustomer(${index})">🗑️</button>
+          </div>
         `;
         
         container.appendChild(customerBox);
