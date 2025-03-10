@@ -652,41 +652,42 @@
     }
     
     function renderCustomers() {
-      const container = document.getElementById('customer-container');
-      
-      // Clear existing customer boxes, but keep the "add customer" button
-      const addCustomerButton = document.querySelector('.add-customer');
-      while (container.firstChild) {
-        container.removeChild(container.firstChild);
+  const container = document.getElementById('customer-container');
+  
+  // Clear existing customer boxes, but keep the "add customer" button
+  const addCustomerButton = document.querySelector('.add-customer');
+  while (container.firstChild) {
+    container.removeChild(container.firstChild);
+  }
+  container.appendChild(addCustomerButton);
+  
+  // Add all customers in alphabetical order
+  customers.forEach((customer, index) => {
+    const customerBox = document.createElement('div');
+    customerBox.className = 'customer-box';
+    customerBox.setAttribute('data-id', index + 1);
+    customerBox.onclick = function(e) { 
+      // Only toggle timer if we clicked on the box itself, not on the action buttons
+      if (e.target.closest('.customer-actions') === null && 
+          !e.target.classList.contains('customer-action-btn')) {
+        toggleTimer(this); 
       }
-      container.appendChild(addCustomerButton);
-      
-      // Add all customers in alphabetical order
-      customers.forEach((customer, index) => {
-        const customerBox = document.createElement('div');
-        customerBox.className = 'customer-box';
-        customerBox.setAttribute('data-id', index + 1);
-        customerBox.onclick = function(e) { 
-          // Only toggle timer if we clicked on the box itself, not on the action buttons
-          if (e.target.closest('.customer-actions') === null) {
-            toggleTimer(this); 
-          }
-        };
-        
-        customerBox.innerHTML = `
-          <div class="customer-name">${customer.name}</div>
-          <div class="available-hours">Timer tilgjengelig: ${customer.availableHours.toFixed(1)}</div>
-          <div class="timer">00:00:00</div>
-          <div class="status">Inaktiv</div>
-          <div class="customer-actions">
-            <button class="customer-action-btn" title="Rediger kunde" onclick="showEditCustomer(${index})">✏️</button>
-            <button class="customer-action-btn" title="Slett kunde" onclick="confirmDeleteCustomer(${index})">🗑️</button>
-          </div>
-        `;
-        
-        container.appendChild(customerBox);
-      });
-    }
+    };
+    
+    customerBox.innerHTML = `
+      <div class="customer-name">${customer.name}</div>
+      <div class="available-hours">Timer tilgjengelig: ${customer.availableHours.toFixed(1)}</div>
+      <div class="timer">00:00:00</div>
+      <div class="status">Inaktiv</div>
+      <div class="customer-actions" style="opacity: 1; position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
+        <button class="customer-action-btn" title="Rediger kunde" onclick="event.stopPropagation(); showEditCustomer(${index})">✏️</button>
+        <button class="customer-action-btn" title="Slett kunde" onclick="event.stopPropagation(); confirmDeleteCustomer(${index})">🗑️</button>
+      </div>
+    `;
+    
+    container.appendChild(customerBox);
+  });
+}
     
     function toggleTimer(box) {
       const customerId = box.getAttribute('data-id');
