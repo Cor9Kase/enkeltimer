@@ -43,6 +43,14 @@
       margin-bottom: 10px;
     }
     
+    .current-date {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--accent-primary);
+      margin-top: 5px;
+      margin-bottom: 10px;
+    }
+    
     .update-status {
       font-size: 12px;
       color: var(--text-secondary);
@@ -404,7 +412,8 @@
 </head>
 <body>
   <div class="header">
-    <h1>Timetracker</h1>
+    <h1>Cornys Timetracker</h1>
+    <div id="current-date" class="current-date"></div>
     <div class="update-status">Sist oppdatert: <span id="last-updated">Aldri</span></div>
     <button id="refresh-button" class="refresh-btn" onclick="fetchCustomerData()">
       Oppdater data
@@ -839,7 +848,7 @@
             // Close the modal
             closeModal('commentModal');
             
-            //// Clear the active box reference
+            // Clear the active box reference
             activeBox = null;
             
             // Re-render the customers to show updated available hours
@@ -848,295 +857,4 @@
             // Show confirmation
             alert('Timer lagret for ' + data.customerName + '!');
           } else {
-            alert('Kunne ikke lagre tid: ' + (result.message || 'Ukjent feil'));
-          }
-        })
-        .catch(error => {
-          console.error('Error logging time:', error);
-          
-          // Offline fallback
-          console.log('Data som skulle sendes til Google Sheets:', data);
-          
-          // Reset the timer display
-          activeBox.querySelector('.timer').textContent = '00:00:00';
-          
-          // Close the modal
-          closeModal('commentModal');
-          
-          // Clear the active box reference
-          activeBox = null;
-          
-          // Re-render the customers to show updated available hours
-          renderCustomers();
-          
-          alert('Kunne ikke koble til Google Sheets. Endringen er bare lagret lokalt.');
-        });
-    }
-    
-    function createNewCustomer() {
-      const customerName = document.getElementById('new-customer-name').value.trim();
-      const availableHours = parseFloat(document.getElementById('new-customer-hours').value) || 0;
-      const comment = document.getElementById('new-customer-comment').value.trim();
-      
-      if (!customerName) {
-        alert('Vennligst skriv inn et kundenavn.');
-        return;
-      }
-      
-      // Get current date
-      const now = new Date();
-      const dateStr = `${now.getFullYear()}-${padZero(now.getMonth() + 1)}-${padZero(now.getDate())}`;
-      
-      // Calculate decimal hours (rounded to quarter hours)
-      const decimalHours = calculateHoursFromMs(newCustomerTimer.timeSpentMs);
-      
-      // For new customers, total sold hours is what user entered, remaining is after this session
-      const soldHours = availableHours + decimalHours; // Original sold hours
-      const remainingHours = availableHours; // What will be stored as available (already calculated earlier)
-      
-      // Prepare the data to be sent to Google Sheets
-      const data = {
-        action: "addCustomer",
-        customerName: customerName,
-        timeSpent: decimalHours,
-        soldHours: soldHours,
-        availableHours: remainingHours,
-        remainingHours: remainingHours,
-        comment: comment,
-        date: dateStr
-      };
-      
-      // Send data to Google Sheets
-      fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      })
-        .then(response => response.json())
-        .then(result => {
-          if (result.success) {
-            // Add the new customer to the local list
-            customers.push({
-              name: customerName,
-              availableHours: remainingHours
-            });
-            
-            // Sort and re-render
-            customers.sort((a, b) => a.name.localeCompare(b.name));
-            renderCustomers();
-            
-            // Reset the new customer timer
-            document.getElementById('new-customer-timer').textContent = '00:00:00';
-            
-            // Close the modal and reset fields
-            closeModal('newCustomerModal');
-            document.getElementById('new-customer-name').value = '';
-            document.getElementById('new-customer-hours').value = '';
-            document.getElementById('new-customer-comment').value = '';
-            
-            // Clear the timer data
-            newCustomerTimer = null;
-            
-            // Show confirmation
-            alert('Ny kunde opprettet: ' + customerName);
-          } else {
-            alert('Kunne ikke legge til ny kunde: ' + (result.message || 'Ukjent feil'));
-          }
-        })
-        .catch(error => {
-          console.error('Error adding customer:', error);
-          
-          // Offline fallback
-          console.log('Data som skulle sendes til Google Sheets:', data);
-          
-          // Add the new customer to the local list
-          customers.push({
-            name: customerName,
-            availableHours: remainingHours
-          });
-          
-          // Sort and re-render
-          customers.sort((a, b) => a.name.localeCompare(b.name));
-          renderCustomers();
-          
-          // Reset the new customer timer
-          document.getElementById('new-customer-timer').textContent = '00:00:00';
-          
-          // Close the modal and reset fields
-          closeModal('newCustomerModal');
-          document.getElementById('new-customer-name').value = '';
-          document.getElementById('new-customer-hours').value = '';
-          document.getElementById('new-customer-comment').value = '';
-          
-          // Clear the timer data
-          newCustomerTimer = null;
-          
-          alert('Kunne ikke koble til Google Sheets. Kunden er bare lagret lokalt.');
-        });
-    }
-    
-    function cancelNewCustomer() {
-      // Reset the new customer timer
-      document.getElementById('new-customer-timer').textContent = '00:00:00';
-      
-      // Close the modal and reset fields
-      closeModal('newCustomerModal');
-      document.getElementById('new-customer-name').value = '';
-      document.getElementById('new-customer-hours').value = '';
-      document.getElementById('new-customer-comment').value = '';
-      
-      // Clear the timer data
-      newCustomerTimer = null;
-    }
-    
-    // Show edit customer modal
-    function showEditCustomer(index) {
-      if (index >= 0 && index < customers.length) {
-        const customer = customers[index];
-        document.getElementById('edit-customer-name').value = customer.name;
-        document.getElementById('edit-customer-hours').value = customer.availableHours;
-        document.getElementById('edit-customer-id').value = index;
-        
-        document.getElementById('editCustomerModal').style.display = 'block';
-      }
-    }
-    
-    // Update customer information
-    function updateCustomer() {
-      const index = parseInt(document.getElementById('edit-customer-id').value);
-      const name = document.getElementById('edit-customer-name').value.trim();
-      const hours = parseFloat(document.getElementById('edit-customer-hours').value) || 0;
-      
-      if (!name) {
-        alert('Vennligst skriv inn et kundenavn.');
-        return;
-      }
-      
-      if (index >= 0 && index < customers.length) {
-        // Prepare data for Google Sheets
-        const data = {
-          action: "updateCustomer",
-          oldName: customers[index].name,
-          customerName: name,
-          availableHours: hours
-        };
-        
-        // Send data to Google Sheets
-        fetch(GOOGLE_SCRIPT_URL, {
-          method: 'POST',
-          body: JSON.stringify(data)
-        })
-          .then(response => response.json())
-          .then(result => {
-            if (result.success) {
-              // Update local data
-              customers[index].name = name;
-              customers[index].availableHours = hours;
-              
-              // Sort and re-render
-              customers.sort((a, b) => a.name.localeCompare(b.name));
-              renderCustomers();
-              
-              // Close modal
-              closeModal('editCustomerModal');
-              
-              // Show confirmation
-              alert('Kunde oppdatert!');
-            } else {
-              alert('Kunne ikke oppdatere kunde: ' + (result.message || 'Ukjent feil'));
-            }
-          })
-          .catch(error => {
-            console.error('Error updating customer:', error);
-            
-            // Offline fallback - update locally
-            customers[index].name = name;
-            customers[index].availableHours = hours;
-            
-            // Sort and re-render
-            customers.sort((a, b) => a.name.localeCompare(b.name));
-            renderCustomers();
-            
-            // Close modal
-            closeModal('editCustomerModal');
-            
-            alert('Kunne ikke koble til Google Sheets. Kunden er bare oppdatert lokalt.');
-          });
-      }
-    }
-    
-    // Show delete confirmation
-    function confirmDeleteCustomer(index) {
-      if (index >= 0 && index < customers.length) {
-        const customer = customers[index];
-        document.getElementById('delete-customer-name').textContent = customer.name;
-        document.getElementById('delete-customer-id').value = index;
-        
-        document.getElementById('confirmDeleteModal').style.display = 'block';
-      }
-    }
-    
-    // Delete customer
-    function deleteCustomer() {
-      const index = parseInt(document.getElementById('delete-customer-id').value);
-      
-      if (index >= 0 && index < customers.length) {
-        const customerName = customers[index].name;
-        
-        // Prepare data for Google Sheets
-        const data = {
-          action: "deleteCustomer",
-          customerName: customerName
-        };
-        
-        // Send data to Google Sheets
-        fetch(GOOGLE_SCRIPT_URL, {
-          method: 'POST',
-          body: JSON.stringify(data)
-        })
-          .then(response => response.json())
-          .then(result => {
-            if (result.success) {
-              // Remove from local array
-              customers.splice(index, 1);
-              
-              // Re-render
-              renderCustomers();
-              
-              // Close modal
-              closeModal('confirmDeleteModal');
-              
-              // Show confirmation
-              alert('Kunde slettet!');
-            } else {
-              alert('Kunne ikke slette kunde: ' + (result.message || 'Ukjent feil'));
-            }
-          })
-          .catch(error => {
-            console.error('Error deleting customer:', error);
-            
-            // Offline fallback - delete locally
-            customers.splice(index, 1);
-            
-            // Re-render
-            renderCustomers();
-            
-            // Close modal
-            closeModal('confirmDeleteModal');
-            
-            alert('Kunne ikke koble til Google Sheets. Kunden er bare slettet lokalt.');
-          });
-      }
-    }
-    
-    // Initialize the app
-    window.onload = function() {
-      loadCustomers();
-      startAutoRefresh(); // Start auto-refresh when the app loads
-      
-      // Update the last-updated time
-      const now = new Date();
-      document.getElementById('last-updated').textContent = now.toLocaleTimeString();
-    };
-  </script>
-</body>
-</html>
+            alert('Kunne ikke lagre tid: ' + (result.message ||
