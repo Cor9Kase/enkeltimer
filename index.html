@@ -666,24 +666,73 @@
     const customerBox = document.createElement('div');
     customerBox.className = 'customer-box';
     customerBox.setAttribute('data-id', index + 1);
-    customerBox.onclick = function(e) { 
-      // Only toggle timer if we clicked on the box itself, not on the action buttons
-      if (e.target.closest('.customer-actions') === null && 
-          !e.target.classList.contains('customer-action-btn')) {
-        toggleTimer(this); 
-      }
+    
+    // Create customer content
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'customer-name';
+    nameDiv.textContent = customer.name;
+    
+    const hoursDiv = document.createElement('div');
+    hoursDiv.className = 'available-hours';
+    hoursDiv.textContent = `Timer tilgjengelig: ${customer.availableHours.toFixed(1)}`;
+    
+    const timerDiv = document.createElement('div');
+    timerDiv.className = 'timer';
+    timerDiv.textContent = '00:00:00';
+    
+    const statusDiv = document.createElement('div');
+    statusDiv.className = 'status';
+    statusDiv.textContent = 'Inaktiv';
+    
+    // Create action buttons container
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'customer-actions';
+    actionsDiv.style.opacity = '1';  // Force visibility
+    actionsDiv.style.position = 'absolute';
+    actionsDiv.style.top = '10px';
+    actionsDiv.style.right = '10px';
+    actionsDiv.style.display = 'flex';
+    actionsDiv.style.gap = '10px';
+    actionsDiv.style.zIndex = '100';
+    
+    // Create edit button
+    const editBtn = document.createElement('button');
+    editBtn.className = 'customer-action-btn';
+    editBtn.title = 'Rediger kunde';
+    editBtn.innerHTML = '✏️';
+    editBtn.onclick = function(e) {
+      e.stopPropagation();
+      showEditCustomer(index);
     };
     
-    customerBox.innerHTML = `
-      <div class="customer-name">${customer.name}</div>
-      <div class="available-hours">Timer tilgjengelig: ${customer.availableHours.toFixed(1)}</div>
-      <div class="timer">00:00:00</div>
-      <div class="status">Inaktiv</div>
-      <div class="customer-actions" style="opacity: 1; position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
-        <button class="customer-action-btn" title="Rediger kunde" onclick="event.stopPropagation(); showEditCustomer(${index})">✏️</button>
-        <button class="customer-action-btn" title="Slett kunde" onclick="event.stopPropagation(); confirmDeleteCustomer(${index})">🗑️</button>
-      </div>
-    `;
+    // Create delete button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'customer-action-btn';
+    deleteBtn.title = 'Slett kunde';
+    deleteBtn.innerHTML = '🗑️';
+    deleteBtn.onclick = function(e) {
+      e.stopPropagation();
+      confirmDeleteCustomer(index);
+    };
+    
+    // Append buttons to actions div
+    actionsDiv.appendChild(editBtn);
+    actionsDiv.appendChild(deleteBtn);
+    
+    // Append all elements to customer box
+    customerBox.appendChild(nameDiv);
+    customerBox.appendChild(hoursDiv);
+    customerBox.appendChild(timerDiv);
+    customerBox.appendChild(statusDiv);
+    customerBox.appendChild(actionsDiv);
+    
+    // Add click handler for timer
+    customerBox.onclick = function(e) {
+      if (e.target === editBtn || e.target === deleteBtn || e.target === actionsDiv) {
+        return; // Don't toggle timer if clicking on buttons
+      }
+      toggleTimer(this);
+    };
     
     container.appendChild(customerBox);
   });
