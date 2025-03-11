@@ -1,5 +1,5 @@
 // Google Script URL - Erstatt denne med din egen URL fra Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxuA6snPxVx5pTrbE1SaONIc6jAnroH5FpAEvDsUADxYNg1veipInqRWbEMkenNWPPe/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwQkEynD-DQI5rNkUCebQGnMoPfzCYp6vsoEyrTBMnbG1I2uKmTlJj9ECUvm-ry8Aow/exec';
 
 // Store active timers and their data
 const timers = {};
