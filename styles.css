@@ -402,6 +402,33 @@ textarea:focus {
   transform: translateY(-2px);
 }
 
+/* Legg til disse stilene i din eksisterende styles.css fil */
+
+.header-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.daily-summary-btn {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-inactive);
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: var(--transition);
+}
+
+.daily-summary-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-primary);
+  box-shadow: 0 5px 15px rgba(157, 78, 221, 0.2);
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .customer-box, .add-customer {
