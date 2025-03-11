@@ -502,11 +502,11 @@ function updateCustomer() {
   
   // Prepare data for the update
   const data = {
-    action: "updateCustomer",
-    oldName: customers[index].name, // Endre fra customerName til oldName for å matche Google Apps Script
-    customerName: customerName, // Legg til nytt navn
-    availableHours: availableHours
-  };
+  action: "updateCustomer",
+  oldName: customers[index].name,
+  newName: customerName,  // Endre fra customerName til newName
+  availableHours: availableHours
+};
   
   // Send data to Google Sheets
   fetch(GOOGLE_SCRIPT_URL, {
