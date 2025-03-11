@@ -1,0 +1,420 @@
+:root {
+  --bg-dark: #121212;
+  --bg-card: #1e1e1e;
+  --bg-modal: #242424;
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
+  --accent-primary: #9d4edd;
+  --accent-secondary: #7b2cbf;
+  --accent-gradient: linear-gradient(135deg, #9d4edd, #7b2cbf);
+  --inactive: #4f4f4f;
+  --active: #9d4edd;
+  --border-inactive: #383838;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --transition: all 0.3s ease;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.header h1 {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 2.5rem;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+.current-date {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--accent-primary);
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+.update-status {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 5px;
+  margin-bottom: 15px;
+}
+
+.refresh-btn {
+  background: var(--accent-gradient);
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: var(--transition);
+  margin-top: 5px;
+}
+
+.refresh-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(157, 78, 221, 0.4);
+}
+
+.container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: flex-start;
+}
+
+.customer-box {
+  width: 250px;
+  height: 150px;
+  background-color: var(--bg-card);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 15px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: var(--transition);
+  border: 1px solid var(--border-inactive);
+}
+
+.customer-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(157, 78, 221, 0.2);
+  border-color: var(--accent-primary);
+}
+
+.customer-box.active {
+  box-shadow: 0 8px 25px rgba(157, 78, 221, 0.4);
+  border: 1px solid var(--accent-primary);
+  background: linear-gradient(to bottom, var(--bg-card), rgba(123, 44, 191, 0.1));
+}
+
+.customer-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 10px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+
+.customer-box:hover .customer-actions {
+  opacity: 1;
+}
+
+.customer-action-btn {
+  background: rgba(157, 78, 221, 0.2);
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  transition: var(--transition);
+}
+
+.customer-action-btn:hover {
+  background: rgba(157, 78, 221, 0.5);
+  transform: scale(1.1);
+}
+
+.customer-name {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: var(--text-primary);
+}
+
+.available-hours {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.timer {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 10px 0;
+  color: var(--accent-primary);
+}
+
+.status {
+  position: absolute;
+  bottom: 15px;
+  left: 15px;
+  font-size: 14px;
+  color: var(--inactive);
+}
+
+.active .status {
+  color: var(--active);
+  font-weight: bold;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background-color: var(--bg-modal);
+  margin: 15% auto;
+  padding: 25px;
+  border-radius: 15px;
+  width: 50%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--accent-secondary);
+}
+
+.close {
+  color: var(--text-secondary);
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.close:hover {
+  color: var(--accent-primary);
+}
+
+textarea {
+  width: 100%;
+  height: 100px;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 8px;
+  background-color: var(--bg-dark);
+  border: 1px solid var(--border-inactive);
+  resize: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: var(--transition);
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 8px rgba(157, 78, 221, 0.3);
+}
+
+.submit-btn {
+  background: var(--accent-gradient);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: var(--transition);
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(157, 78, 221, 0.4);
+}
+
+.add-customer {
+  width: 250px;
+  height: 150px;
+  background: linear-gradient(to bottom, var(--bg-card), rgba(123, 44, 191, 0.05));
+  border: 1px dashed var(--border-inactive);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  order: -1; /* Makes this appear first */
+  transition: var(--transition);
+}
+
+.add-customer:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 5px 15px rgba(157, 78, 221, 0.2);
+  transform: translateY(-5px);
+}
+
+.add-customer.active {
+  border: 1px solid var(--accent-primary);
+  background: linear-gradient(to bottom, var(--bg-card), rgba(123, 44, 191, 0.2));
+}
+
+.add-customer-icon {
+  font-size: 40px;
+  color: var(--inactive);
+  transition: var(--transition);
+}
+
+.add-customer:hover .add-customer-icon {
+  color: var(--accent-primary);
+}
+
+.add-customer.active .add-customer-icon {
+  color: var(--accent-primary);
+}
+
+.add-customer-timer {
+  font-size: 24px;
+  font-weight: bold;
+  margin-top: 10px;
+  color: var(--accent-primary);
+}
+
+.new-customer-modal .modal-content {
+  width: 40%;
+  max-height: 80vh;
+  overflow-y: auto;
+  margin: 10% auto;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: var(--bg-dark);
+  border: 1px solid var(--border-inactive);
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: var(--transition);
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 8px rgba(157, 78, 221, 0.3);
+}
+
+/* Styling for modal titles */
+.modal-content h2 {
+  color: var(--text-primary);
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.6rem;
+  border-bottom: 1px solid var(--border-inactive);
+  padding-bottom: 10px;
+}
+
+/* Styling for customer info in modal */
+#modal-customer-name, #new-customer-time-spent {
+  color: var(--accent-primary);
+  font-weight: 500;
+  font-size: 1.1rem;
+}
+
+#modal-time-spent {
+  color: var(--text-secondary);
+}
+
+/* Modal for editing customer */
+#editCustomerModal .modal-content {
+  width: 40%;
+  max-height: 80vh;
+  overflow-y: auto;
+  margin: 10% auto;
+}
+
+/* Confirmation modal */
+#confirmDeleteModal .modal-content {
+  width: 30%;
+  text-align: center;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.cancel-btn {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-inactive);
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: var(--transition);
+}
+
+.cancel-btn:hover {
+  background: var(--bg-modal);
+  border-color: var(--text-secondary);
+}
+
+.delete-btn {
+  background: #e53935;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: var(--transition);
+}
+
+.delete-btn:hover {
+  background: #c62828;
+  transform: translateY(-2px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .customer-box, .add-customer {
+    width: 100%;
+  }
+  
+  .modal-content {
+    width: 90%;
+  }
+  
+  #editCustomerModal .modal-content,
+  .new-customer-modal .modal-content,
+  #confirmDeleteModal .modal-content {
+    width: 90%;
+  }
+}

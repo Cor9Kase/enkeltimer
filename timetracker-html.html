@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enkel Timetracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="header">
+    <h1>Cornys Timetracker</h1>
+    <div id="current-date" class="current-date"></div>
+    <div class="update-status">Sist oppdatert: <span id="last-updated">Aldri</span></div>
+    <button id="refresh-button" class="refresh-btn" onclick="fetchCustomerData()">
+      Oppdater data
+    </button>
+  </div>
+  
+  <div class="container" id="customer-container">
+    <!-- Add customer button always comes first -->
+    <div class="add-customer" id="add-customer-box" onclick="startNewCustomerTimer()">
+      <div class="add-customer-icon">+</div>
+      <div class="add-customer-timer" id="new-customer-timer">00:00:00</div>
+    </div>
+    
+    <!-- Customer boxes will be added here, sorted alphabetically -->
+  </div>
+  
+  <!-- Modal for comments -->
+  <div id="commentModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('commentModal')">&times;</span>
+      <h2>Legg til kommentar</h2>
+      <p id="modal-customer-name">Kunde AS</p>
+      <p id="modal-time-spent">Tid brukt: 00:00:00</p>
+      <textarea id="comment-text" placeholder="Skriv en kommentar om arbeidet..."></textarea>
+      <button class="submit-btn" onclick="submitTime()">Lagre og avslutt</button>
+    </div>
+  </div>
+  
+  <!-- Modal for new customer -->
+  <div id="newCustomerModal" class="modal new-customer-modal">
+    <div class="modal-content">
+      <span class="close" onclick="cancelNewCustomer()">&times;</span>
+      <h2>Legg til ny kunde</h2>
+      <p id="new-customer-time-spent">Tid brukt: 00:00:00</p>
+      
+      <div class="form-group">
+        <label for="new-customer-name">Kundenavn:</label>
+        <input type="text" id="new-customer-name" placeholder="Skriv inn kundenavn">
+      </div>
+      
+      <div class="form-group">
+        <label for="new-customer-hours">Timer tilgjengelig:</label>
+        <input type="number" id="new-customer-hours" placeholder="Antall timer">
+      </div>
+      
+      <div class="form-group">
+        <label for="new-customer-comment">Kommentar:</label>
+        <textarea id="new-customer-comment" placeholder="Skriv en kommentar om arbeidet..."></textarea>
+      </div>
+      
+      <button class="submit-btn" onclick="createNewCustomer()">Lagre kunde og tid</button>
+    </div>
+  </div>
+  
+  <!-- Modal for editing customer -->
+  <div id="editCustomerModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('editCustomerModal')">&times;</span>
+      <h2>Rediger kunde</h2>
+      
+      <div class="form-group">
+        <label for="edit-customer-name">Kundenavn:</label>
+        <input type="text" id="edit-customer-name">
+      </div>
+      
+      <div class="form-group">
+        <label for="edit-customer-hours">Timer tilgjengelig:</label>
+        <input type="number" id="edit-customer-hours">
+      </div>
+      
+      <input type="hidden" id="edit-customer-id">
+      <button class="submit-btn" onclick="updateCustomer()">Lagre endringer</button>
+    </div>
+  </div>
+  
+  <!-- Confirmation modal for delete -->
+  <div id="confirmDeleteModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('confirmDeleteModal')">&times;</span>
+      <h2>Bekreft sletting</h2>
+      <p>Er du sikker på at du vil slette kunden <span id="delete-customer-name"></span>?</p>
+      <p>Denne handlingen kan ikke angres.</p>
+      
+      <input type="hidden" id="delete-customer-id">
+      <div class="modal-buttons">
+        <button class="cancel-btn" onclick="closeModal('confirmDeleteModal')">Avbryt</button>
+        <button class="delete-btn" onclick="deleteCustomer()">Slett kunde</button>
+      </div>
+    </div>
+  </div>
+  
+  <script src="script.js"></script>
+</body>
+</html>
