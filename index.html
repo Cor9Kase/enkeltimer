@@ -11,9 +11,14 @@
     <h1>Cornys Timetracker</h1>
     <div id="current-date" class="current-date"></div>
     <div class="update-status">Sist oppdatert: <span id="last-updated">Aldri</span></div>
-    <button id="refresh-button" class="refresh-btn" onclick="fetchCustomerData()">
-      Oppdater data
-    </button>
+    <div class="header-actions">
+  <button id="refresh-button" class="refresh-btn" onclick="fetchCustomerData()">
+    Oppdater data
+  </button>
+  <button class="daily-summary-btn" onclick="window.location.href='daily-summary.html'">
+    Vis dagsoversikt
+  </button>
+</div>
   </div>
   
   <div class="container" id="customer-container">
