@@ -515,6 +515,25 @@
     let customers = [];
     let newCustomerTimer = null;
     
+    // Load customer data when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      // Set current date in header
+      updateCurrentDate();
+      
+      // Load customer data
+      loadCustomers();
+      
+      // Start auto-refresh
+      startAutoRefresh();
+    });
+    
+    // Update the current date display
+    function updateCurrentDate() {
+      const now = new Date();
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById('current-date').textContent = now.toLocaleDateString('no-NO', options);
+    }
+    
     // Load customer data from Google Sheets
     function loadCustomers() {
       fetchCustomerData();
@@ -839,22 +858,28 @@
         method: 'POST',
         body: JSON.stringify(data)
       })
-        .then(response => response.json())
-        .then(result => {
-          if (result.success) {
-            // Reset the timer display
-            activeBox.querySelector('.timer').textContent = '00:00:00';
-            
-            // Close the modal
-            closeModal('commentModal');
-            
-            // Clear the active box reference
-            activeBox = null;
-            
-            // Re-render the customers to show updated available hours
-            renderCustomers();
-            
-            // Show confirmation
-            alert('Timer lagret for ' + data.customerName + '!');
-          } else {
-            alert('Kunne ikke lagre tid: ' + (result.message ||
+      .then(response => response.json())
+      .then(result => {
+        if (result.success) {
+          // Reset the timer display
+          activeBox.querySelector('.timer').textContent = '00:00:00';
+          
+          // Close the modal
+          closeModal('commentModal');
+          
+          // Clear the active box reference
+          activeBox = null;
+          
+          // Re-render the customers to show updated available hours
+          renderCustomers();
+          
+          // Show confirmation
+          alert('Timer lagret for ' + data.customerName + '!');
+        } else {
+          alert('Kunne ikke lagre tid: ' + (result.message || 'Ukjent feil'));
+        }
+      })
+      .catch(error => {
+        console.error('Error logging time:', error);
+        alert('Kunne ikke lagre tid: ' + error);
+      });
