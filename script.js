@@ -415,7 +415,7 @@ function createNewCustomer() {
   
   // Prepare data for the new customer
   const data = {
-    action: "createCustomer",
+    action: "addCustomer", // Endre fra "createCustomer" til "addCustomer" for å matche Google Apps Script
     customerName: customerName,
     availableHours: availableHours,
     timeSpent: decimalHours,
@@ -503,8 +503,8 @@ function updateCustomer() {
   // Prepare data for the update
   const data = {
     action: "updateCustomer",
-    customerName: customers[index].name, // Original name for finding the customer
-    newName: customerName,
+    oldName: customers[index].name, // Endre fra customerName til oldName for å matche Google Apps Script
+    customerName: customerName, // Legg til nytt navn
     availableHours: availableHours
   };
   
