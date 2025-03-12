@@ -18,7 +18,61 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Start auto-refresh
   startAutoRefresh();
+  
+  // Legg til globale event listeners
+  addGlobalEventListeners();
 });
+
+// Legg til globale event listeners
+function addGlobalEventListeners() {
+  // Fikser kommentar-skjema knappen
+  const submitButton = document.querySelector('#commentModal .submit-btn');
+  if (submitButton) {
+    submitButton.addEventListener('click', function() {
+      submitTime();
+    });
+  }
+  
+  // Fikser ny kunde-skjema knappen
+  const createCustomerButton = document.querySelector('#newCustomerModal .submit-btn');
+  if (createCustomerButton) {
+    createCustomerButton.addEventListener('click', function() {
+      createNewCustomer();
+    });
+  }
+  
+  // Fikser rediger kunde-skjema knappen
+  const updateCustomerButton = document.querySelector('#editCustomerModal .submit-btn');
+  if (updateCustomerButton) {
+    updateCustomerButton.addEventListener('click', function() {
+      updateCustomer();
+    });
+  }
+  
+  // Fikser slett kunde-skjema knappen
+  const deleteCustomerButton = document.querySelector('#confirmDeleteModal .delete-btn');
+  if (deleteCustomerButton) {
+    deleteCustomerButton.addEventListener('click', function() {
+      deleteCustomer();
+    });
+  }
+  
+  // Fikser avbryt-knapper
+  document.querySelectorAll('.cancel-btn, .close').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const modalId = this.closest('.modal').id;
+      closeModal(modalId);
+    });
+  });
+  
+  // Fikser "Oppdater data"-knappen
+  const refreshButton = document.getElementById('refresh-button');
+  if (refreshButton) {
+    refreshButton.addEventListener('click', function() {
+      fetchCustomerData();
+    });
+  }
+}
 
 // Update the current date display
 function updateCurrentDate() {
@@ -170,7 +224,7 @@ function renderCustomers() {
   const activeCustomerId = activeBox ? activeBox.getAttribute('data-id') : null;
   
   // Clear existing customer boxes, but keep the "add customer" button
-  const addCustomerButton = document.querySelector('.add-customer');
+  const addCustomerButton = document.getElementById('add-customer-box');
   while (container.firstChild) {
     container.removeChild(container.firstChild);
   }
@@ -282,6 +336,10 @@ function toggleTimer(box) {
     const modal = document.getElementById('commentModal');
     document.getElementById('modal-customer-name').textContent = customerName;
     document.getElementById('modal-time-spent').textContent = 'Tid brukt: ' + timeSpentFormatted;
+    
+    // Clear any previous comment
+    document.getElementById('comment-text').value = '';
+    
     modal.style.display = 'block';
     
     // Save data for submission
@@ -367,6 +425,12 @@ function stopNewCustomerTimer() {
   // Show the new customer modal
   const modal = document.getElementById('newCustomerModal');
   document.getElementById('new-customer-time-spent').textContent = 'Tid brukt: ' + timeSpentFormatted;
+  
+  // Clear any previous values
+  document.getElementById('new-customer-name').value = '';
+  document.getElementById('new-customer-hours').value = '';
+  document.getElementById('new-customer-comment').value = '';
+  
   modal.style.display = 'block';
   
   // Save time data for later use
@@ -407,8 +471,65 @@ function calculateHoursFromMs(ms) {
 }
 
 function submitTime() {
+  // Hent data fra modal-elementer
+  const customerName = document.getElementById('modal-customer-name').textContent;
+  const timeSpentText = document.getElementById('modal-time-spent').textContent;
+  
+  // Sjekk om activeBox finnes
+  if (!activeBox) {
+    // Finn kunden basert på navn
+    const customerIndex = customers.findIndex(c => c.name === customerName);
+    
+    if (customerIndex === -1) {
+      console.error('Kunne ikke finne kunde:', customerName);
+      alert('Kunne ikke finne kunden. Prøv å starte timeren på nytt.');
+      closeModal('commentModal');
+      return;
+    }
+    
+    // Finn customerId (indeks + 1)
+    const customerId = customerIndex + 1;
+    
+    // Finn boks eller rekonstruer timer-data
+    activeBox = document.querySelector(`.customer-box[data-id="${customerId}"]`);
+    
+    // Hvis timer-data mangler, rekonstruer det basert på tidsteksten
+    if (!timers[customerId]) {
+      // Hent tid fra tekst (f.eks. "Tid brukt: 00:10:30")
+      const timeMatch = timeSpentText.match(/(\d{2}):(\d{2}):(\d{2})$/);
+      if (timeMatch) {
+        const hours = parseInt(timeMatch[1]);
+        const minutes = parseInt(timeMatch[2]);
+        const seconds = parseInt(timeMatch[3]);
+        const totalMs = (hours * 3600 + minutes * 60 + seconds) * 1000;
+        
+        // Lager dummy timer-data
+        timers[customerId] = {
+          customerName: customerName,
+          timeSpentMs: totalMs,
+          timeSpentFormatted: `${padZero(hours)}:${padZero(minutes)}:${padZero(seconds)}`,
+          startTime: new Date(new Date().getTime() - totalMs),
+          endTime: new Date()
+        };
+      } else {
+        console.error('Kunne ikke parse tidstekst:', timeSpentText);
+        alert('Kunne ikke lese tidsinformasjon. Prøv å starte timeren på nytt.');
+        closeModal('commentModal');
+        return;
+      }
+    }
+  }
+
   const customerId = activeBox.getAttribute('data-id');
   const comment = document.getElementById('comment-text').value;
+  
+  // Sjekk om timers[customerId] finnes
+  if (!timers[customerId]) {
+    console.error('Timer data mangler for kunde', customerId);
+    alert('Det oppstod en feil. Timer-data mangler. Prøv å starte timeren på nytt.');
+    closeModal('commentModal');
+    return;
+  }
   
   // Get current date
   const now = new Date();
@@ -470,6 +591,31 @@ function submitTime() {
     });
 }
 
+function cancelNewCustomer() {
+  // Stopp timeren først
+  if (newCustomerTimer) {
+    clearInterval(newCustomerTimer.interval);
+    newCustomerTimer = null;
+    document.getElementById('add-customer-box').classList.remove('active');
+    document.getElementById('new-customer-timer').textContent = '00:00:00';
+  }
+  
+  // Lukk modalvinduet
+  closeModal('newCustomerModal');
+}
+
+function showEditCustomer(index) {
+  const customer = customers[index];
+  
+  // Fill the edit form with current values
+  document.getElementById('edit-customer-name').value = customer.name;
+  document.getElementById('edit-customer-hours').value = customer.availableHours.toFixed(1);
+  document.getElementById('edit-customer-id').value = index;
+  
+  // Show the modal
+  document.getElementById('editCustomerModal').style.display = 'block';
+}
+
 function createNewCustomer() {
   const customerName = document.getElementById('new-customer-name').value.trim();
   const availableHours = parseFloat(document.getElementById('new-customer-hours').value);
@@ -484,6 +630,16 @@ function createNewCustomer() {
   if (isNaN(availableHours) || availableHours <= 0) {
     alert('Vennligst skriv inn et gyldig antall timer');
     return;
+  }
+  
+  // Sjekk om newCustomerTimer finnes
+  if (!newCustomerTimer) {
+    console.warn('newCustomerTimer mangler, oppretter ny kunde uten timer');
+    // Fortsett uten timer-data
+    newCustomerTimer = {
+      timeSpentMs: 0,
+      timeSpentFormatted: '00:00:00'
+    };
   }
   
   // Calculate decimal hours (rounded to quarter hours)
@@ -726,18 +882,3 @@ function sendDataToGoogleScript(data, successMessage) {
     // Send skjemaet
     form.submit();
   });
-}
-
-// Legg til denne koden i slutten av script.js
-
-// Sikre at alle knapper har riktige event-lyttere
-document.addEventListener('DOMContentLoaded', function() {
-  // Fikser kommentar-skjema knappen
-  const submitButton = document.querySelector('.submit-btn');
-  if (submitButton) {
-    submitButton.addEventListener('click', function(e) {
-      e.preventDefault();
-      submitTime();
-    });
-  }
-});
