@@ -1,5 +1,5 @@
 // Google Script URL - Samme URL som i hovedapplikasjonen
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLMBs8Pcu2gu_fG-Y6nOit5iMIRbMcuTAkdFqTEslM7aNPZoFbqdDjQziGhAbG7ruB/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/library/d/1xAN4W-WVMWVU3w1gZMYGps0cAjKwK0nR2_e9l1YbLTnZZxX-k_3LXiNk/3';
 
 // Variabler for datoer og data
 let currentMonth = new Date().getMonth();
