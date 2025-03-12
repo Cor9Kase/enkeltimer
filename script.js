@@ -727,3 +727,17 @@ function sendDataToGoogleScript(data, successMessage) {
     form.submit();
   });
 }
+
+// Legg til denne koden i slutten av script.js
+
+// Sikre at alle knapper har riktige event-lyttere
+document.addEventListener('DOMContentLoaded', function() {
+  // Fikser kommentar-skjema knappen
+  const submitButton = document.querySelector('.submit-btn');
+  if (submitButton) {
+    submitButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      submitTime();
+    });
+  }
+});
