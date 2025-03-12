@@ -113,21 +113,23 @@ function fetchCustomerData() {
     });
 }
 
-// JSONP metode for å unngå CORS-problemer
+// I script.js, erstatt fetchCustomersWithJSONP-funksjonen med denne forenklede versjonen:
 function fetchCustomersWithJSONP() {
+  console.log("Starter JSONP-forespørsel til:", GOOGLE_SCRIPT_URL);
+  
   return new Promise((resolve, reject) => {
     const callbackName = 'googleScriptCallback_' + Math.floor(Math.random() * 1000000);
     const url = `${GOOGLE_SCRIPT_URL}?action=getCustomers&callback=${callbackName}`;
     
-    // Sett timeout for å håndtere feiling
-    const timeoutId = setTimeout(() => {
-      cleanup();
-      reject(new Error('JSONP request timed out after 5 seconds'));
-    }, 5000);
+    console.log("JSONP URL:", url);
     
-    // Lag en global callback-funksjon som vil håndtere responsen
+    // Lag en global callback-funksjon
     window[callbackName] = function(data) {
-      cleanup();
+      console.log("JSONP callback mottatt data:", data);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+      delete window[callbackName];
       
       if (data && data.success) {
         processCustomerData(data);
@@ -137,23 +139,21 @@ function fetchCustomersWithJSONP() {
       }
     };
     
-    // Funksjon for å rydde opp etter forespørselen
-    function cleanup() {
-      clearTimeout(timeoutId);
-      document.body.removeChild(script);
-      delete window[callbackName];
-    }
-    
-    // Opprett et script-element for å laste JSONP
+    // Opprett script-element
     const script = document.createElement('script');
     script.src = url;
-    script.onerror = function() {
-      cleanup();
+    script.onerror = function(error) {
+      console.error("JSONP script feil:", error);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+      delete window[callbackName];
       reject(new Error('JSONP script loading failed'));
     };
     
-    // Legg til script på siden for å utføre forespørselen
+    // Legg til script på siden
     document.body.appendChild(script);
+    console.log("JSONP script lagt til i DOM");
   });
 }
 
