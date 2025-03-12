@@ -6,6 +6,7 @@ const timers = {};
 let activeBox = null;
 let customers = [];
 let newCustomerTimer = null;
+let isAutoRefreshPaused = false;
 
 // Load customer data when page loads
 document.addEventListener('DOMContentLoaded', function() {
@@ -35,7 +36,10 @@ function loadCustomers() {
 function startAutoRefresh() {
   // Oppdater kundedata hvert 30. sekund
   setInterval(() => {
-    fetchCustomerData();
+    // Bare oppdater data hvis ingen timer er aktiv
+    if (!isAutoRefreshPaused) {
+      fetchCustomerData();
+    }
   }, 30000); // 30000 ms = 30 sekunder
 }
 
@@ -83,6 +87,9 @@ function fetchCustomerData() {
 function renderCustomers() {
   const container = document.getElementById('customer-container');
   
+  // Find any active timer
+  const activeCustomerId = activeBox ? activeBox.getAttribute('data-id') : null;
+  
   // Clear existing customer boxes, but keep the "add customer" button
   const addCustomerButton = document.querySelector('.add-customer');
   while (container.firstChild) {
@@ -107,11 +114,25 @@ function renderCustomers() {
     
     const timerDiv = document.createElement('div');
     timerDiv.className = 'timer';
-    timerDiv.textContent = '00:00:00';
     
     const statusDiv = document.createElement('div');
     statusDiv.className = 'status';
-    statusDiv.textContent = 'Inaktiv';
+    
+    // If this is the active customer, restore timer state
+    if (activeCustomerId && parseInt(activeCustomerId) === index + 1) {
+      customerBox.classList.add('active');
+      statusDiv.textContent = 'Aktiv';
+      
+      // Calculate elapsed time for this timer
+      const elapsedTime = new Date() - timers[activeCustomerId].startTime;
+      timerDiv.textContent = formatTime(elapsedTime);
+      
+      // Update activeBox reference
+      activeBox = customerBox;
+    } else {
+      timerDiv.textContent = '00:00:00';
+      statusDiv.textContent = 'Inaktiv';
+    }
     
     // Create action buttons container
     const actionsDiv = document.createElement('div');
@@ -171,6 +192,7 @@ function toggleTimer(box) {
     clearInterval(timers[customerId].interval);
     box.classList.remove('active');
     statusDisplay.textContent = 'Inaktiv';
+    isAutoRefreshPaused = false; // Resume auto-refresh
     
     // Calculate time spent
     const endTime = new Date();
@@ -187,7 +209,7 @@ function toggleTimer(box) {
     timers[customerId].endTime = endTime;
     timers[customerId].timeSpentFormatted = timeSpentFormatted;
     timers[customerId].timeSpentMs = timeSpent;
-    activeBox = box;
+    activeBox = null;
   } else {
     // If another box is active (including new customer), deactivate it first
     if (activeBox) {
@@ -195,6 +217,9 @@ function toggleTimer(box) {
     } else if (document.getElementById('add-customer-box').classList.contains('active')) {
       stopNewCustomerTimer();
     }
+    
+    // Pause auto-refresh when a timer is active
+    isAutoRefreshPaused = true;
     
     // Start a new timer
     box.classList.add('active');
@@ -229,6 +254,9 @@ function startNewCustomerTimer() {
     return;
   }
   
+  // Pause auto-refresh when a timer is active
+  isAutoRefreshPaused = true;
+  
   // Start the new customer timer
   addCustomerBox.classList.add('active');
   const timerDisplay = document.getElementById('new-customer-timer');
@@ -250,6 +278,7 @@ function stopNewCustomerTimer() {
   clearInterval(newCustomerTimer.interval);
   const addCustomerBox = document.getElementById('add-customer-box');
   addCustomerBox.classList.remove('active');
+  isAutoRefreshPaused = false; // Resume auto-refresh
   
   // Calculate time spent
   const endTime = new Date();
@@ -392,6 +421,9 @@ function cancelNewCustomer() {
   
   // Reset the newCustomerTimer
   newCustomerTimer = null;
+  
+  // Resume auto-refresh
+  isAutoRefreshPaused = false;
 }
 
 function createNewCustomer() {
@@ -502,11 +534,11 @@ function updateCustomer() {
   
   // Prepare data for the update
   const data = {
-  action: "updateCustomer",
-  oldName: customers[index].name,
-  newName: customerName,  // Endre fra customerName til newName
-  availableHours: availableHours
-};
+    action: "updateCustomer",
+    oldName: customers[index].name, // Endre fra customerName til oldName for å matche Google Apps Script
+    customerName: customerName, // Legg til nytt navn
+    availableHours: availableHours
+  };
   
   // Send data to Google Sheets
   fetch(GOOGLE_SCRIPT_URL, {
