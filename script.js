@@ -855,7 +855,7 @@ function deleteCustomer() {
 // Forbedret metode for å sende data til Google Apps Script
 function sendDataToGoogleScript(data, successMessage) {
   return new Promise((resolve, reject) => {
-    // Indiker til brukeren at data sendes
+    // Vis status til brukeren
     const statusMessage = document.createElement('div');
     statusMessage.textContent = 'Sender data...';
     statusMessage.style.position = 'fixed';
@@ -868,132 +868,104 @@ function sendDataToGoogleScript(data, successMessage) {
     statusMessage.style.zIndex = '9999';
     document.body.appendChild(statusMessage);
     
-    console.log("Sender data til URL:", GOOGLE_SCRIPT_URL);
-    console.log("Data:", data);
+    // Forbered URL med parametere (GET-metode som fallback)
+    const params = new URLSearchParams();
+    for (const key in data) {
+      params.append(key, typeof data[key] === 'object' ? JSON.stringify(data[key]) : data[key]);
+    }
+    const getUrl = `${GOOGLE_SCRIPT_URL}?${params.toString()}`;
     
-    // Bruk fetch API først for direkte innsending
-    fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    })
-    .then(response => {
-      console.log("Fetch response:", response);
-      return response.text();
-    })
-    .then(text => {
-      console.log("Responstekst:", text);
-      try {
-        const response = JSON.parse(text);
-        cleanup();
-        
-        if (response && response.success) {
-          resolve(response);
-        } else {
-          reject(new Error(response && response.message ? response.message : 'Ukjent feil'));
+    console.log("Forsøker å sende data med GET-metode:", getUrl);
+    
+    // Forsøk GET-metode først (mer kompatibel)
+    fetch(getUrl)
+      .then(response => {
+        console.log("GET-respons mottatt:", response);
+        return response.text();
+      })
+      .then(text => {
+        try {
+          console.log("Responstekst:", text);
+          const data = JSON.parse(text);
+          if (data && data.success) {
+            cleanup();
+            resolve(data);
+          } else {
+            throw new Error(data.message || 'Ukjent feil');
+          }
+        } catch (e) {
+          console.error("Feil ved parsing av respons:", e);
+          cleanup();
+          reject(new Error('Kunne ikke tolke respons fra serveren'));
         }
-      } catch (e) {
-        console.log("Kunne ikke parse JSON respons, forsøker form-metode");
-        // Hvis fetch ikke fungerer, prøv form-submission approach som fallback
-        tryFormSubmission();
-      }
-    })
-    .catch(error => {
-      console.error("Fetch feilet, forsøker form-metode:", error);
-      // Hvis fetch ikke fungerer, prøv form-submission approach som fallback
-      tryFormSubmission();
-    });
+      })
+      .catch(error => {
+        console.error("GET-metode feilet, fallback til iframe:", error);
+        tryIframeMethod();
+      });
     
-    // Form submission approach som fallback
-    function tryFormSubmission() {
-      // Bruk form-submission approach
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = GOOGLE_SCRIPT_URL;
+    // Fallback-metode med iframe
+    function tryIframeMethod() {
+      const formId = 'hidden-form-' + Math.random().toString(36).substring(2);
+      const iframeId = 'hidden-iframe-' + Math.random().toString(36).substring(2);
       
-      // Opprett et skjult iframe for å unngå side-reload
+      // Opprett iframe
       const iframe = document.createElement('iframe');
-      iframe.name = 'hidden-iframe';
+      iframe.id = iframeId;
+      iframe.name = iframeId;
       iframe.style.display = 'none';
       document.body.appendChild(iframe);
-      form.target = 'hidden-iframe';
       
-      // Legg til data som skjulte inputfelt
-      const jsonInput = document.createElement('input');
-      jsonInput.type = 'hidden';
-      jsonInput.name = 'json';
-      jsonInput.value = JSON.stringify(data);
-      form.appendChild(jsonInput);
+      // Opprett form
+      const form = document.createElement('form');
+      form.id = formId;
+      form.method = 'POST';
+      form.action = GOOGLE_SCRIPT_URL;
+      form.target = iframeId;
       
-      // Legg til skjemaet i DOM
+      // Legg til data i form
+      for (const key in data) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = typeof data[key] === 'object' ? JSON.stringify(data[key]) : data[key];
+        form.appendChild(input);
+      }
+      
       document.body.appendChild(form);
       
-      // Sett timeout for å håndtere manglende svar
+      // Håndter timeout
       const timeoutId = setTimeout(() => {
+        console.error("Iframe-metode tidsavbrutt");
         cleanup();
         reject(new Error('Forespørselen tok for lang tid. Sjekk nettverksforbindelsen din.'));
-      }, 15000);
+      }, 20000); // 20 sekunder timeout
       
-      // Lytt på iframe last for å fange respons
-      iframe.addEventListener('load', function() {
-        try {
-          clearTimeout(timeoutId);
-          
-          // Prøv å lese responsen fra iframe
-          let response = null;
-          try {
-            const iframeContent = iframe.contentWindow.document.body.innerText;
-            console.log("iframe response:", iframeContent);
-            if (iframeContent) {
-              response = JSON.parse(iframeContent);
-            }
-          } catch (err) {
-            console.warn('Kunne ikke lese respons fra iframe', err);
-            // Fortsett selv om vi ikke kan lese responsen
-            response = { success: true };
-          }
-          
-          if (response && response.success) {
-            resolve(response);
-          } else {
-            reject(new Error(response && response.message ? response.message : 'Ukjent feil'));
-          }
-        } finally {
-          cleanup();
-        }
-      });
-      
-      // Håndter feil ved lasting av iframe
-      iframe.addEventListener('error', function(error) {
-        console.error("iframe error:", error);
+      // Håndter suksess
+      iframe.onload = function() {
         clearTimeout(timeoutId);
+        console.log("Iframe lastet");
+        // Anta suksess siden vi faktisk ikke kan lese responsen
         cleanup();
-        reject(new Error('Kunne ikke sende data til Google Sheets'));
-      });
+        resolve({ success: true, message: successMessage });
+      };
       
-      // Send skjemaet
+      console.log("Sender form med iframe-metode");
       form.submit();
-      console.log("Form submitted");
     }
     
-    // Funksjon for å rydde opp
+    // Rydde opp etter både suksess og feil
     function cleanup() {
       if (document.body.contains(statusMessage)) {
         document.body.removeChild(statusMessage);
       }
       
-      // Rydd opp etter form-submission hvis det ble brukt
-      const iframe = document.querySelector('iframe[name="hidden-iframe"]');
-      if (iframe) {
-        document.body.removeChild(iframe);
-      }
+      // Rydd opp iframe og form hvis de finnes
+      const form = document.getElementById(formId);
+      const iframe = document.getElementById(iframeId);
       
-      const form = document.querySelector('form[target="hidden-iframe"]');
-      if (form) {
-        document.body.removeChild(form);
-      }
+      if (form) document.body.removeChild(form);
+      if (iframe) document.body.removeChild(iframe);
     }
   });
 }
