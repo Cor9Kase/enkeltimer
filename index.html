@@ -20,7 +20,29 @@
   </button>
 </div>
   </div>
+  <button onclick="testConnection()" style="position:fixed; bottom:10px; right:10px; background-color:#ff5555; color:white; padding:8px 15px; border-radius:5px; border:none; cursor:pointer; z-index:1000;">Nødtest</button>
+
+<script>
+function testConnection() {
+  const url = 'https://script.google.com/macros/s/AKfycbwFA5Kxga-ZkMLcNLONBO0AJfBfjNOKRLUQ5UMO8fW4dtE1TIsu2rFXOOXSIjwxzXuC/exec?action=getCustomers';
+  console.log("Tester URL:", url);
+  alert("Tester tilkobling til Google Script.\nSe konsollen (F12) for resultater.");
   
+  fetch(url)
+    .then(response => {
+      console.log("Respons status:", response.status);
+      return response.text();
+    })
+    .then(text => {
+      console.log("Respons tekst:", text);
+      alert("Mottok respons! Se konsollen for detaljer.");
+    })
+    .catch(error => {
+      console.error("Tilkoblingsfeil:", error);
+      alert("Tilkoblingsfeil: " + error.message);
+    });
+}
+</script>
   <div class="container" id="customer-container">
     <!-- Add customer button always comes first -->
     <div class="add-customer" id="add-customer-box" onclick="startNewCustomerTimer()">
