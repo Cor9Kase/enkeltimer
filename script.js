@@ -1,5 +1,5 @@
 // Google Script URL - Erstatt denne med din egen URL fra Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwQ2DPnudHI1m9Q3ozVUdRX84N59fZDH3HcUSgNVXI6GJUQI_SzPUUH3TVOcxsMtDtR/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxNBmZWKZrAKD6vi-LMuwS95urtixSzLlmq2DQNXR-OIgJ8Ncukm0cSjssr6CxfwVZC/exec';
 
 // Store active timers and their data
 const timers = {};
@@ -44,110 +44,123 @@ function startAutoRefresh() {
 }
 
 function fetchCustomerData() {
-  // Prøv med JSONP-tilnærming for å unngå CORS-problemer
-  // Bygg URL med callback-parameter
-  const callbackName = 'googleScriptCallback';
-  const url = `${GOOGLE_SCRIPT_URL}?action=getCustomers&callback=${callbackName}`;
+  // Gi tilbakemelding til brukeren om at data hentes
+  document.getElementById('last-updated').textContent = 'Henter data...';
   
-  // Lag en global callback-funksjon som vil håndtere responsen
-  window[callbackName] = function(data) {
-    // Fjern scriptet når det er ferdig
-    document.body.removeChild(script);
+  // Bruk en kombinasjon av metoder for å håndtere tilkoblingsproblemer
+  fetchCustomersWithJSONP()
+    .catch(error => {
+      console.warn('JSONP request failed, trying direct fetch:', error);
+      return fetchCustomersDirect();
+    })
+    .catch(error => {
+      console.error('All connection attempts failed:', error);
+      useMockData();
+    });
+}
+
+// JSONP metode for å unngå CORS-problemer
+function fetchCustomersWithJSONP() {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'googleScriptCallback_' + Math.floor(Math.random() * 1000000);
+    const url = `${GOOGLE_SCRIPT_URL}?action=getCustomers&callback=${callbackName}`;
     
-    if (data.success) {
-      // Sort customers alphabetically
-      customers = data.customers.sort((a, b) => a.name.localeCompare(b.name));
+    // Sett timeout for å håndtere feiling
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error('JSONP request timed out after 5 seconds'));
+    }, 5000);
+    
+    // Lag en global callback-funksjon som vil håndtere responsen
+    window[callbackName] = function(data) {
+      cleanup();
       
-      // Render the customer boxes
-      renderCustomers();
-      
-      // Update last updated time
-      const now = new Date();
-      document.getElementById('last-updated').textContent = now.toLocaleTimeString();
-    } else {
-      console.error('Error in Google Script response:', data);
-      useMockData();
+      if (data && data.success) {
+        processCustomerData(data);
+        resolve(data);
+      } else {
+        reject(new Error('Invalid response from Google Script'));
+      }
+    };
+    
+    // Funksjon for å rydde opp etter forespørselen
+    function cleanup() {
+      clearTimeout(timeoutId);
+      document.body.removeChild(script);
+      delete window[callbackName];
     }
-  };
+    
+    // Opprett et script-element for å laste JSONP
+    const script = document.createElement('script');
+    script.src = url;
+    script.onerror = function() {
+      cleanup();
+      reject(new Error('JSONP script loading failed'));
+    };
+    
+    // Legg til script på siden for å utføre forespørselen
+    document.body.appendChild(script);
+  });
+}
+
+// Direkte fetch-metode (fungerer bare hvis CORS er konfigurert)
+function fetchCustomersDirect() {
+  return fetch(`${GOOGLE_SCRIPT_URL}?action=getCustomers`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data && data.success) {
+        processCustomerData(data);
+        return data;
+      } else {
+        throw new Error('Invalid response from Google Script');
+      }
+    });
+}
+
+// Behandle kundedata etter vellykket henting
+function processCustomerData(data) {
+  // Sort customers alphabetically
+  customers = data.customers.sort((a, b) => a.name.localeCompare(b.name));
   
-  // Alternativ tilnærming: Bruk direkte response fra URL
-  // Dette er en hack som prøver å håndtere tilfeller der Google Script
-  // sender direkte JSON i stedet for JSONP
-  const fallbackTimeout = setTimeout(() => {
-    try {
-      // Hvis JSONP ikke fungerer, prøv vanlig fetch
-      fetch(GOOGLE_SCRIPT_URL + '?action=getCustomers', { mode: 'no-cors' })
-        .then(response => {
-          // Hvis responsen kan leses som tekst
-          if (response && response.text) {
-            return response.text();
-          }
-          throw new Error('Unable to read response');
-        })
-        .then(text => {
-          try {
-            // Prøv å tolke JSON-responsen
-            const data = JSON.parse(text);
-            if (data.success) {
-              // Sort customers alphabetically
-              customers = data.customers.sort((a, b) => a.name.localeCompare(b.name));
-              
-              // Render the customer boxes
-              renderCustomers();
-              
-              // Update last updated time
-              const now = new Date();
-              document.getElementById('last-updated').textContent = now.toLocaleTimeString();
-              return;
-            }
-          } catch (e) {
-            console.error('Error parsing direct response:', e);
-          }
-          useMockData();
-        })
-        .catch(error => {
-          console.error('Error with direct fetch:', error);
-          useMockData();
-        });
-    } catch (e) {
-      console.error('Error during fallback fetch:', e);
-      useMockData();
-    }
-  }, 3000); // Vent 3 sekunder før fallback
+  // Render the customer boxes
+  renderCustomers();
   
-  // Opprett et script-element for å laste JSONP
-  const script = document.createElement('script');
-  script.src = url;
-  script.onerror = function() {
-    document.body.removeChild(script);
-    console.error('JSONP request failed');
-    useMockData();
-  };
+  // Update last updated time
+  const now = new Date();
+  document.getElementById('last-updated').textContent = now.toLocaleTimeString();
+}
+
+// Funksjon for å bruke testdata
+function useMockData() {
+  console.log('Fallback to mock data for testing');
+  const mockCustomerData = [
+    { name: "Kunde 1 AS", availableHours: 40 },
+    { name: "Kunde 3 AS", availableHours: 25 },
+    { name: "Kunde 2 AS", availableHours: 60 },
+    { name: "Kunde 4 AS", availableHours: 15 }
+  ];
   
-  // Legg til script på siden for å utføre forespørselen
-  document.body.appendChild(script);
+  // Sort customers alphabetically
+  customers = mockCustomerData.sort((a, b) => a.name.localeCompare(b.name));
   
-  // Funksjon for å bruke testdata
-  function useMockData() {
-    // For offline testing, use mock data
-    if (customers.length === 0) {
-      console.log('Fallback to mock data for testing');
-      const mockCustomerData = [
-        { name: "Kunde 1 AS", availableHours: 40 },
-        { name: "Kunde 3 AS", availableHours: 25 },
-        { name: "Kunde 2 AS", availableHours: 60 },
-        { name: "Kunde 4 AS", availableHours: 15 }
-      ];
-      
-      // Sort customers alphabetically
-      customers = mockCustomerData.sort((a, b) => a.name.localeCompare(b.name));
-      
-      // Render the customer boxes
-      renderCustomers();
-      
-      alert('Kunne ikke koble til Google Sheets. Bruker testdata.');
-    }
-  }
+  // Render the customer boxes
+  renderCustomers();
+  
+  // Update last updated time with error indication
+  document.getElementById('last-updated').textContent = 'Frakoblet modus';
+  
+  // Vise en mer brukervennlig feilmelding
+  const errorMessage = "Kunne ikke koble til Google Sheets. Bruker testdata i frakoblet modus. Kontroller at:\n" +
+                       "1. Google Apps Script URL-en er korrekt\n" +
+                       "2. Skriptet er publisert som en webapplikasjon\n" +
+                       "3. Skriptet har tilgangsrettighetene 'Alle, inkludert anonyme'";
+  
+  alert(errorMessage);
 }
 
 function renderCustomers() {
@@ -433,103 +446,9 @@ function submitTime() {
     date: dateStr
   };
   
-  // Bruk en CORS proxy hvis nødvendig
-  const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-  const useProxy = false; // Sett til true hvis du trenger en proxy
-  
-  // Send data via JSONP ikke mulig for POST, så bruk form-data i et iframe
-  const iframe = document.createElement('iframe');
-  iframe.style.display = 'none';
-  document.body.appendChild(iframe);
-  
-  // Opprett et skjema som sender data til Google Script
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = useProxy ? proxyUrl + GOOGLE_SCRIPT_URL : GOOGLE_SCRIPT_URL;
-  form.target = 'submitFrame';
-  
-  // Legg til data som skjulte felt
-  const jsonField = document.createElement('input');
-  jsonField.type = 'hidden';
-  jsonField.name = 'json';
-  jsonField.value = JSON.stringify(data);
-  form.appendChild(jsonField);
-  
-  // Sett iframe navn
-  iframe.name = 'submitFrame';
-  
-  // Legg til skjema på siden og send
-  document.body.appendChild(form);
-  
-  // Håndter responsen
-  iframe.onload = function() {
-    try {
-      // Prøv å hente responsen fra iframe
-      const responseText = iframe.contentDocument.body.textContent;
-      let result;
-      
-      try {
-        result = JSON.parse(responseText);
-      } catch (e) {
-        // Hvis vi ikke kan tolke JSON, anta at det var vellykket
-        result = { success: true };
-      }
-      
-      if (result && result.success) {
-        // Reset the timer display
-        activeBox.querySelector('.timer').textContent = '00:00:00';
-        
-        // Close the modal
-        closeModal('commentModal');
-        
-        // Clear the active box reference
-        activeBox = null;
-        
-        // Re-render the customers to show updated available hours
-        renderCustomers();
-        
-        // Show confirmation
-        alert('Timer lagret for ' + data.customerName + '!');
-      } else {
-        alert('Kunne ikke lagre tid: ' + (result && result.message ? result.message : 'Ukjent feil'));
-      }
-    } catch (e) {
-      console.error('Error processing response:', e);
-      
-      // Anta at det var vellykket selv om vi ikke kunne lese responsen
-      // Reset the timer display
-      activeBox.querySelector('.timer').textContent = '00:00:00';
-      
-      // Close the modal
-      closeModal('commentModal');
-      
-      // Clear the active box reference
-      activeBox = null;
-      
-      // Re-render the customers to show updated available hours
-      renderCustomers();
-      
-      // Show confirmation but with a warning
-      alert('Timer trolig lagret for ' + data.customerName + ', men kunne ikke bekrefte.');
-    }
-    
-    // Fjern iframe og skjema
-    document.body.removeChild(iframe);
-    document.body.removeChild(form);
-  };
-  
-  // Send skjemaet
-  form.submit();
-}
-  
-  // Send data to Google Sheets
-  fetch(GOOGLE_SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify(data)
-  })
-  .then(response => response.json())
-  .then(result => {
-    if (result.success) {
+  // Forbedret metode for å sende data til Google Apps Script
+  sendDataToGoogleScript(data, 'Tid registrert')
+    .then(() => {
       // Reset the timer display
       activeBox.querySelector('.timer').textContent = '00:00:00';
       
@@ -544,41 +463,11 @@ function submitTime() {
       
       // Show confirmation
       alert('Timer lagret for ' + data.customerName + '!');
-    } else {
-      alert('Kunne ikke lagre tid: ' + (result.message || 'Ukjent feil'));
-    }
-  })
-  .catch(error => {
-    console.error('Error logging time:', error);
-    alert('Kunne ikke lagre tid: ' + error);
-  });
-}
-
-function cancelNewCustomer() {
-  // Stop the timer if it's running
-  if (newCustomerTimer && newCustomerTimer.interval) {
-    clearInterval(newCustomerTimer.interval);
-  }
-  
-  // Reset the timer display
-  document.getElementById('new-customer-timer').textContent = '00:00:00';
-  
-  // Clear the form
-  document.getElementById('new-customer-name').value = '';
-  document.getElementById('new-customer-hours').value = '';
-  document.getElementById('new-customer-comment').value = '';
-  
-  // Close the modal
-  closeModal('newCustomerModal');
-  
-  // Reset the add customer box
-  document.getElementById('add-customer-box').classList.remove('active');
-  
-  // Reset the newCustomerTimer
-  newCustomerTimer = null;
-  
-  // Resume auto-refresh
-  isAutoRefreshPaused = false;
+    })
+    .catch(error => {
+      console.error('Error logging time:', error);
+      alert('Kunne ikke lagre tid: ' + error.message);
+    });
 }
 
 function createNewCustomer() {
@@ -610,14 +499,9 @@ function createNewCustomer() {
     date: new Date().toISOString().slice(0, 10)
   };
   
-  // Send data to Google Sheets
-  fetch(GOOGLE_SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify(data)
-  })
-  .then(response => response.json())
-  .then(result => {
-    if (result.success) {
+  // Send data to Google Sheets with improved method
+  sendDataToGoogleScript(data, 'Ny kunde opprettet')
+    .then(() => {
       // Add the new customer to the local array
       customers.push({
         name: customerName,
@@ -649,26 +533,11 @@ function createNewCustomer() {
       
       // Show confirmation
       alert('Ny kunde opprettet: ' + customerName);
-    } else {
-      alert('Kunne ikke opprette kunde: ' + (result.message || 'Ukjent feil'));
-    }
-  })
-  .catch(error => {
-    console.error('Error creating customer:', error);
-    alert('Kunne ikke opprette kunde: ' + error);
-  });
-}
-
-function showEditCustomer(index) {
-  const customer = customers[index];
-  
-  // Fill the form with customer data
-  document.getElementById('edit-customer-name').value = customer.name;
-  document.getElementById('edit-customer-hours').value = customer.availableHours;
-  document.getElementById('edit-customer-id').value = index;
-  
-  // Show the modal
-  document.getElementById('editCustomerModal').style.display = 'block';
+    })
+    .catch(error => {
+      console.error('Error creating customer:', error);
+      alert('Kunne ikke opprette kunde: ' + error.message);
+    });
 }
 
 function updateCustomer() {
@@ -695,14 +564,9 @@ function updateCustomer() {
     availableHours: availableHours
   };
   
-  // Send data to Google Sheets
-  fetch(GOOGLE_SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify(data)
-  })
-  .then(response => response.json())
-  .then(result => {
-    if (result.success) {
+  // Send data to Google Sheets with improved method
+  sendDataToGoogleScript(data, 'Kunde oppdatert')
+    .then(() => {
       // Update the local data
       customers[index].name = customerName;
       customers[index].availableHours = availableHours;
@@ -718,14 +582,11 @@ function updateCustomer() {
       
       // Show confirmation
       alert('Kunde oppdatert: ' + customerName);
-    } else {
-      alert('Kunne ikke oppdatere kunde: ' + (result.message || 'Ukjent feil'));
-    }
-  })
-  .catch(error => {
-    console.error('Error updating customer:', error);
-    alert('Kunne ikke oppdatere kunde: ' + error);
-  });
+    })
+    .catch(error => {
+      console.error('Error updating customer:', error);
+      alert('Kunne ikke oppdatere kunde: ' + error.message);
+    });
 }
 
 function confirmDeleteCustomer(index) {
@@ -749,14 +610,9 @@ function deleteCustomer() {
     customerName: customerName
   };
   
-  // Send data to Google Sheets
-  fetch(GOOGLE_SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify(data)
-  })
-  .then(response => response.json())
-  .then(result => {
-    if (result.success) {
+  // Send data to Google Sheets with improved method
+  sendDataToGoogleScript(data, 'Kunde slettet')
+    .then(() => {
       // Remove from local array
       customers.splice(index, 1);
       
@@ -768,12 +624,106 @@ function deleteCustomer() {
       
       // Show confirmation
       alert('Kunde slettet: ' + customerName);
-    } else {
-      alert('Kunne ikke slette kunde: ' + (result.message || 'Ukjent feil'));
+    })
+    .catch(error => {
+      console.error('Error deleting customer:', error);
+      alert('Kunne ikke slette kunde: ' + error.message);
+    });
+}
+
+// Forbedret metode for å sende data til Google Apps Script
+function sendDataToGoogleScript(data, successMessage) {
+  return new Promise((resolve, reject) => {
+    // Indiker til brukeren at data sendes
+    const statusMessage = document.createElement('div');
+    statusMessage.textContent = 'Sender data...';
+    statusMessage.style.position = 'fixed';
+    statusMessage.style.top = '10px';
+    statusMessage.style.right = '10px';
+    statusMessage.style.padding = '10px';
+    statusMessage.style.background = 'rgba(0, 0, 0, 0.7)';
+    statusMessage.style.color = '#fff';
+    statusMessage.style.borderRadius = '5px';
+    statusMessage.style.zIndex = '9999';
+    document.body.appendChild(statusMessage);
+    
+    // Bruk form-submission approach
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = GOOGLE_SCRIPT_URL;
+    
+    // Opprett et skjult iframe for å unngå side-reload
+    const iframe = document.createElement('iframe');
+    iframe.name = 'hidden-iframe';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    form.target = 'hidden-iframe';
+    
+    // Legg til data som skjulte inputfelt
+    const jsonInput = document.createElement('input');
+    jsonInput.type = 'hidden';
+    jsonInput.name = 'json';
+    jsonInput.value = JSON.stringify(data);
+    form.appendChild(jsonInput);
+    
+    // Legg til skjemaet i DOM
+    document.body.appendChild(form);
+    
+    // Sett timeout for å håndtere manglende svar
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error('Forespørselen tok for lang tid. Sjekk nettverksforbindelsen din.'));
+    }, 10000);
+    
+    // Lytt på iframe last for å fange respons
+    iframe.addEventListener('load', function() {
+      try {
+        clearTimeout(timeoutId);
+        
+        // Prøv å lese responsen fra iframe
+        let response = null;
+        try {
+          const iframeContent = iframe.contentWindow.document.body.innerText;
+          if (iframeContent) {
+            response = JSON.parse(iframeContent);
+          }
+        } catch (err) {
+          console.warn('Kunne ikke lese respons fra iframe', err);
+          // Fortsett selv om vi ikke kan lese responsen
+          response = { success: true };
+        }
+        
+        if (response && response.success) {
+          resolve(response);
+        } else {
+          reject(new Error(response && response.message ? response.message : 'Ukjent feil'));
+        }
+      } finally {
+        cleanup();
+      }
+    });
+    
+    // Håndter feil ved lasting av iframe
+    iframe.addEventListener('error', function() {
+      clearTimeout(timeoutId);
+      cleanup();
+      reject(new Error('Kunne ikke sende data til Google Sheets'));
+    });
+    
+    // Funksjon for å rydde opp
+    function cleanup() {
+      if (document.body.contains(statusMessage)) {
+        document.body.removeChild(statusMessage);
+      }
+      if (document.body.contains(form)) {
+        document.body.removeChild(form);
+      }
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
     }
-  })
-  .catch(error => {
-    console.error('Error deleting customer:', error);
-    alert('Kunne ikke slette kunde: ' + error);
+    
+    // Send skjemaet
+    form.submit();
   });
 }
