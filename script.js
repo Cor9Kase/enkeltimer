@@ -433,6 +433,95 @@ function submitTime() {
     date: dateStr
   };
   
+  // Bruk en CORS proxy hvis nødvendig
+  const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+  const useProxy = false; // Sett til true hvis du trenger en proxy
+  
+  // Send data via JSONP ikke mulig for POST, så bruk form-data i et iframe
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  document.body.appendChild(iframe);
+  
+  // Opprett et skjema som sender data til Google Script
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = useProxy ? proxyUrl + GOOGLE_SCRIPT_URL : GOOGLE_SCRIPT_URL;
+  form.target = 'submitFrame';
+  
+  // Legg til data som skjulte felt
+  const jsonField = document.createElement('input');
+  jsonField.type = 'hidden';
+  jsonField.name = 'json';
+  jsonField.value = JSON.stringify(data);
+  form.appendChild(jsonField);
+  
+  // Sett iframe navn
+  iframe.name = 'submitFrame';
+  
+  // Legg til skjema på siden og send
+  document.body.appendChild(form);
+  
+  // Håndter responsen
+  iframe.onload = function() {
+    try {
+      // Prøv å hente responsen fra iframe
+      const responseText = iframe.contentDocument.body.textContent;
+      let result;
+      
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        // Hvis vi ikke kan tolke JSON, anta at det var vellykket
+        result = { success: true };
+      }
+      
+      if (result && result.success) {
+        // Reset the timer display
+        activeBox.querySelector('.timer').textContent = '00:00:00';
+        
+        // Close the modal
+        closeModal('commentModal');
+        
+        // Clear the active box reference
+        activeBox = null;
+        
+        // Re-render the customers to show updated available hours
+        renderCustomers();
+        
+        // Show confirmation
+        alert('Timer lagret for ' + data.customerName + '!');
+      } else {
+        alert('Kunne ikke lagre tid: ' + (result && result.message ? result.message : 'Ukjent feil'));
+      }
+    } catch (e) {
+      console.error('Error processing response:', e);
+      
+      // Anta at det var vellykket selv om vi ikke kunne lese responsen
+      // Reset the timer display
+      activeBox.querySelector('.timer').textContent = '00:00:00';
+      
+      // Close the modal
+      closeModal('commentModal');
+      
+      // Clear the active box reference
+      activeBox = null;
+      
+      // Re-render the customers to show updated available hours
+      renderCustomers();
+      
+      // Show confirmation but with a warning
+      alert('Timer trolig lagret for ' + data.customerName + ', men kunne ikke bekrefte.');
+    }
+    
+    // Fjern iframe og skjema
+    document.body.removeChild(iframe);
+    document.body.removeChild(form);
+  };
+  
+  // Send skjemaet
+  form.submit();
+}
+  
   // Send data to Google Sheets
   fetch(GOOGLE_SCRIPT_URL, {
     method: 'POST',
