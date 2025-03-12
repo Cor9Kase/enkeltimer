@@ -43,45 +43,111 @@ function startAutoRefresh() {
   }, 30000); // 30000 ms = 30 sekunder
 }
 
-// Separate function to fetch customer data
 function fetchCustomerData() {
-  fetch(`${GOOGLE_SCRIPT_URL}?action=getCustomers`)
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        // Sort customers alphabetically
-        customers = data.customers.sort((a, b) => a.name.localeCompare(b.name));
-        
-        // Render the customer boxes
-        renderCustomers();
-        
-        // Update last updated time
-        const now = new Date();
-        document.getElementById('last-updated').textContent = now.toLocaleTimeString();
-      }
-    })
-    .catch(error => {
-      console.error('Error fetching customer data:', error);
+  // Prøv med JSONP-tilnærming for å unngå CORS-problemer
+  // Bygg URL med callback-parameter
+  const callbackName = 'googleScriptCallback';
+  const url = `${GOOGLE_SCRIPT_URL}?action=getCustomers&callback=${callbackName}`;
+  
+  // Lag en global callback-funksjon som vil håndtere responsen
+  window[callbackName] = function(data) {
+    // Fjern scriptet når det er ferdig
+    document.body.removeChild(script);
+    
+    if (data.success) {
+      // Sort customers alphabetically
+      customers = data.customers.sort((a, b) => a.name.localeCompare(b.name));
       
-      // For offline testing, use mock data
-      if (customers.length === 0) {
-        console.log('Fallback to mock data for testing');
-        const mockCustomerData = [
-          { name: "Kunde 1 AS", availableHours: 40 },
-          { name: "Kunde 3 AS", availableHours: 25 },
-          { name: "Kunde 2 AS", availableHours: 60 },
-          { name: "Kunde 4 AS", availableHours: 15 }
-        ];
-        
-        // Sort customers alphabetically
-        customers = mockCustomerData.sort((a, b) => a.name.localeCompare(b.name));
-        
-        // Render the customer boxes
-        renderCustomers();
-        
-        alert('Kunne ikke koble til Google Sheets. Bruker testdata.');
-      }
-    });
+      // Render the customer boxes
+      renderCustomers();
+      
+      // Update last updated time
+      const now = new Date();
+      document.getElementById('last-updated').textContent = now.toLocaleTimeString();
+    } else {
+      console.error('Error in Google Script response:', data);
+      useMockData();
+    }
+  };
+  
+  // Alternativ tilnærming: Bruk direkte response fra URL
+  // Dette er en hack som prøver å håndtere tilfeller der Google Script
+  // sender direkte JSON i stedet for JSONP
+  const fallbackTimeout = setTimeout(() => {
+    try {
+      // Hvis JSONP ikke fungerer, prøv vanlig fetch
+      fetch(GOOGLE_SCRIPT_URL + '?action=getCustomers', { mode: 'no-cors' })
+        .then(response => {
+          // Hvis responsen kan leses som tekst
+          if (response && response.text) {
+            return response.text();
+          }
+          throw new Error('Unable to read response');
+        })
+        .then(text => {
+          try {
+            // Prøv å tolke JSON-responsen
+            const data = JSON.parse(text);
+            if (data.success) {
+              // Sort customers alphabetically
+              customers = data.customers.sort((a, b) => a.name.localeCompare(b.name));
+              
+              // Render the customer boxes
+              renderCustomers();
+              
+              // Update last updated time
+              const now = new Date();
+              document.getElementById('last-updated').textContent = now.toLocaleTimeString();
+              return;
+            }
+          } catch (e) {
+            console.error('Error parsing direct response:', e);
+          }
+          useMockData();
+        })
+        .catch(error => {
+          console.error('Error with direct fetch:', error);
+          useMockData();
+        });
+    } catch (e) {
+      console.error('Error during fallback fetch:', e);
+      useMockData();
+    }
+  }, 3000); // Vent 3 sekunder før fallback
+  
+  // Opprett et script-element for å laste JSONP
+  const script = document.createElement('script');
+  script.src = url;
+  script.onerror = function() {
+    document.body.removeChild(script);
+    console.error('JSONP request failed');
+    useMockData();
+  };
+  
+  // Legg til script på siden for å utføre forespørselen
+  document.body.appendChild(script);
+  
+  // Funksjon for å bruke testdata
+  function useMockData() {
+    // For offline testing, use mock data
+    if (customers.length === 0) {
+      console.log('Fallback to mock data for testing');
+      const mockCustomerData = [
+        { name: "Kunde 1 AS", availableHours: 40 },
+        { name: "Kunde 3 AS", availableHours: 25 },
+        { name: "Kunde 2 AS", availableHours: 60 },
+        { name: "Kunde 4 AS", availableHours: 15 }
+      ];
+      
+      // Sort customers alphabetically
+      customers = mockCustomerData.sort((a, b) => a.name.localeCompare(b.name));
+      
+      // Render the customer boxes
+      renderCustomers();
+      
+      alert('Kunne ikke koble til Google Sheets. Bruker testdata.');
+    }
+  }
 }
 
 function renderCustomers() {
