@@ -1,3 +1,4 @@
+// Debounce-funksjon for å unngå doble innsendinger
 function debounce(func, wait) {
   let timeout;
   return function(...args) {
@@ -6,8 +7,6 @@ function debounce(func, wait) {
     timeout = setTimeout(() => func.apply(context, args), wait);
   };
 }
-
-const debouncedSubmitTime = debounce(submitTime, 500); // 500ms ventetid
 
 // Google Script URL - Bytt ut med din egen URL fra Google Apps Script
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQwXOrbXUrz4LWQA5JwSOR1HS9esDKqK1-TVrgh8ypkOO3WHQ-XyL_VnDCN-gANqY/exec';
@@ -18,6 +17,9 @@ let activeBox = null;
 let customers = [];
 let newCustomerTimer = null;
 let isAutoRefreshPaused = false;
+
+// Opprett en debounced versjon av submitTime-funksjonen
+const debouncedSubmitTime = debounce(submitTime, 500); // 500ms ventetid
 
 // Load customer data when page loads
 document.addEventListener('DOMContentLoaded', function() {
@@ -39,17 +41,13 @@ document.addEventListener('DOMContentLoaded', function() {
 // Legg til globale event listeners
 function addGlobalEventListeners() {
   console.log("Legger til event listeners");
-
-submitButton.addEventListener('click', function() {
-      debouncedSubmitTime();
-    });
-  }
   
   // Fikser kommentar-skjema knappen
   const submitButton = document.querySelector('#commentModal .submit-btn');
   if (submitButton) {
+    // Bruk den debouncede versjonen av submitTime for å unngå doble innsendinger
     submitButton.addEventListener('click', function() {
-      submitTime();
+      debouncedSubmitTime();
     });
   }
   
@@ -93,7 +91,6 @@ submitButton.addEventListener('click', function() {
     });
   }
 }
-
 
 // Update the current date display
 function updateCurrentDate() {
@@ -604,6 +601,13 @@ function calculateHoursFromMs(ms) {
 function submitTime() {
   console.log("Starter innsending av tid");
   
+  // Deaktiver knappen for å hindre flere klikk
+  const submitButton = document.querySelector('#commentModal .submit-btn');
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = 'Sender...';
+  }
+  
   try {
     // Hent data fra modal-elementer
     const customerName = document.getElementById('modal-customer-name').textContent;
@@ -618,6 +622,11 @@ function submitTime() {
       console.error('Kunne ikke finne kunde:', customerName);
       alert('Kunne ikke finne kunden. Prøv å starte timeren på nytt.');
       closeModal('commentModal');
+      // Reaktiver knappen
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Lagre og avslutt';
+      }
       return;
     }
     
@@ -648,6 +657,11 @@ function submitTime() {
         console.error('Kunne ikke parse tidstekst:', timeSpentText);
         alert('Kunne ikke lese tidsinformasjon. Prøv å starte timeren på nytt.');
         closeModal('commentModal');
+        // Reaktiver knappen
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Lagre og avslutt';
+        }
         return;
       }
     }
@@ -720,11 +734,23 @@ function submitTime() {
       .catch(error => {
         console.error('Error logging time:', error);
         alert('Kunne ikke lagre tid: ' + error.message);
+      })
+      .finally(() => {
+        // Reaktiver knappen uansett utfall
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Lagre og avslutt';
+        }
       });
   } catch (error) {
     console.error("Feil i submitTime:", error);
     alert('En feil oppstod: ' + error.message);
     closeModal('commentModal');
+    // Reaktiver knappen ved feil
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = 'Lagre og avslutt';
+    }
   }
 }
 
