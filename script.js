@@ -9,7 +9,7 @@ function debounce(func, wait) {
 }
 
 // Google Script URL - Bytt ut med din egen URL fra Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQwXOrbXUrz4LWQA5JwSOR1HS9esDKqK1-TVrgh8ypkOO3WHQ-XyL_VnDCN-gANqY/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxahaHR5f_8Kuw5gIQZlhxGKBiwAhKdErZg1x0MyEn9fVgAkImwANDwgMkwim79ZlI/exec';
 
 // Store active timers and their data
 const timers = {};
