@@ -259,162 +259,235 @@ function useMockData() {
 
 function renderCustomers() {
   console.log("Rendrer kunder:", customers.length);
-  const container = document.getElementById('customer-container');
   
-  // Find any active timer
-  const activeCustomerId = activeBox ? activeBox.getAttribute('data-id') : null;
-  
-  // Clear existing customer boxes, but keep the "add customer" button
-  const addCustomerButton = document.getElementById('add-customer-box');
-  while (container.firstChild) {
-    container.removeChild(container.firstChild);
-  }
-  container.appendChild(addCustomerButton);
-  
-  // Add all customers in alphabetical order
-  customers.forEach((customer, index) => {
-    const customerBox = document.createElement('div');
-    customerBox.className = 'customer-box';
-    customerBox.setAttribute('data-id', index + 1);
-    
-    // Create customer content
-    const nameDiv = document.createElement('div');
-    nameDiv.className = 'customer-name';
-    nameDiv.textContent = customer.name;
-    
-    const hoursDiv = document.createElement('div');
-    hoursDiv.className = 'available-hours';
-    hoursDiv.textContent = `Timer tilgjengelig: ${customer.availableHours.toFixed(1)}`;
-    
-    const timerDiv = document.createElement('div');
-    timerDiv.className = 'timer';
-    
-    const statusDiv = document.createElement('div');
-    statusDiv.className = 'status';
-    
-    // If this is the active customer, restore timer state
-    if (activeCustomerId && parseInt(activeCustomerId) === index + 1) {
-      customerBox.classList.add('active');
-      statusDiv.textContent = 'Aktiv';
-      
-      // Calculate elapsed time for this timer
-      const elapsedTime = new Date() - timers[activeCustomerId].startTime;
-      timerDiv.textContent = formatTime(elapsedTime);
-      
-      // Update activeBox reference
-      activeBox = customerBox;
-    } else {
-      timerDiv.textContent = '00:00:00';
-      statusDiv.textContent = 'Inaktiv';
+  try {
+    const container = document.getElementById('customer-container');
+    if (!container) {
+      console.error("Kunne ikke finne customer-container element");
+      return;
     }
     
-    // Create action buttons container
-    const actionsDiv = document.createElement('div');
-    actionsDiv.className = 'customer-actions';
+    // Find any active timer
+    const activeCustomerId = activeBox ? activeBox.getAttribute('data-id') : null;
     
-    // Create edit button
-    const editBtn = document.createElement('button');
-    editBtn.className = 'customer-action-btn';
-    editBtn.title = 'Rediger kunde';
-    editBtn.innerHTML = '✏️';
-    editBtn.onclick = function(e) {
-      e.stopPropagation();
-      showEditCustomer(index);
-    };
+    // Clear existing customer boxes, but keep the "add customer" button
+    const addCustomerButton = document.getElementById('add-customer-box');
+    if (!addCustomerButton) {
+      console.error("Kunne ikke finne add-customer-box element");
+      return;
+    }
     
-    // Create delete button
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'customer-action-btn';
-    deleteBtn.title = 'Slett kunde';
-    deleteBtn.innerHTML = '🗑️';
-    deleteBtn.onclick = function(e) {
-      e.stopPropagation();
-      confirmDeleteCustomer(index);
-    };
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+    container.appendChild(addCustomerButton);
     
-    // Append buttons to actions div
-    actionsDiv.appendChild(editBtn);
-    actionsDiv.appendChild(deleteBtn);
+    // Add all customers in alphabetical order
+    if (!customers || !Array.isArray(customers) || customers.length === 0) {
+      console.warn("Ingen kunder å vise");
+      return;
+    }
     
-    // Append all elements to customer box
-    customerBox.appendChild(nameDiv);
-    customerBox.appendChild(hoursDiv);
-    customerBox.appendChild(timerDiv);
-    customerBox.appendChild(statusDiv);
-    customerBox.appendChild(actionsDiv);
-    
-    // Add click handler for timer
-    customerBox.onclick = function(e) {
-      if (e.target === editBtn || e.target === deleteBtn || e.target === actionsDiv) {
-        return; // Don't toggle timer if clicking on buttons
+    customers.forEach((customer, index) => {
+      const customerBox = document.createElement('div');
+      customerBox.className = 'customer-box';
+      customerBox.setAttribute('data-id', index + 1);
+      
+      // Create customer content
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'customer-name';
+      nameDiv.textContent = customer.name;
+      
+      const hoursDiv = document.createElement('div');
+      hoursDiv.className = 'available-hours';
+      hoursDiv.textContent = `Timer tilgjengelig: ${customer.availableHours.toFixed(1)}`;
+      
+      const timerDiv = document.createElement('div');
+      timerDiv.className = 'timer';
+      
+      const statusDiv = document.createElement('div');
+      statusDiv.className = 'status';
+      
+      // If this is the active customer, restore timer state
+      if (activeCustomerId && parseInt(activeCustomerId) === index + 1) {
+        customerBox.classList.add('active');
+        statusDiv.textContent = 'Aktiv';
+        
+        // Calculate elapsed time for this timer
+        if (timers[activeCustomerId] && timers[activeCustomerId].startTime) {
+          const elapsedTime = new Date() - timers[activeCustomerId].startTime;
+          timerDiv.textContent = formatTime(elapsedTime);
+        } else {
+          timerDiv.textContent = '00:00:00';
+        }
+        
+        // Update activeBox reference
+        activeBox = customerBox;
+      } else {
+        timerDiv.textContent = '00:00:00';
+        statusDiv.textContent = 'Inaktiv';
       }
-      toggleTimer(this);
-    };
-    
-    container.appendChild(customerBox);
-  });
+      
+      // Create action buttons container
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'customer-actions';
+      
+      // Create edit button
+      const editBtn = document.createElement('button');
+      editBtn.className = 'customer-action-btn';
+      editBtn.title = 'Rediger kunde';
+      editBtn.innerHTML = '✏️';
+      editBtn.onclick = function(e) {
+        e.stopPropagation();
+        showEditCustomer(index);
+      };
+      
+      // Create delete button
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'customer-action-btn';
+      deleteBtn.title = 'Slett kunde';
+      deleteBtn.innerHTML = '🗑️';
+      deleteBtn.onclick = function(e) {
+        e.stopPropagation();
+        confirmDeleteCustomer(index);
+      };
+      
+      // Append buttons to actions div
+      actionsDiv.appendChild(editBtn);
+      actionsDiv.appendChild(deleteBtn);
+      
+      // Append all elements to customer box
+      customerBox.appendChild(nameDiv);
+      customerBox.appendChild(hoursDiv);
+      customerBox.appendChild(timerDiv);
+      customerBox.appendChild(statusDiv);
+      customerBox.appendChild(actionsDiv);
+      
+      // Add click handler for timer
+      customerBox.onclick = function(e) {
+        if (e.target === editBtn || e.target === deleteBtn || e.target === actionsDiv) {
+          return; // Don't toggle timer if clicking on buttons
+        }
+        toggleTimer(this);
+      };
+      
+      container.appendChild(customerBox);
+    });
+  } catch (error) {
+    console.error("Feil i renderCustomers:", error);
+  }
 }
 
 function toggleTimer(box) {
-  const customerId = box.getAttribute('data-id');
-  const timerDisplay = box.querySelector('.timer');
-  const statusDisplay = box.querySelector('.status');
-  const customerName = box.querySelector('.customer-name').textContent;
-  
-  // If this box is already active, stop the timer and show comment modal
-  if (box.classList.contains('active')) {
-    clearInterval(timers[customerId].interval);
-    box.classList.remove('active');
-    statusDisplay.textContent = 'Inaktiv';
-    isAutoRefreshPaused = false; // Resume auto-refresh
-    
-    // Calculate time spent
-    const endTime = new Date();
-    const timeSpent = endTime - timers[customerId].startTime;
-    const timeSpentFormatted = formatTime(timeSpent);
-    
-    // Show comment modal
-    const modal = document.getElementById('commentModal');
-    document.getElementById('modal-customer-name').textContent = customerName;
-    document.getElementById('modal-time-spent').textContent = 'Tid brukt: ' + timeSpentFormatted;
-    
-    // Clear any previous comment
-    document.getElementById('comment-text').value = '';
-    
-    modal.style.display = 'block';
-    
-    // Save data for submission
-    timers[customerId].endTime = endTime;
-    timers[customerId].timeSpentFormatted = timeSpentFormatted;
-    timers[customerId].timeSpentMs = timeSpent;
-    activeBox = null;
-  } else {
-    // If another box is active (including new customer), deactivate it first
-    if (activeBox) {
-      toggleTimer(activeBox);
-    } else if (document.getElementById('add-customer-box').classList.contains('active')) {
-      stopNewCustomerTimer();
+  try {
+    if (!box) {
+      console.error("box er null i toggleTimer");
+      return;
     }
     
-    // Pause auto-refresh when a timer is active
-    isAutoRefreshPaused = true;
+    const customerId = box.getAttribute('data-id');
+    if (!customerId) {
+      console.error("Manglende data-id attributt på box");
+      return;
+    }
     
-    // Start a new timer
-    box.classList.add('active');
-    statusDisplay.textContent = 'Aktiv';
+    const timerDisplay = box.querySelector('.timer');
+    const statusDisplay = box.querySelector('.status');
+    const nameElement = box.querySelector('.customer-name');
     
-    const startTime = new Date();
-    timers[customerId] = {
-      startTime: startTime,
-      customerName: customerName,
-      interval: setInterval(() => {
-        const currentTime = new Date();
-        const elapsedTime = currentTime - startTime;
-        timerDisplay.textContent = formatTime(elapsedTime);
-      }, 1000)
-    };
+    if (!timerDisplay || !statusDisplay || !nameElement) {
+      console.error("Manglende elementer i customer-box");
+      return;
+    }
     
-    activeBox = box;
+    const customerName = nameElement.textContent;
+    
+    // If this box is already active, stop the timer and show comment modal
+    if (box.classList.contains('active')) {
+      if (timers[customerId] && timers[customerId].interval) {
+        clearInterval(timers[customerId].interval);
+      }
+      
+      box.classList.remove('active');
+      statusDisplay.textContent = 'Inaktiv';
+      isAutoRefreshPaused = false; // Resume auto-refresh
+      
+      // Calculate time spent
+      const endTime = new Date();
+      let timeSpent = 0;
+      let timeSpentFormatted = '00:00:00';
+      
+      if (timers[customerId] && timers[customerId].startTime) {
+        timeSpent = endTime - timers[customerId].startTime;
+        timeSpentFormatted = formatTime(timeSpent);
+      }
+      
+      // Show comment modal
+      const modal = document.getElementById('commentModal');
+      if (!modal) {
+        console.error("Kunne ikke finne commentModal");
+        return;
+      }
+      
+      const modalCustomerName = document.getElementById('modal-customer-name');
+      const modalTimeSpent = document.getElementById('modal-time-spent');
+      const commentText = document.getElementById('comment-text');
+      
+      if (!modalCustomerName || !modalTimeSpent || !commentText) {
+        console.error("Manglende elementer i commentModal");
+        return;
+      }
+      
+      modalCustomerName.textContent = customerName;
+      modalTimeSpent.textContent = 'Tid brukt: ' + timeSpentFormatted;
+      
+      // Clear any previous comment
+      commentText.value = '';
+      
+      modal.style.display = 'block';
+      
+      // Save data for submission
+      if (!timers[customerId]) {
+        timers[customerId] = {};
+      }
+      
+      timers[customerId].endTime = endTime;
+      timers[customerId].timeSpentFormatted = timeSpentFormatted;
+      timers[customerId].timeSpentMs = timeSpent;
+      activeBox = null;
+    } else {
+      // If another box is active (including new customer), deactivate it first
+      if (activeBox) {
+        toggleTimer(activeBox);
+      } else {
+        const addCustomerBox = document.getElementById('add-customer-box');
+        if (addCustomerBox && addCustomerBox.classList.contains('active')) {
+          stopNewCustomerTimer();
+        }
+      }
+      
+      // Pause auto-refresh when a timer is active
+      isAutoRefreshPaused = true;
+      
+      // Start a new timer
+      box.classList.add('active');
+      statusDisplay.textContent = 'Aktiv';
+      
+      const startTime = new Date();
+      timers[customerId] = {
+        startTime: startTime,
+        customerName: customerName,
+        interval: setInterval(() => {
+          const currentTime = new Date();
+          const elapsedTime = currentTime - startTime;
+          timerDisplay.textContent = formatTime(elapsedTime);
+        }, 1000)
+      };
+      
+      activeBox = box;
+    }
+  } catch (error) {
+    console.error("Feil i toggleTimer:", error);
   }
 }
 
