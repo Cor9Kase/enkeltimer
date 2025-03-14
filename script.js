@@ -9,7 +9,7 @@ function debounce(func, wait) {
 }
 
 // Google Script URL - Bytt ut med din egen URL fra Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx-VvIOF1BgXQ8iFLl1TYM5lXyBBKIRaXoyanwl7eIq0UlzQNxhMNOOnxncPyMOoJS-/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQwXOrbXUrz4LWQA5JwSOR1HS9esDKqK1-TVrgh8ypkOO3WHQ-XyL_VnDCN-gANqY/exec';
 
 // Store active timers and their data
 const timers = {};
@@ -17,6 +17,7 @@ let activeBox = null;
 let customers = [];
 let newCustomerTimer = null;
 let isAutoRefreshPaused = false;
+let isSubmitting = false; // Flagg for å unngå doble innsendinger
 
 // Opprett en debounced versjon av submitTime-funksjonen
 const debouncedSubmitTime = debounce(submitTime, 500); // 500ms ventetid
@@ -601,6 +602,15 @@ function calculateHoursFromMs(ms) {
 function submitTime() {
   console.log("Starter innsending av tid");
   
+  // Unngå doble innsendinger med en enkel lås
+  if (isSubmitting) {
+    console.log("Innsending pågår allerede, ignorerer duplikat klikk");
+    return;
+  }
+  
+  // Sett låseflagg
+  isSubmitting = true;
+  
   // Deaktiver knappen for å hindre flere klikk
   const submitButton = document.querySelector('#commentModal .submit-btn');
   if (submitButton) {
@@ -622,7 +632,7 @@ function submitTime() {
       console.error('Kunne ikke finne kunde:', customerName);
       alert('Kunne ikke finne kunden. Prøv å starte timeren på nytt.');
       closeModal('commentModal');
-      // Reaktiver knappen
+      isSubmitting = false; // Frigjør låsen
       if (submitButton) {
         submitButton.disabled = false;
         submitButton.textContent = 'Lagre og avslutt';
@@ -657,7 +667,7 @@ function submitTime() {
         console.error('Kunne ikke parse tidstekst:', timeSpentText);
         alert('Kunne ikke lese tidsinformasjon. Prøv å starte timeren på nytt.');
         closeModal('commentModal');
-        // Reaktiver knappen
+        isSubmitting = false; // Frigjør låsen
         if (submitButton) {
           submitButton.disabled = false;
           submitButton.textContent = 'Lagre og avslutt';
@@ -682,14 +692,10 @@ function submitTime() {
     if (customerIndex >= 0 && customerIndex < customers.length) {
       // Calculate total and remaining hours
       soldHours = customers[customerIndex].availableHours + decimalHours; // Original hours before this session
-      remainingHours = customers[customerIndex].availableHours - decimalHours; // Remaining after this session
+      remainingHours = Math.max(0, customers[customerIndex].availableHours - decimalHours); // Remaining after this session
       
-      // Update local data
+      // Update local data immediately
       customers[customerIndex].availableHours = remainingHours;
-      if (customers[customerIndex].availableHours < 0) {
-        customers[customerIndex].availableHours = 0;
-        remainingHours = 0;
-      }
     }
     
     // Prepare the data to be sent to Google Sheets
@@ -710,25 +716,16 @@ function submitTime() {
       .then((response) => {
         console.log("Tidsregistrering vellykket:", response);
         
-        // Finn kunden i DOM etter oppdatering
-        const customerBox = document.querySelector(`.customer-box[data-id="${customerId}"]`);
-        if (customerBox) {
-          const timerElement = customerBox.querySelector('.timer');
-          if (timerElement) {
-            timerElement.textContent = '00:00:00';
-          }
-        }
-        
-        // Close the modal
+        // Lukk modalvinduet først
         closeModal('commentModal');
         
-        // Clear the active box reference
+        // Fjern referansen til aktiv boks
         activeBox = null;
         
-        // Re-render the customers to show updated available hours
-        renderCustomers();
+        // Hent oppdaterte data fra serveren
+        fetchCustomerData();
         
-        // Show confirmation
+        // Vis bekreftelse
         alert('Timer lagret for ' + data.customerName + '!');
       })
       .catch(error => {
@@ -736,7 +733,8 @@ function submitTime() {
         alert('Kunne ikke lagre tid: ' + error.message);
       })
       .finally(() => {
-        // Reaktiver knappen uansett utfall
+        // Frigjør låsen og reaktiver knappen uansett resultat
+        isSubmitting = false;
         if (submitButton) {
           submitButton.disabled = false;
           submitButton.textContent = 'Lagre og avslutt';
@@ -746,7 +744,9 @@ function submitTime() {
     console.error("Feil i submitTime:", error);
     alert('En feil oppstod: ' + error.message);
     closeModal('commentModal');
-    // Reaktiver knappen ved feil
+    
+    // Frigjør låsen og reaktiver knappen ved feil
+    isSubmitting = false;
     if (submitButton) {
       submitButton.disabled = false;
       submitButton.textContent = 'Lagre og avslutt';
