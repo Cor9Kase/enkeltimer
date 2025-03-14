@@ -1,3 +1,14 @@
+function debounce(func, wait) {
+  let timeout;
+  return function(...args) {
+    const context = this;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), wait);
+  };
+}
+
+const debouncedSubmitTime = debounce(submitTime, 500); // 500ms ventetid
+
 // Google Script URL - Bytt ut med din egen URL fra Google Apps Script
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQwXOrbXUrz4LWQA5JwSOR1HS9esDKqK1-TVrgh8ypkOO3WHQ-XyL_VnDCN-gANqY/exec';
 
@@ -28,6 +39,11 @@ document.addEventListener('DOMContentLoaded', function() {
 // Legg til globale event listeners
 function addGlobalEventListeners() {
   console.log("Legger til event listeners");
+
+submitButton.addEventListener('click', function() {
+      debouncedSubmitTime();
+    });
+  }
   
   // Fikser kommentar-skjema knappen
   const submitButton = document.querySelector('#commentModal .submit-btn');
@@ -77,6 +93,7 @@ function addGlobalEventListeners() {
     });
   }
 }
+
 
 // Update the current date display
 function updateCurrentDate() {
