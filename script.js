@@ -514,13 +514,14 @@ function calculateHoursFromMs(ms) {
 function submitTime() {
   console.log("Starter innsending av tid");
   
-  // Hent data fra modal-elementer
-  const customerName = document.getElementById('modal-customer-name').textContent;
-  const timeSpentText = document.getElementById('modal-time-spent').textContent;
-  
-  // Sjekk om activeBox finnes
-  if (!activeBox) {
-    // Finn kunden basert på navn
+  try {
+    // Hent data fra modal-elementer
+    const customerName = document.getElementById('modal-customer-name').textContent;
+    const timeSpentText = document.getElementById('modal-time-spent').textContent;
+    
+    console.log("Kunde:", customerName, "Tid brukt:", timeSpentText);
+    
+    // Finn kunden basert på navn (uavhengig av activeBox)
     const customerIndex = customers.findIndex(c => c.name === customerName);
     
     if (customerIndex === -1) {
@@ -532,12 +533,11 @@ function submitTime() {
     
     // Finn customerId (indeks + 1)
     const customerId = customerIndex + 1;
+    console.log("Customer ID:", customerId);
     
-    // Finn boks eller rekonstruer timer-data
-    activeBox = document.querySelector(`.customer-box[data-id="${customerId}"]`);
-    
-    // Hvis timer-data mangler, rekonstruer det basert på tidsteksten
+    // Finn timer-data eller opprett det hvis det mangler
     if (!timers[customerId]) {
+      console.log("Oppretter timer-data for kunde");
       // Hent tid fra tekst (f.eks. "Tid brukt: 00:10:30")
       const timeMatch = timeSpentText.match(/(\d{2}):(\d{2}):(\d{2})$/);
       if (timeMatch) {
@@ -561,81 +561,81 @@ function submitTime() {
         return;
       }
     }
-  }
-
-  const customerId = activeBox.getAttribute('data-id');
-  const comment = document.getElementById('comment-text').value;
-  
-  // Sjekk om timers[customerId] finnes
-  if (!timers[customerId]) {
-    console.error('Timer data mangler for kunde', customerId);
-    alert('Det oppstod en feil. Timer-data mangler. Prøv å starte timeren på nytt.');
-    closeModal('commentModal');
-    return;
-  }
-  
-  // Get current date
-  const now = new Date();
-  const dateStr = `${now.getFullYear()}-${padZero(now.getMonth() + 1)}-${padZero(now.getDate())}`;
-  
-  // Calculate decimal hours (rounded to quarter hours)
-  const decimalHours = calculateHoursFromMs(timers[customerId].timeSpentMs);
-  
-  // Get customer's total sold hours and remaining hours
-  let soldHours = 0;
-  let remainingHours = 0;
-  
-  const customerIndex = parseInt(customerId) - 1;
-  if (customerIndex >= 0 && customerIndex < customers.length) {
-    // Calculate total and remaining hours
-    soldHours = customers[customerIndex].availableHours + decimalHours; // Original hours before this session
-    remainingHours = customers[customerIndex].availableHours - decimalHours; // Remaining after this session
     
-    // Update local data
-    customers[customerIndex].availableHours = remainingHours;
-    if (customers[customerIndex].availableHours < 0) {
-      customers[customerIndex].availableHours = 0;
-      remainingHours = 0;
+    const comment = document.getElementById('comment-text').value;
+    
+    // Get current date
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${padZero(now.getMonth() + 1)}-${padZero(now.getDate())}`;
+    
+    // Calculate decimal hours (rounded to quarter hours)
+    const decimalHours = calculateHoursFromMs(timers[customerId].timeSpentMs);
+    
+    // Get customer's total sold hours and remaining hours
+    let soldHours = 0;
+    let remainingHours = 0;
+    
+    if (customerIndex >= 0 && customerIndex < customers.length) {
+      // Calculate total and remaining hours
+      soldHours = customers[customerIndex].availableHours + decimalHours; // Original hours before this session
+      remainingHours = customers[customerIndex].availableHours - decimalHours; // Remaining after this session
+      
+      // Update local data
+      customers[customerIndex].availableHours = remainingHours;
+      if (customers[customerIndex].availableHours < 0) {
+        customers[customerIndex].availableHours = 0;
+        remainingHours = 0;
+      }
     }
+    
+    // Prepare the data to be sent to Google Sheets
+    const data = {
+      action: "logTime",
+      customerName: customerName,
+      timeSpent: decimalHours,
+      soldHours: soldHours,
+      remainingHours: remainingHours,
+      comment: comment,
+      date: dateStr
+    };
+    
+    console.log("Sender tidsdata til server:", data);
+    
+    // Forbedret metode for å sende data til Google Apps Script
+    sendDataToGoogleScript(data, 'Tid registrert')
+      .then((response) => {
+        console.log("Tidsregistrering vellykket:", response);
+        
+        // Finn kunden i DOM etter oppdatering
+        const customerBox = document.querySelector(`.customer-box[data-id="${customerId}"]`);
+        if (customerBox) {
+          const timerElement = customerBox.querySelector('.timer');
+          if (timerElement) {
+            timerElement.textContent = '00:00:00';
+          }
+        }
+        
+        // Close the modal
+        closeModal('commentModal');
+        
+        // Clear the active box reference
+        activeBox = null;
+        
+        // Re-render the customers to show updated available hours
+        renderCustomers();
+        
+        // Show confirmation
+        alert('Timer lagret for ' + data.customerName + '!');
+      })
+      .catch(error => {
+        console.error('Error logging time:', error);
+        alert('Kunne ikke lagre tid: ' + error.message);
+      });
+  } catch (error) {
+    console.error("Feil i submitTime:", error);
+    alert('En feil oppstod: ' + error.message);
+    closeModal('commentModal');
   }
-  
-  // Prepare the data to be sent to Google Sheets
-  const data = {
-    action: "logTime",
-    customerName: timers[customerId].customerName,
-    timeSpent: decimalHours,
-    soldHours: soldHours,
-    remainingHours: remainingHours,
-    comment: comment,
-    date: dateStr
-  };
-  
-  console.log("Sender tidsdata til server:", data);
-  
-  // Forbedret metode for å sende data til Google Apps Script
-  sendDataToGoogleScript(data, 'Tid registrert')
-    .then((response) => {
-      console.log("Tidsregistrering vellykket:", response);
-      
-      // Reset the timer display
-      activeBox.querySelector('.timer').textContent = '00:00:00';
-      
-      // Close the modal
-      closeModal('commentModal');
-      
-      // Clear the active box reference
-      activeBox = null;
-      
-      // Re-render the customers to show updated available hours
-      renderCustomers();
-      
-      // Show confirmation
-      alert('Timer lagret for ' + data.customerName + '!');
-    })
-    .catch(error => {
-      console.error('Error logging time:', error);
-      alert('Kunne ikke lagre tid: ' + error.message);
-    });
 }
 
 function cancelNewCustomer() {
