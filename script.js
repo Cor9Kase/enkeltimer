@@ -770,8 +770,8 @@ function updateCustomer() {
   // Prepare data for the update
   const data = {
     action: "updateCustomer",
-    oldName: customers[index].name, // Endre fra customerName til oldName for å matche Google Apps Script
-    customerName: customerName, // Legg til nytt navn
+    oldName: customers[index].name,
+    customerName: customerName,
     availableHours: availableHours
   };
   
@@ -855,8 +855,13 @@ function deleteCustomer() {
 // Forbedret metode for å sende data til Google Apps Script
 function sendDataToGoogleScript(data, successMessage) {
   return new Promise((resolve, reject) => {
+    // Variabler som skal være tilgjengelige for cleanup-funksjonen
+    let formId = null;
+    let iframeId = null;
+    let statusMessage = null;
+    
     // Vis status til brukeren
-    const statusMessage = document.createElement('div');
+    statusMessage = document.createElement('div');
     statusMessage.textContent = 'Sender data...';
     statusMessage.style.position = 'fixed';
     statusMessage.style.top = '10px';
@@ -868,46 +873,95 @@ function sendDataToGoogleScript(data, successMessage) {
     statusMessage.style.zIndex = '9999';
     document.body.appendChild(statusMessage);
     
-    // Forbered URL med parametere (GET-metode som fallback)
-    const params = new URLSearchParams();
+    // Konvertere alle objekter til JSON-strenger
+    const processedData = {};
     for (const key in data) {
-      params.append(key, typeof data[key] === 'object' ? JSON.stringify(data[key]) : data[key]);
+      processedData[key] = typeof data[key] === 'object' ? JSON.stringify(data[key]) : data[key];
     }
-    const getUrl = `${GOOGLE_SCRIPT_URL}?${params.toString()}`;
     
-    console.log("Forsøker å sende data med GET-metode:", getUrl);
+    // Opprett formdata
+    const formData = new FormData();
+    for (const key in processedData) {
+      formData.append(key, processedData[key]);
+    }
     
-    // Forsøk GET-metode først (mer kompatibel)
-    fetch(getUrl)
-      .then(response => {
-        console.log("GET-respons mottatt:", response);
-        return response.text();
-      })
-      .then(text => {
-        try {
-          console.log("Responstekst:", text);
-          const data = JSON.parse(text);
-          if (data && data.success) {
-            cleanup();
-            resolve(data);
-          } else {
-            throw new Error(data.message || 'Ukjent feil');
+    // Bruk POST-metode først (mest pålitelig)
+    console.log("Forsøker å sende data med POST-metode:", GOOGLE_SCRIPT_URL);
+    
+    fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      body: formData,
+      mode: 'no-cors' // Viktig for cross-origin requests
+    })
+    .then(response => {
+      // Med no-cors kan vi ikke lese responsen, så vi antar suksess
+      console.log("POST respons mottatt (no-cors, kan ikke verifisere innhold)");
+      cleanup();
+      resolve({ success: true, message: successMessage });
+    })
+    .catch(error => {
+      console.error("POST-metode feilet, fallback til GET:", error);
+      tryGetMethod();
+    });
+    
+    // Fallback-metode med GET
+    function tryGetMethod() {
+      // Forbered URL med parametere
+      const params = new URLSearchParams();
+      for (const key in processedData) {
+        params.append(key, processedData[key]);
+      }
+      const getUrl = `${GOOGLE_SCRIPT_URL}?${params.toString()}`;
+      
+      console.log("Forsøker å sende data med GET-metode:", getUrl);
+      
+      fetch(getUrl)
+        .then(response => {
+          console.log("GET-respons mottatt:", response);
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
           }
-        } catch (e) {
-          console.error("Feil ved parsing av respons:", e);
-          cleanup();
-          reject(new Error('Kunne ikke tolke respons fra serveren'));
-        }
-      })
-      .catch(error => {
-        console.error("GET-metode feilet, fallback til iframe:", error);
-        tryIframeMethod();
-      });
+          return response.text();
+        })
+        .then(text => {
+          try {
+            console.log("Responstekst:", text);
+            let data;
+            try {
+              data = JSON.parse(text);
+            } catch (e) {
+              // Hvis teksten ikke er gyldig JSON, prøv å ekstrahere JSON fra teksten
+              const jsonMatch = text.match(/(\{.*\})/);
+              if (jsonMatch) {
+                data = JSON.parse(jsonMatch[1]);
+              } else {
+                throw new Error('Kunne ikke tolke respons fra serveren');
+              }
+            }
+            
+            if (data && data.success) {
+              cleanup();
+              resolve(data);
+            } else {
+              throw new Error(data.message || 'Ukjent feil');
+            }
+          } catch (e) {
+            console.error("Feil ved parsing av respons:", e);
+            tryIframeMethod();
+          }
+        })
+        .catch(error => {
+          console.error("GET-metode feilet, fallback til iframe:", error);
+          tryIframeMethod();
+        });
+    }
     
     // Fallback-metode med iframe
     function tryIframeMethod() {
-      const formId = 'hidden-form-' + Math.random().toString(36).substring(2);
-      const iframeId = 'hidden-iframe-' + Math.random().toString(36).substring(2);
+      formId = 'hidden-form-' + Math.random().toString(36).substring(2);
+      iframeId = 'hidden-iframe-' + Math.random().toString(36).substring(2);
+      
+      console.log("Forsøker å sende data med iframe-metode");
       
       // Opprett iframe
       const iframe = document.createElement('iframe');
@@ -924,11 +978,11 @@ function sendDataToGoogleScript(data, successMessage) {
       form.target = iframeId;
       
       // Legg til data i form
-      for (const key in data) {
+      for (const key in processedData) {
         const input = document.createElement('input');
         input.type = 'hidden';
         input.name = key;
-        input.value = typeof data[key] === 'object' ? JSON.stringify(data[key]) : data[key];
+        input.value = processedData[key];
         form.appendChild(input);
       }
       
@@ -956,16 +1010,24 @@ function sendDataToGoogleScript(data, successMessage) {
     
     // Rydde opp etter både suksess og feil
     function cleanup() {
-      if (document.body.contains(statusMessage)) {
+      if (statusMessage && document.body.contains(statusMessage)) {
         document.body.removeChild(statusMessage);
       }
       
       // Rydd opp iframe og form hvis de finnes
-      const form = document.getElementById(formId);
-      const iframe = document.getElementById(iframeId);
+      if (formId) {
+        const form = document.getElementById(formId);
+        if (form && document.body.contains(form)) {
+          document.body.removeChild(form);
+        }
+      }
       
-      if (form) document.body.removeChild(form);
-      if (iframe) document.body.removeChild(iframe);
+      if (iframeId) {
+        const iframe = document.getElementById(iframeId);
+        if (iframe && document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }
     }
   });
 }
