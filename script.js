@@ -724,7 +724,18 @@ function submitTime() {
         
         // Hent oppdaterte data fra serveren
         fetchCustomerData();
-        
+
+        // Oppdater tilgjengelige timer lokalt med det nye antallet
+        customers = customers.map(customer => {
+          if (customer.name === customerName) {
+            customer.availableHours = Math.max(0, customer.availableHours - decimalHours);
+          }
+          return customer;
+        });
+
+        // Re-render kundeboksene med oppdaterte timer
+        renderCustomers();
+
         // Vis bekreftelse
         alert('Timer lagret for ' + data.customerName + '!');
       })
