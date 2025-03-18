@@ -89,7 +89,7 @@ function loadDailySummary() {
 function fetchTimeLogWithJSONP() {
   return new Promise((resolve, reject) => {
     const callbackName = 'googleScriptTimeLogCallback_' + Math.floor(Math.random() * 1000000);
-    const url = `${GOOGLE_SCRIPT_URL}?action=getTimeLog&month=${currentMonth + 1}&year=${currentYear}&callback=${callbackName}`;
+    const url = `${GOOGLE_SCRIPT_URL}?action=getTimeLog&month=${currentMonth + 1}&year=${currentYear}&nocache=${Date.now()}&callback=${callbackName}`;
     
     // Sett timeout for å håndtere feiling
     const timeoutId = setTimeout(() => {
@@ -131,7 +131,7 @@ function fetchTimeLogWithJSONP() {
 
 // Direkte fetch-metode (fungerer bare hvis CORS er konfigurert)
 function fetchTimeLogDirect() {
-  return fetch(`${GOOGLE_SCRIPT_URL}?action=getTimeLog&month=${currentMonth + 1}&year=${currentYear}`)
+  return fetch(`${GOOGLE_SCRIPT_URL}?action=getTimeLog&month=${currentMonth + 1}&year=${currentYear}&nocache=${Date.now()}`)
     .then(response => {
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
