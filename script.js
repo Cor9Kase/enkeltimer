@@ -9,7 +9,7 @@ function debounce(func, wait) {
 }
 
 // Google Script URL - Bytt ut med din egen URL fra Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyBZFHNnttM8galmcZ8HnsZORKmW9UVsrYSEKLL2D9gyov-YLi_LdYw-xM0Nnts0ZXY/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwqyXgiMfgStUhO0LEjT5v2PfBWQuluMdEcZeHrMrtX7-9l13j3FxT_6PnuFw9Ei4ey/exec';
 
 // Store active timers and their data
 const timers = {};
@@ -197,26 +197,22 @@ function fetchCustomersDirect() {
   
   return fetch(url)
     .then(response => {
-      console.log("Fetch respons mottatt:", response);
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-      return response.text();
+      return response.json(); // Bruk json() direkte for å unngå manuell parsing
     })
-    .then(text => {
-      console.log("Responstekst:", text.substring(0, 200) + "...");
-      try {
-        const data = JSON.parse(text);
-        if (data && data.success) {
-          processCustomerData(data);
-          return data;
-        } else {
-          throw new Error('Invalid response from Google Script');
-        }
-      } catch (e) {
-        console.error("JSON parsing error:", e);
-        throw new Error('Could not parse response from server');
+    .then(data => {
+      if (data && data.success && Array.isArray(data.customers)) {
+        processCustomerData(data);
+        return data;
+      } else {
+        throw new Error('Ugyldig respons fra Google Script');
       }
+    })
+    .catch(error => {
+      console.error("Feil ved henting av kundedata:", error);
+      throw error;
     });
 }
 
