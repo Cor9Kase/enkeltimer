@@ -9,7 +9,7 @@ function debounce(func, wait) {
 }
 
 // Google Script URL - *** VIKTIG: Bytt ut med din egen publiserte URL ***
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxb98tMfZSK0DfrVcSqLq9HeVcU34DlbsFMnZrZvfNzYcBMPAhJ1Hn6ybWt25cjhTQa/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbybdhOLvN_8_8glQwqwDCaF4Hn7-1pa9xWrD-N0N5H3W6EWhE6u3lAnj8W5ZouhlqzI/exec';
 
 // Globale variabler for tilstand
 const timers = {}; // Holder styr på aktive timere for eksisterende kunder { customerId: { startTime, interval, ... } }
