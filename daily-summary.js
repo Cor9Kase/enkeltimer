@@ -1,47 +1,49 @@
 // Google Script URL - Samme URL som i hovedapplikasjonen
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbybdhOLvN_8_8glQwqwDCaF4Hn7-1pa9xWrD-N0N5H3W6EWhE6u3lAnj8W5ZouhlqzI/exec';
 
-// Variabler for datoer og data
-let currentMonth = new Date().getMonth();
+// Globale variabler for å holde styr på valgt måned/år og hentet data
+let currentMonth = new Date().getMonth(); // 0 = Januar, 11 = Desember
 let currentYear = new Date().getFullYear();
-let timeLogData = [];
+let timeLogDataForMonth = []; // Lagrer dataene for den viste måneden
 
-// Initialiser siden når den er lastet
+// Initialiser siden når DOM er klar
 document.addEventListener('DOMContentLoaded', function() {
-  // Oppdater nåværende dato i header
-  updateCurrentDate();
-  
-  // Legg til event listeners for månedsnavigering
-  document.getElementById('prev-month').addEventListener('click', () => navigateMonth(-1));
-  document.getElementById('next-month').addEventListener('click', () => navigateMonth(1));
-  
-  // Last inn daglig sammendrag for gjeldende måned
+  console.log("Daily Summary DOM lastet.");
+  updateCurrentDateHeader(); // Vis dagens dato i headeren
+
+  // Legg til listeners for navigasjonsknapper
+  document.getElementById('prev-month')?.addEventListener('click', () => navigateMonth(-1));
+  document.getElementById('next-month')?.addEventListener('click', () => navigateMonth(1));
+  document.getElementById('refresh-button')?.addEventListener('click', loadDailySummary); // Manuell refresh
+
+  // Last inn data for inneværende måned ved start
   loadDailySummary();
-  
-  // Start auto-refresh
-  startAutoRefresh();
+
+  // Valgfritt: Start auto-refresh (kan fjernes hvis manuell refresh er nok)
+  // startAutoRefresh(); // Kommentarert ut foreløpig
 });
 
-// Oppdater dato som vises i header
-function updateCurrentDate() {
+// Oppdaterer "Dagens dato"-visningen i headeren
+function updateCurrentDateHeader() {
   const now = new Date();
   const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
   document.getElementById('current-date').textContent = now.toLocaleDateString('no-NO', options);
 }
 
-// Funksjon for regelmessig oppdatering
+// Funksjon for å starte automatisk oppdatering (kommentert ut som standard)
+/*
 function startAutoRefresh() {
+  console.log("Starter auto-refresh for daglig sammendrag (hvert 5. minutt).");
   setInterval(() => {
+    console.log("Auto-refresh: Henter ferske sammendragsdata...");
     loadDailySummary();
-  }, 60000); // Oppdater hvert minutt
+  }, 300000); // 300000 ms = 5 minutter
 }
+*/
 
-// Naviger til forrige eller neste måned
+// Funksjon for å bytte måned
 function navigateMonth(direction) {
-  // Oppdater måned (legg til eller trekk fra 1)
   currentMonth += direction;
-  
-  // Håndter årsskifte
   if (currentMonth < 0) {
     currentMonth = 11;
     currentYear--;
@@ -49,335 +51,349 @@ function navigateMonth(direction) {
     currentMonth = 0;
     currentYear++;
   }
-  
-  // Oppdater visningen
-  updateMonthDisplay();
-  loadDailySummary();
+  console.log(`Navigerer til måned: ${currentMonth + 1}, år: ${currentYear}`);
+  loadDailySummary(); // Last data for den nye måneden
 }
 
-// Oppdater månedsdisplayet
+// Oppdaterer tekstvisningen for valgt måned/år
 function updateMonthDisplay() {
   const monthNames = [
     'Januar', 'Februar', 'Mars', 'April', 'Mai', 'Juni',
     'Juli', 'August', 'September', 'Oktober', 'November', 'Desember'
   ];
-  
-  document.getElementById('month-display').textContent = `${monthNames[currentMonth]} ${currentYear}`;
+  const displayElement = document.getElementById('month-display');
+  if (displayElement) {
+      displayElement.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+  }
 }
 
-// Last inn daglig sammendrag fra Google Sheets
+// Hovedfunksjon for å laste data fra Google Apps Script
 function loadDailySummary() {
-  // Vis måneden i displayet
-  updateMonthDisplay();
-  
-  // Vis laste-indikator
-  document.getElementById('last-updated').textContent = 'Henter data...';
-  
-  // Prøv å hente data med JSONP først, deretter fall tilbake til direkte fetch
-  fetchTimeLogWithJSONP()
-    .catch(error => {
-      console.warn('JSONP request failed, trying direct fetch:', error);
-      return fetchTimeLogDirect();
-    })
-    .catch(error => {
-      console.error('All connection attempts failed:', error);
-      useMockTimeLogData();
-    });
-}
+  console.log(`Laster sammendrag for ${currentMonth + 1}/${currentYear}`);
+  updateMonthDisplay(); // Sørg for at riktig måned vises
 
-// JSONP metode for å unngå CORS-problemer
-function fetchTimeLogWithJSONP() {
-  return new Promise((resolve, reject) => {
-    const callbackName = 'googleScriptTimeLogCallback_' + Math.floor(Math.random() * 1000000);
-    const url = `${GOOGLE_SCRIPT_URL}?action=getTimeLog&month=${currentMonth + 1}&year=${currentYear}&nocache=${Date.now()}&callback=${callbackName}`;
-    
-    // Sett timeout for å håndtere feiling
-    const timeoutId = setTimeout(() => {
-      cleanup();
-      reject(new Error('JSONP request timed out after 5 seconds'));
-    }, 5000);
-    
-    // Lag en global callback-funksjon som vil håndtere responsen
-    window[callbackName] = function(data) {
-      cleanup();
-      
-      if (data && data.success) {
-        processTimeLogData(data);
-        resolve(data);
+  const statusElement = document.getElementById('last-updated');
+  if (statusElement) statusElement.textContent = 'Henter data...';
+
+  // Bruker en felles funksjon for å sende forespørsel
+  fetchDataFromScript({
+      action: 'getTimeLog',
+      month: currentMonth + 1, // Send 1-12 til scriptet
+      year: currentYear
+  })
+  .then(data => {
+      console.log("Mottatt data fra script:", data);
+      if (data && data.success && Array.isArray(data.timeLog)) {
+          processTimeLogData(data); // Behandle vellykket respons
       } else {
-        reject(new Error('Invalid response from Google Script'));
+          // Håndter feilmelding fra scriptet
+          throw new Error(data.message || 'Ugyldig responsformat mottatt fra Google Script.');
       }
-    };
-    
-    // Funksjon for å rydde opp etter forespørselen
-    function cleanup() {
-      clearTimeout(timeoutId);
-      document.body.removeChild(script);
-      delete window[callbackName];
-    }
-    
-    // Opprett et script-element for å laste JSONP
-    const script = document.createElement('script');
-    script.src = url;
-    script.onerror = function() {
-      cleanup();
-      reject(new Error('JSONP script loading failed'));
-    };
-    
-    // Legg til script på siden for å utføre forespørselen
-    document.body.appendChild(script);
+  })
+  .catch(error => {
+      console.error('Feil under henting av tidslogg:', error);
+      // Vis feilmelding til bruker og vurder fallback til mock data
+      if (statusElement) statusElement.textContent = 'Feil ved lasting';
+      alert(`Kunne ikke laste data: ${error.message}\n\nPrøver å vise eventuelle gamle data eller testdata.`);
+      // Fallback hvis `timeLogDataForMonth` allerede har data fra før, ellers mock
+      if (!timeLogDataForMonth || timeLogDataForMonth.length === 0) {
+           useMockTimeLogData(); // Bruk mock data hvis ingen data finnes
+      } else {
+           renderDailySummary(timeLogDataForMonth); // Vis gamle data hvis de finnes
+           if (statusElement) statusElement.textContent = 'Viser gamle data (feil ved oppdatering)';
+      }
   });
 }
 
-// Direkte fetch-metode (fungerer bare hvis CORS er konfigurert)
-function fetchTimeLogDirect() {
-  return fetch(`${GOOGLE_SCRIPT_URL}?action=getTimeLog&month=${currentMonth + 1}&year=${currentYear}&nocache=${Date.now()}`)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(data => {
-      if (data && data.success) {
-        processTimeLogData(data);
-        return data;
-      } else {
-        throw new Error('Invalid response from Google Script');
-      }
-    });
+// Generell funksjon for å hente data (prøver fetch, deretter JSONP)
+function fetchDataFromScript(params) {
+    const urlParams = new URLSearchParams(params);
+    urlParams.append('nocache', Date.now()); // Forhindre aggressiv caching
+
+    const directFetchUrl = `${GOOGLE_SCRIPT_URL}?${urlParams.toString()}`;
+    console.log("Forsøker direkte fetch:", directFetchUrl);
+
+    return fetch(directFetchUrl)
+        .then(response => {
+            if (!response.ok) {
+                // Kast en feil som inneholder status, slik at vi kan prøve JSONP
+                throw new Error(`HTTP error ${response.status}`);
+            }
+            return response.json();
+        })
+        .catch(error => {
+             // Hvis direkte fetch feiler (f.eks. CORS, nettverksfeil), prøv JSONP
+            console.warn(`Direkte fetch feilet (${error.message}), prøver JSONP.`);
+            return fetchTimeLogWithJSONP(params); // Pass på å sende parametere til JSONP også
+        });
 }
 
-// Behandle tidslogg-data etter vellykket henting
+
+// JSONP metode som fallback
+function fetchTimeLogWithJSONP(params) {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'googleScriptTimeLogCallback_' + Date.now();
+    const urlParams = new URLSearchParams(params);
+    urlParams.append('callback', callbackName);
+    urlParams.append('nocache', Date.now());
+
+    const jsonpUrl = `${GOOGLE_SCRIPT_URL}?${urlParams.toString()}`;
+    console.log("Starter JSONP:", jsonpUrl);
+
+    let scriptElement = null;
+    let timeoutId = null;
+
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      delete window[callbackName];
+      if (scriptElement && scriptElement.parentNode) {
+        scriptElement.parentNode.removeChild(scriptElement);
+      }
+      console.log("JSONP cleanup utført for", callbackName);
+    };
+
+    timeoutId = setTimeout(() => {
+      console.error("JSONP timed out for", callbackName);
+      cleanup();
+      reject(new Error('JSONP-forespørsel tidsavbrutt (10 sek).'));
+    }, 10000); // 10 sekunders timeout
+
+    window[callbackName] = (data) => {
+      console.log("JSONP callback mottatt for", callbackName);
+      cleanup();
+      // Vi stoler på at dataformatet sjekkes i .then()-blokken i loadDailySummary
+      resolve(data);
+    };
+
+    scriptElement = document.createElement('script');
+    scriptElement.src = jsonpUrl;
+    scriptElement.onerror = (err) => {
+      console.error("Feil ved lasting av JSONP script:", err);
+      cleanup();
+      reject(new Error('Kunne ikke laste JSONP script.'));
+    };
+
+    document.body.appendChild(scriptElement);
+  });
+}
+
+
+// Behandler mottatt data og oppdaterer global variabel
 function processTimeLogData(data) {
-  timeLogData = data.timeLog || [];
-  renderDailySummary(timeLogData);
-  
-  // Oppdater "sist oppdatert" tidspunkt
-  const now = new Date();
-  document.getElementById('last-updated').textContent = now.toLocaleTimeString();
+  timeLogDataForMonth = data.timeLog || []; // Lagre dataene globalt
+  renderDailySummary(timeLogDataForMonth); // Kall render-funksjonen
+
+  const statusElement = document.getElementById('last-updated');
+  if (statusElement) statusElement.textContent = new Date().toLocaleTimeString('nb-NO');
 }
 
-// Generer testdata for offline testing
+// Bruker mock data hvis henting feiler
 function useMockTimeLogData() {
-  console.log('Fallback to mock time log data for testing');
-  const mockData = generateMockData();
-  renderDailySummary(mockData);
-  
-  // Oppdater "sist oppdatert" tidspunkt med feilindikasjon
-  document.getElementById('last-updated').textContent = 'Frakoblet modus';
-  
-  // Vise en mer brukervennlig feilmelding
-  const errorMessage = "Kunne ikke koble til Google Sheets. Bruker testdata i frakoblet modus. Kontroller at:\n" +
-                      "1. Google Apps Script URL-en er korrekt\n" +
-                      "2. Skriptet er publisert som en webapplikasjon\n" +
-                      "3. Skriptet har tilgangsrettighetene 'Alle, inkludert anonyme'";
-  
-  alert(errorMessage);
+  console.warn('Bruker mock data for daglig sammendrag.');
+  timeLogDataForMonth = generateMockData(); // Generer mock data
+  renderDailySummary(timeLogDataForMonth); // Vis mock data
+
+  const statusElement = document.getElementById('last-updated');
+  if (statusElement) statusElement.textContent = 'Frakoblet modus (testdata)';
+
+  // Vurder å bare vise denne meldingen én gang
+  // alert("Kunne ikke koble til Google Sheets for dagsoversikt. Viser testdata.");
 }
 
-// Generer testdata for offline testing
+// Genererer mock data i riktig format (gruppert per dag)
 function generateMockData() {
+  console.log(`Genererer mock data for ${currentMonth + 1}/${currentYear}`);
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const mockData = [];
-  
-  // Generer data for hver dag i måneden
+  const mockSummary = {};
+  const today = new Date();
+  today.setHours(0,0,0,0); // For sammenligning
+
   for (let i = 1; i <= daysInMonth; i++) {
     const date = new Date(currentYear, currentMonth, i);
-    const weekDay = date.getDay(); // 0 = søndag, 6 = lørdag
-    
-    // Kun lag data for arbeidsdager og ikke fremtidige dager
-    const today = new Date();
-    if (date > today) continue;
-    
-    if (weekDay > 0 && weekDay < 6) {
-      // Generer bare data for cirka 70% av arbeidsdagene (mer realistisk)
-      if (Math.random() > 0.3) {
-        // Tilfeldig antall timer mellom 4 og 8
-        const totalHours = (4 + Math.random() * 4).toFixed(2);
-        
-        // Tilfeldig antall kunder mellom 1 og 4
-        const customerCount = Math.floor(1 + Math.random() * 4);
-        
-        // Lag kundedata
-        const customers = [];
-        let remainingHours = parseFloat(totalHours);
-        
-        for (let j = 0; j < customerCount; j++) {
-          let customerHours;
-          
-          if (j === customerCount - 1) {
-            // Siste kunde får resterende timer
-            customerHours = remainingHours;
-          } else {
-            // Tilfeldig fordeling av timer
-            customerHours = (remainingHours / (customerCount - j) * Math.random()).toFixed(2);
-            remainingHours -= customerHours;
-          }
-          
-          customers.push({
-            name: `Kunde ${j + 1}`,
-            hours: parseFloat(customerHours),
-            comment: `Arbeid utført ${date.toLocaleDateString('no-NO')}`
-          });
+     if (date > today) continue; // Ikke generer for fremtiden
+
+    const dateStr = date.toISOString().split('T')[0];
+    const weekDay = date.getDay(); // 0 = Søndag, 6 = Lørdag
+
+    // Generer kun data for ca 70% av arbeidsdager
+    if (weekDay > 0 && weekDay < 6 && Math.random() < 0.7) {
+        const numEntries = Math.floor(Math.random() * 5) + 1; // 1-5 entries
+        let dayTotalHours = 0;
+        const dayCustomers = [];
+
+        for(let j=0; j < numEntries; j++) {
+            const customerHours = parseFloat((Math.random() * 4 + 0.25).toFixed(2)); // 0.25 to 4.25 hours
+            dayTotalHours += customerHours;
+            dayCustomers.push({
+                name: `Testkunde ${String.fromCharCode(65 + Math.floor(Math.random()*5))}`, // A-E
+                hours: customerHours,
+                comment: `Diverse arbeid ${i}/${currentMonth+1}`
+            });
         }
-        
-        mockData.push({
-          date: date.toISOString().split('T')[0],
-          totalHours: parseFloat(totalHours),
-          customers: customers
-        });
-      }
+
+        mockSummary[dateStr] = {
+            date: dateStr,
+            totalHours: parseFloat(dayTotalHours.toFixed(2)),
+            customers: dayCustomers
+        };
     }
   }
-  
-  return mockData;
+   // Returner som array
+  const summaryArray = Object.values(mockSummary);
+  summaryArray.sort((a, b) => a.date.localeCompare(b.date));
+  console.log("Generert mock data:", summaryArray);
+  return summaryArray;
 }
 
-// Vis daglig sammendrag i tabellen
-function renderDailySummary(data) {
+
+// Viser sammendraget i HTML-tabellen
+function renderDailySummary(summaryData) {
+  console.log("Rendrer daglig sammendrag med data:", summaryData);
   const tableBody = document.getElementById('summary-table-body');
-  tableBody.innerHTML = '';
-  
-  // Hent antall dager i måneden
+  if (!tableBody) {
+      console.error("FEIL: Finner ikke summary-table-body!");
+      return;
+  }
+  tableBody.innerHTML = ''; // Tøm tabellen
+
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  
-  // Opprett mapping av dato til data for rask tilgang
   const dateMap = {};
-  data.forEach(entry => {
+  summaryData.forEach(entry => { // Map data for enkel tilgang
     dateMap[entry.date] = entry;
   });
-  
+
   let totalMonthHours = 0;
-  let workDaysCount = 0;
-  
-  // For hver dag i måneden
+  let workDaysWithHours = 0; // Teller kun dager med faktisk logget tid
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Gå gjennom hver dag i den valgte måneden
   for (let i = 1; i <= daysInMonth; i++) {
     const date = new Date(currentYear, currentMonth, i);
     const dateStr = date.toISOString().split('T')[0];
-    const weekDay = date.getDay(); // 0 = søndag, 6 = lørdag
-    
-    // Ikke inkluder fremtidige dager
-    const today = new Date();
-    if (date > today) continue;
-    
-    const row = document.createElement('tr');
-    
-    // Legg til klasse for helg
-    if (weekDay === 0 || weekDay === 6) {
-      row.classList.add('weekend');
-    }
-    
-    // Legg til klasse for dagens dato
-    const isToday = date.setHours(0, 0, 0, 0) === today.setHours(0, 0, 0, 0);
+    const weekDay = date.getDay();
+    const isFutureDate = date > today; // Ikke vis rader for fremtiden? Eller vis tomme? Viser tomme for nå.
+
+    const row = tableBody.insertRow(); // Bruk insertRow for litt bedre ytelse kanskje
+
+    // Legg til CSS-klasser for helg og dagens dato
+    if (weekDay === 0 || weekDay === 6) row.classList.add('weekend');
+    const isToday = date.getTime() === today.getTime();
+    if (isToday) row.classList.add('current-day');
+
+    // Celler
+    const dateCell = row.insertCell();
+    const weekDayCell = row.insertCell();
+    const hoursCell = row.insertCell();
+    const customersCell = row.insertCell();
+    const detailsCell = row.insertCell();
+
+    // Formater dato og ukedag
+    dateCell.textContent = date.toLocaleDateString('no-NO', { day: '2-digit', month: '2-digit' });
     if (isToday) {
-      row.classList.add('current-day');
+         const todayPill = document.createElement('span');
+         todayPill.textContent = 'I DAG';
+         todayPill.className = 'today-pill';
+         dateCell.appendChild(todayPill);
     }
-    
-    // Dato
-    const dateTd = document.createElement('td');
-    dateTd.textContent = date.toLocaleDateString('no-NO');
-    if (isToday) {
-      const todayPill = document.createElement('span');
-      todayPill.textContent = 'I DAG';
-      todayPill.className = 'today-pill';
-      dateTd.appendChild(todayPill);
-    }
-    row.appendChild(dateTd);
-    
-    // Ukedag
+
     const weekDayNames = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
-    const weekDayTd = document.createElement('td');
-    weekDayTd.textContent = weekDayNames[weekDay];
-    row.appendChild(weekDayTd);
-    
-    // Timeinformasjon
+    weekDayCell.textContent = weekDayNames[weekDay];
+
+    // Hent data for dagen hvis den finnes
     const entry = dateMap[dateStr];
-    
-    // Totale timer
-    const hoursTd = document.createElement('td');
-    if (entry) {
-      hoursTd.textContent = entry.totalHours.toFixed(2);
-      totalMonthHours += entry.totalHours;
-      if (weekDay > 0 && weekDay < 6) {
-        workDaysCount++;
-      }
-    } else {
-      hoursTd.textContent = '-';
-    }
-    row.appendChild(hoursTd);
-    
-    // Antall kunder
-    const customersTd = document.createElement('td');
-    if (entry && entry.customers) {
-      customersTd.textContent = entry.customers.length;
-    } else {
-      customersTd.textContent = '-';
-    }
-    row.appendChild(customersTd);
-    
-    // Detalj-knapp
-    const detailsTd = document.createElement('td');
-    if (entry && entry.customers && entry.customers.length > 0) {
+    if (entry && !isFutureDate) {
+      hoursCell.textContent = entry.totalHours.toFixed(2);
+      customersCell.textContent = entry.customers.length;
+
+      // Lag detaljknapp
       const detailBtn = document.createElement('button');
       detailBtn.className = 'detail-btn';
-      detailBtn.textContent = 'Vis detaljer';
-      detailBtn.addEventListener('click', () => showDayDetails(entry, date));
-      detailsTd.appendChild(detailBtn);
+      detailBtn.textContent = 'Vis'; // Kortere tekst
+      detailBtn.onclick = () => showDayDetails(entry, date); // Bruk arrow func for riktig scope
+      detailsCell.appendChild(detailBtn);
+
+      // Oppdater totaler
+      totalMonthHours += entry.totalHours;
+      if (weekDay > 0 && weekDay < 6) { // Tell kun arbeidsdager med timer for snitt
+          workDaysWithHours++;
+      }
     } else {
-      detailsTd.textContent = '-';
+      // Tomme celler for dager uten data eller fremtidige dager
+      hoursCell.textContent = '-';
+      customersCell.textContent = '-';
+      detailsCell.textContent = '-';
     }
-    row.appendChild(detailsTd);
-    
-    tableBody.appendChild(row);
   }
-  
-  // Oppdater totaler
+
+  // Oppdater kortene med totaler
   document.getElementById('month-total').textContent = totalMonthHours.toFixed(2) + ' timer';
-  
-  // Beregn gjennomsnitt per arbeidsdag
-  const average = workDaysCount > 0 ? totalMonthHours / workDaysCount : 0;
+  const average = workDaysWithHours > 0 ? (totalMonthHours / workDaysWithHours) : 0;
   document.getElementById('day-average').textContent = average.toFixed(2) + ' timer';
+  console.log(`Månedstotal: ${totalMonthHours.toFixed(2)}, Arbeidsdager m/timer: ${workDaysWithHours}, Snitt: ${average.toFixed(2)}`);
 }
 
-// Vis detaljer for en enkelt dag
+// Viser detaljmodalen for en valgt dag
 function showDayDetails(entry, date) {
+  console.log("Viser detaljer for:", entry);
   const modal = document.getElementById('dayDetailsModal');
+  if (!modal) {
+       console.error("FEIL: Finner ikke dayDetailsModal!");
+       return;
+  }
+
   const dateStr = date.toLocaleDateString('no-NO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  
   document.getElementById('detail-date').textContent = dateStr;
   document.getElementById('detail-total-hours').textContent = entry.totalHours.toFixed(2);
   document.getElementById('detail-customer-count').textContent = entry.customers.length;
-  
+
   const tableBody = document.getElementById('detail-table-body');
-  tableBody.innerHTML = '';
-  
-  // Sorter kundene etter antall timer (høyest først)
+  if (!tableBody) {
+       console.error("FEIL: Finner ikke detail-table-body!");
+       closeModal('dayDetailsModal'); // Lukk modal hvis innhold mangler
+       return;
+  }
+  tableBody.innerHTML = ''; // Tøm gammelt innhold
+
+  // Sorter kunder etter timer (mest først)
   const sortedCustomers = [...entry.customers].sort((a, b) => b.hours - a.hours);
-  
+
   sortedCustomers.forEach(customer => {
-    const row = document.createElement('tr');
-    
-    // Kundenavn
-    const nameTd = document.createElement('td');
-    nameTd.textContent = customer.name;
-    row.appendChild(nameTd);
-    
-    // Timer brukt
-    const hoursTd = document.createElement('td');
-    hoursTd.textContent = customer.hours.toFixed(2);
-    row.appendChild(hoursTd);
-    
-    // Kommentar
-    const commentTd = document.createElement('td');
-    commentTd.textContent = customer.comment || '-';
-    row.appendChild(commentTd);
-    
-    tableBody.appendChild(row);
+    const row = tableBody.insertRow();
+    const nameCell = row.insertCell();
+    const hoursCell = row.insertCell();
+    const commentCell = row.insertCell();
+
+    nameCell.textContent = customer.name;
+    hoursCell.textContent = customer.hours.toFixed(2);
+    commentCell.textContent = customer.comment || '-'; // Vis '-' hvis ingen kommentar
+    commentCell.style.whiteSpace = "pre-wrap"; // Bevar linjeskift i kommentarer
+    commentCell.style.wordBreak = "break-word"; // Bryt lange ord
   });
-  
-  modal.style.display = 'block';
+
+  modal.style.display = 'block'; // Vis modalen
 }
+
+// Lukker modalvinduer
+function closeModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.style.display = 'none';
+    console.log(`Lukket modal: ${modalId}`);
+  } else {
+     console.warn(`Forsøkte å lukke ukjent modal: ${modalId}`);
+  }
+}
+
+// Legg til listener for å lukke modal ved klikk utenfor innholdet
+window.addEventListener('click', function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target == modal) { // Klikket direkte på bakgrunnen
+            closeModal(modal.id);
+        }
+    });
+});
 
 // Lukk modal
 function closeModal(modalId) {
