@@ -27,7 +27,8 @@ document.addEventListener('DOMContentLoaded', function() {
 function updateCurrentDateHeader() {
   const now = new Date();
   const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  document.getElementById('current-date').textContent = now.toLocaleDateString('no-NO', options);
+  const displayElement = document.getElementById('current-date');
+  if(displayElement) displayElement.textContent = now.toLocaleDateString('no-NO', options);
 }
 
 // Funksjon for å starte automatisk oppdatering (kommentert ut som standard)
@@ -69,6 +70,14 @@ function updateMonthDisplay() {
 
 // Hovedfunksjon for å laste data fra Google Apps Script
 function loadDailySummary() {
+  // Sikrer at URL er satt
+  if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'DIN_NETTAPP_URL_HER') {
+       alert("FEIL: GOOGLE_SCRIPT_URL er ikke satt i daily-summary.js!");
+       const statusElement = document.getElementById('last-updated');
+       if (statusElement) statusElement.textContent = 'Konfigurasjonsfeil!';
+       return; // Avbryt hvis URL mangler
+  }
+
   console.log(`Laster sammendrag for ${currentMonth + 1}/${currentYear}`);
   updateMonthDisplay(); // Sørg for at riktig måned vises
 
@@ -212,7 +221,13 @@ function generateMockData() {
     const date = new Date(currentYear, currentMonth, i);
      if (date > today) continue; // Ikke generer for fremtiden
 
-    const dateStr = date.toISOString().split('T')[0];
+    // --- Bruk manuell formatering for nøkkel ---
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}-${mm}-${dd}`;
+    // --- Slutt manuell formatering ---
+
     const weekDay = date.getDay(); // 0 = Søndag, 6 = Lørdag
 
     // Generer kun data for ca 70% av arbeidsdager
@@ -231,7 +246,7 @@ function generateMockData() {
             });
         }
 
-        mockSummary[dateStr] = {
+        mockSummary[dateStr] = { // Bruk formatert dateStr som nøkkel
             date: dateStr,
             totalHours: parseFloat(dayTotalHours.toFixed(2)),
             customers: dayCustomers
@@ -247,6 +262,7 @@ function generateMockData() {
 
 
 // Viser sammendraget i HTML-tabellen
+// ----- START OPPDATERT renderDailySummary -----
 function renderDailySummary(summaryData) {
   console.log("Rendrer daglig sammendrag med data:", summaryData);
   const tableBody = document.getElementById('summary-table-body');
@@ -258,27 +274,34 @@ function renderDailySummary(summaryData) {
 
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const dateMap = {};
-  summaryData.forEach(entry => { // Map data for enkel tilgang
+  summaryData.forEach(entry => { // Map data for enkel tilgang, bruk 'entry.date' som nøkkel
     dateMap[entry.date] = entry;
   });
 
   let totalMonthHours = 0;
-  let workDaysWithHours = 0; // Teller kun dager med faktisk logget tid
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  let workDaysWithHours = 0; // Teller kun arbeidsdager med faktisk logget tid
+  const todayComp = new Date(); // Hent dagens dato en gang utenfor loopen
+  todayComp.setHours(0, 0, 0, 0); // Nullstill tid for ren datosammenligning
 
   // Gå gjennom hver dag i den valgte måneden
   for (let i = 1; i <= daysInMonth; i++) {
-    const date = new Date(currentYear, currentMonth, i);
-    const dateStr = date.toISOString().split('T')[0];
-    const weekDay = date.getDay();
-    const isFutureDate = date > today; // Ikke vis rader for fremtiden? Eller vis tomme? Viser tomme for nå.
+    const date = new Date(currentYear, currentMonth, i); // Dette er LOKAL dato
 
-    const row = tableBody.insertRow(); // Bruk insertRow for litt bedre ytelse kanskje
+    // --- Lag yyyy-MM-dd-streng manuelt fra LOKAL dato ---
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0'); // Måned er 0-indeksert
+    const dd = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}-${mm}-${dd}`; // Nøkkel for oppslag i dateMap
+    // --- Slutt på manuell formatering ---
+
+    const weekDay = date.getDay();
+    const isFutureDate = date > todayComp; // Sjekk mot dagens dato
+    const isToday = date.getTime() === todayComp.getTime();
+
+    const row = tableBody.insertRow();
 
     // Legg til CSS-klasser for helg og dagens dato
     if (weekDay === 0 || weekDay === 6) row.classList.add('weekend');
-    const isToday = date.getTime() === today.getTime();
     if (isToday) row.classList.add('current-day');
 
     // Celler
@@ -288,8 +311,8 @@ function renderDailySummary(summaryData) {
     const customersCell = row.insertCell();
     const detailsCell = row.insertCell();
 
-    // Formater dato og ukedag
-    dateCell.textContent = date.toLocaleDateString('no-NO', { day: '2-digit', month: '2-digit' });
+    // Formater dato og ukedag for visning
+    dateCell.textContent = date.toLocaleDateString('no-NO', { day: 'numeric', month: 'numeric' }); // Brukervennlig format
     if (isToday) {
          const todayPill = document.createElement('span');
          todayPill.textContent = 'I DAG';
@@ -300,38 +323,50 @@ function renderDailySummary(summaryData) {
     const weekDayNames = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
     weekDayCell.textContent = weekDayNames[weekDay];
 
-    // Hent data for dagen hvis den finnes
-    const entry = dateMap[dateStr];
-    if (entry && !isFutureDate) {
+    // Hent data for dagen hvis den finnes, bruk den manuelt formaterte dateStr
+    const entry = dateMap[dateStr]; // <--- Bruker nå riktig formatert nøkkel
+
+    if (entry) { // Data finnes for denne datoen
       hoursCell.textContent = entry.totalHours.toFixed(2);
       customersCell.textContent = entry.customers.length;
 
       // Lag detaljknapp
       const detailBtn = document.createElement('button');
       detailBtn.className = 'detail-btn';
-      detailBtn.textContent = 'Vis'; // Kortere tekst
-      detailBtn.onclick = () => showDayDetails(entry, date); // Bruk arrow func for riktig scope
+      detailBtn.textContent = 'Vis';
+      // Viktig: Send med dato-objektet 'date' til showDayDetails for korrekt visning der
+      detailBtn.onclick = () => showDayDetails(entry, date);
       detailsCell.appendChild(detailBtn);
 
-      // Oppdater totaler
-      totalMonthHours += entry.totalHours;
-      if (weekDay > 0 && weekDay < 6) { // Tell kun arbeidsdager med timer for snitt
-          workDaysWithHours++;
-      }
-    } else {
-      // Tomme celler for dager uten data eller fremtidige dager
+      // Oppdater totaler KUN hvis datoen ikke er i fremtiden
+       if (!isFutureDate) {
+           totalMonthHours += entry.totalHours;
+           if (weekDay > 0 && weekDay < 6) { // Tell kun arbeidsdager med timer for snitt
+               workDaysWithHours++;
+           }
+       }
+
+    } else if (!isFutureDate) { // Vis '-' for fortid/nåtid uten data
       hoursCell.textContent = '-';
       customersCell.textContent = '-';
       detailsCell.textContent = '-';
+    } else { // La celler for fremtiden være tomme
+        hoursCell.textContent = '';
+        customersCell.textContent = '';
+        detailsCell.textContent = '';
     }
   }
 
   // Oppdater kortene med totaler
-  document.getElementById('month-total').textContent = totalMonthHours.toFixed(2) + ' timer';
+  const monthTotalElement = document.getElementById('month-total');
+  const dayAverageElement = document.getElementById('day-average');
+  if(monthTotalElement) monthTotalElement.textContent = totalMonthHours.toFixed(2) + ' timer';
   const average = workDaysWithHours > 0 ? (totalMonthHours / workDaysWithHours) : 0;
-  document.getElementById('day-average').textContent = average.toFixed(2) + ' timer';
+  if(dayAverageElement) dayAverageElement.textContent = average.toFixed(2) + ' timer';
   console.log(`Månedstotal: ${totalMonthHours.toFixed(2)}, Arbeidsdager m/timer: ${workDaysWithHours}, Snitt: ${average.toFixed(2)}`);
 }
+// ----- SLUTT OPPDATERT renderDailySummary -----
+
 
 // Viser detaljmodalen for en valgt dag
 function showDayDetails(entry, date) {
@@ -343,9 +378,15 @@ function showDayDetails(entry, date) {
   }
 
   const dateStr = date.toLocaleDateString('no-NO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  document.getElementById('detail-date').textContent = dateStr;
-  document.getElementById('detail-total-hours').textContent = entry.totalHours.toFixed(2);
-  document.getElementById('detail-customer-count').textContent = entry.customers.length;
+
+  // Oppdater elementer med null-sjekk
+  const detailDateEl = document.getElementById('detail-date');
+  if(detailDateEl) detailDateEl.textContent = dateStr;
+  const detailTotalHoursEl = document.getElementById('detail-total-hours');
+  if(detailTotalHoursEl) detailTotalHoursEl.textContent = entry.totalHours.toFixed(2);
+  const detailCustomerCountEl = document.getElementById('detail-customer-count');
+  if(detailCustomerCountEl) detailCustomerCountEl.textContent = entry.customers.length;
+
 
   const tableBody = document.getElementById('detail-table-body');
   if (!tableBody) {
@@ -389,13 +430,9 @@ function closeModal(modalId) {
 window.addEventListener('click', function(event) {
     const modals = document.querySelectorAll('.modal');
     modals.forEach(modal => {
-        if (event.target == modal) { // Klikket direkte på bakgrunnen
+        // Sjekk om modalen er synlig og klikket var direkte på modal-bakgrunnen
+        if (modal.style.display === 'block' && event.target === modal) {
             closeModal(modal.id);
         }
     });
 });
-
-// Lukk modal
-function closeModal(modalId) {
-  document.getElementById(modalId).style.display = 'none';
-}
