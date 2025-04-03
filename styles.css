@@ -12,6 +12,12 @@
   --border-inactive: #383838;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   --transition: all 0.3s ease;
+
+  /* Bar Colors */
+  --bar-green: #4CAF50;
+  --bar-yellow: #ffc107;
+  --bar-red: #e53935;
+  --bar-background: #333;
 }
 
 body {
@@ -51,34 +57,60 @@ body {
   margin-bottom: 15px;
 }
 
-.refresh-btn {
-  background: var(--accent-gradient);
-  color: white;
-  border: none;
+.header-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.refresh-btn,
+.daily-summary-btn,
+.nav-btn /* Også fra daily-summary.css, men greit å ha her */
+{
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-inactive);
   padding: 8px 18px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: bold;
   transition: var(--transition);
-  margin-top: 5px;
 }
 
-.refresh-btn:hover {
+.refresh-btn:hover,
+.daily-summary-btn:hover,
+.nav-btn:hover
+{
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(157, 78, 221, 0.4);
+  border-color: var(--accent-primary);
+  box-shadow: 0 5px 15px rgba(157, 78, 221, 0.2);
 }
+
+/* Gjør Oppdater-knappen litt mer fremtredende */
+.refresh-btn {
+  background: var(--accent-gradient);
+  color: white;
+  border: none;
+}
+.refresh-btn:hover {
+   box-shadow: 0 5px 15px rgba(157, 78, 221, 0.4);
+   border-color: transparent; /* Unngå dobbel border */
+}
+
 
 .container {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
-  justify-content: flex-start;
+  justify-content: flex-start; /* Standard, endre til center hvis ønskelig */
+  padding-bottom: 50px; /* Litt luft nederst */
 }
 
 .customer-box {
-  width: 250px;
-  height: 150px;
+  width: 250px; /* Fast bredde, juster etter ønske */
+  min-height: 160px; /* Minimumshøyde for konsistens */
   background-color: var(--bg-card);
   border-radius: 12px;
   box-shadow: var(--shadow);
@@ -88,6 +120,8 @@ body {
   cursor: pointer;
   transition: var(--transition);
   border: 1px solid var(--border-inactive);
+  display: flex;
+  flex-direction: column; /* Organiser innhold vertikalt */
 }
 
 .customer-box:hover {
@@ -107,7 +141,7 @@ body {
   top: 10px;
   right: 10px;
   display: flex;
-  gap: 10px;
+  gap: 8px; /* Litt mindre gap */
   opacity: 0;
   transition: opacity 0.3s ease;
   z-index: 10;
@@ -122,13 +156,13 @@ body {
   border: none;
   color: white;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px; /* Litt mindre ikon */
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 26px; /* Litt mindre knapp */
+  height: 26px;
   border-radius: 50%;
   transition: var(--transition);
 }
@@ -143,27 +177,33 @@ body {
   font-weight: bold;
   margin-bottom: 5px;
   color: var(--text-primary);
+  word-break: break-word; /* Bryt lange navn */
 }
 
+/* Valgfritt: Skjul den gamle available-hours */
 .available-hours {
-  font-size: 14px;
+  /* display: none; */ /* Fjern kommentaren for å skjule */
+  font-size: 12px;
   color: var(--text-secondary);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .timer {
   font-size: 24px;
   font-weight: bold;
-  margin: 10px 0;
+  margin-top: auto; /* Skyver timer og status ned */
+  margin-bottom: 5px;
   color: var(--accent-primary);
+  line-height: 1.1;
 }
 
 .status {
-  position: absolute;
-  bottom: 15px;
-  left: 15px;
+  /* position: absolute; */ /* Ikke lenger absolutt */
+  /* bottom: 15px; */
+  /* left: 15px; */
   font-size: 14px;
   color: var(--inactive);
+  align-self: flex-start; /* Juster til venstre */
 }
 
 .active .status {
@@ -171,10 +211,59 @@ body {
   font-weight: bold;
 }
 
+/* Styles for Customer Hours Bar */
+.hours-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Mellomrom mellom bar og tekst */
+    margin-top: 8px; /* Plass over baren */
+    margin-bottom: 10px; /* Plass under baren */
+}
+
+.hours-bar-container {
+    flex-grow: 1; /* Lar baren ta opp tilgjengelig plass */
+    background-color: var(--bar-background);
+    border-radius: 5px;
+    height: 10px; /* Høyde på baren */
+    overflow: hidden; /* Sørger for at fyllet holder seg innenfor */
+    border: 1px solid var(--border-inactive);
+}
+
+.hours-bar-fill {
+    height: 100%;
+    border-radius: 4px; /* Litt mindre enn container for fin kant */
+    transition: width 0.4s ease-in-out, background-color 0.4s ease; /* Animer endringer */
+    width: 0%; /* Starter tom */
+    background-color: var(--inactive); /* Grå som default */
+}
+
+/* Fargeklasser for bar-fyllet */
+.hours-bar-fill.bar-green {
+    background-color: var(--bar-green);
+}
+
+.hours-bar-fill.bar-yellow {
+    background-color: var(--bar-yellow);
+}
+
+.hours-bar-fill.bar-red {
+    background-color: var(--bar-red);
+}
+
+.hours-remaining-text {
+    font-size: 11px;
+    font-weight: 600; /* Litt fet skrift */
+    color: var(--text-secondary);
+    white-space: nowrap; /* Forhindrer at teksten brytes */
+    flex-shrink: 0; /* Forhindrer at teksten krymper */
+}
+/* --- Slutt på Bar Styles --- */
+
+
 .modal {
   display: none;
   position: fixed;
-  z-index: 1;
+  z-index: 1001; /* Sikre at den er over test-knappen */
   left: 0;
   top: 0;
   width: 100%;
@@ -188,49 +277,67 @@ body {
   margin: 15% auto;
   padding: 25px;
   border-radius: 15px;
-  width: 50%;
+  width: 90%; /* Bedre default for mobil */
   max-width: 500px;
   max-height: 80vh;
   overflow-y: auto;
   box-shadow: var(--shadow);
   border: 1px solid var(--accent-secondary);
+  position: relative; /* For lukkeknapp-posisjonering */
 }
 
 .close {
   color: var(--text-secondary);
-  float: right;
+  position: absolute; /* Plasser ift modal-content */
+  top: 10px;
+  right: 15px;
   font-size: 28px;
   font-weight: bold;
   cursor: pointer;
   transition: var(--transition);
+  line-height: 1;
 }
 
 .close:hover {
   color: var(--accent-primary);
 }
 
-textarea {
-  width: 100%;
-  height: 100px;
+textarea,
+input[type="text"],
+input[type="number"] /* Gjelder modal-input */
+{
+  width: 100%; /* Ta full bredde */
+  box-sizing: border-box; /* Inkluder padding/border i bredden */
   padding: 12px;
   margin: 10px 0;
   border-radius: 8px;
   background-color: var(--bg-dark);
   border: 1px solid var(--border-inactive);
-  resize: none;
   color: var(--text-primary);
   font-family: inherit;
+  font-size: 1rem; /* Sørg for lik størrelse */
   transition: var(--transition);
 }
 
-textarea:focus {
+textarea:focus,
+input[type="text"]:focus,
+input[type="number"]:focus
+{
   outline: none;
   border-color: var(--accent-primary);
   box-shadow: 0 0 8px rgba(157, 78, 221, 0.3);
 }
 
-.submit-btn {
-  background: var(--accent-gradient);
+textarea {
+  height: 100px;
+  resize: vertical; /* Tillat vertikal endring */
+}
+
+
+.submit-btn,
+.delete-btn,
+.cancel-btn
+{
   color: white;
   border: none;
   padding: 12px 24px;
@@ -239,26 +346,43 @@ textarea:focus {
   font-size: 16px;
   font-weight: bold;
   transition: var(--transition);
+  display: inline-flex; /* For bedre alignment hvis ikon legges til */
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
+.submit-btn {
+   background: var(--accent-gradient);
+}
 .submit-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(157, 78, 221, 0.4);
 }
+.submit-btn:disabled {
+    background: var(--inactive);
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
 
 .add-customer {
   width: 250px;
-  height: 150px;
+  height: 160px; /* Match min-height for customer-box */
   background: linear-gradient(to bottom, var(--bg-card), rgba(123, 44, 191, 0.05));
-  border: 1px dashed var(--border-inactive);
+  border: 2px dashed var(--border-inactive); /* Tykkere dash */
   border-radius: 12px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  order: -1; /* Makes this appear first */
+  order: -1; /* Vises først */
   transition: var(--transition);
+  text-align: center;
+  padding: 15px;
+  box-sizing: border-box;
 }
 
 .add-customer:hover {
@@ -268,7 +392,7 @@ textarea:focus {
 }
 
 .add-customer.active {
-  border: 1px solid var(--accent-primary);
+  border: 2px solid var(--accent-primary);
   background: linear-gradient(to bottom, var(--bg-card), rgba(123, 44, 191, 0.2));
 }
 
@@ -276,6 +400,7 @@ textarea:focus {
   font-size: 40px;
   color: var(--inactive);
   transition: var(--transition);
+  line-height: 1;
 }
 
 .add-customer:hover .add-customer-icon {
@@ -293,8 +418,11 @@ textarea:focus {
   color: var(--accent-primary);
 }
 
-.new-customer-modal .modal-content {
-  width: 40%;
+.new-customer-modal .modal-content,
+#editCustomerModal .modal-content
+{
+  width: 90%; /* Bedre mobilvisning */
+  max-width: 450px; /* Litt smalere */
   max-height: 80vh;
   overflow-y: auto;
   margin: 10% auto;
@@ -311,22 +439,6 @@ textarea:focus {
   color: var(--text-primary);
 }
 
-.form-group input {
-  width: 100%;
-  padding: 12px;
-  border-radius: 8px;
-  background-color: var(--bg-dark);
-  border: 1px solid var(--border-inactive);
-  color: var(--text-primary);
-  font-family: inherit;
-  transition: var(--transition);
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 8px rgba(157, 78, 221, 0.3);
-}
 
 /* Styling for modal titles */
 .modal-content h2 {
@@ -349,99 +461,79 @@ textarea:focus {
   color: var(--text-secondary);
 }
 
-/* Modal for editing customer */
-#editCustomerModal .modal-content {
-  width: 40%;
-  max-height: 80vh;
-  overflow-y: auto;
-  margin: 10% auto;
-}
 
 /* Confirmation modal */
 #confirmDeleteModal .modal-content {
-  width: 30%;
+  width: 90%;
+  max-width: 400px;
   text-align: center;
 }
 
 .modal-buttons {
   display: flex;
-  gap: 10px;
+  gap: 15px; /* Mer luft */
   justify-content: center;
-  margin-top: 20px;
+  margin-top: 25px; /* Mer luft */
 }
 
 .cancel-btn {
   background: var(--bg-card);
   color: var(--text-primary);
   border: 1px solid var(--border-inactive);
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: var(--transition);
 }
 
 .cancel-btn:hover {
   background: var(--bg-modal);
   border-color: var(--text-secondary);
+  transform: translateY(-2px); /* Liten hover-effekt */
 }
 
 .delete-btn {
-  background: #e53935;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: var(--transition);
+  background: var(--bar-red); /* Bruk samme rødfarge */
 }
 
 .delete-btn:hover {
-  background: #c62828;
+  background: #c62828; /* Mørkere rød */
   transform: translateY(-2px);
 }
-
-/* Legg til disse stilene i din eksisterende styles.css fil */
-
-.header-actions {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-  margin-top: 10px;
+.delete-btn:disabled {
+    background: var(--inactive);
+    cursor: not-allowed;
+    transform: none;
 }
 
-.daily-summary-btn {
-  background: var(--bg-card);
-  color: var(--text-primary);
-  border: 1px solid var(--border-inactive);
-  padding: 8px 18px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: bold;
-  transition: var(--transition);
-}
-
-.daily-summary-btn:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent-primary);
-  box-shadow: 0 5px 15px rgba(157, 78, 221, 0.2);
-}
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
+@media (max-width: 600px) { /* Justert breakpoint */
+  .container {
+      justify-content: center; /* Sentrer bokser på små skjermer */
+  }
+
   .customer-box, .add-customer {
-    width: 100%;
+    width: 90%; /* Ta mer bredde */
+    max-width: 350px; /* Men ikke bli for brede */
   }
-  
+
+  .header h1 {
+      font-size: 2rem; /* Mindre tittel */
+  }
+
   .modal-content {
-    width: 90%;
+    margin: 10% auto; /* Mindre margin */
   }
-  
-  #editCustomerModal .modal-content,
-  .new-customer-modal .modal-content,
-  #confirmDeleteModal .modal-content {
-    width: 90%;
-  }
+}
+
+/* Nødtest-knapp styling */
+#test-connection-button {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background-color: #ff5555;
+  color: white;
+  padding: 8px 15px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  z-index: 1000;
+  font-size: 12px;
 }
