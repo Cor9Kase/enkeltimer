@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Daglig Timesoversikt - Cornys Timetracker</title>
+  <!-- Viktig: Sørg for at stiene til CSS-filene er korrekte -->
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="daily-summary.css">
 </head>
@@ -21,25 +22,31 @@
       </button>
     </div>
   </div>
-  
+
   <div class="date-selector">
-    <button id="prev-month" class="nav-arrow">&#9664;</button>
-    <div id="month-display">Mars 2025</div>
-    <button id="next-month" class="nav-arrow">&#9654;</button>
+    <button id="prev-month" class="nav-arrow" title="Forrige måned">◀</button>
+    <div id="month-display">Laster...</div>
+    <button id="next-month" class="nav-arrow" title="Neste måned">▶</button>
   </div>
-  
+
   <div class="summary-container">
     <div class="summary-header">
       <div class="card total-card">
         <h3>Totalt denne måneden</h3>
-        <div id="month-total" class="card-value">0 timer</div>
+        <div id="month-total" class="card-value">0.00 timer</div>
       </div>
       <div class="card average-card">
         <h3>Gjennomsnitt per arbeidsdag</h3>
-        <div id="day-average" class="card-value">0 timer</div>
+        <div id="day-average" class="card-value">0.00 timer</div>
       </div>
+      <!-- === START NYTT KORT FOR OVERTID === -->
+      <div class="card overtime-card">
+        <h3>Overtid denne måneden</h3>
+        <div id="month-overtime" class="card-value">0.00 timer</div>
+      </div>
+      <!-- === SLUTT NYTT KORT === -->
     </div>
-    
+
     <div class="summary-table-container">
       <table id="daily-summary-table" class="summary-table">
         <thead>
@@ -47,26 +54,31 @@
             <th>Dato</th>
             <th>Ukedag</th>
             <th>Totale timer</th>
+            <!-- Valgfri Overtid-kolonne, lagt til via JS hvis ønskelig -->
             <th>Antall kunder</th>
             <th>Detaljer</th>
           </tr>
         </thead>
         <tbody id="summary-table-body">
-          <!-- Data fylles inn av JavaScript -->
+          <!-- Rader fylles inn av JavaScript -->
+          <tr><td colspan="5" style="text-align: center; padding: 20px;">Laster data...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
-  
+
   <!-- Modal for dag-detaljer -->
   <div id="dayDetailsModal" class="modal">
     <div class="modal-content daily-details-modal">
-      <span class="close" onclick="closeModal('dayDetailsModal')">&times;</span>
+      <!-- Bruker riktig funksjon for å lukke -->
+      <span class="close" onclick="closeModal('dayDetailsModal')" title="Lukk">×</span>
       <h2>Timedetaljer for <span id="detail-date">dato</span></h2>
       <div id="detail-summary" class="detail-summary-text">
-        Total: <span id="detail-total-hours">0</span> timer fordelt på <span id="detail-customer-count">0</span> kunder
+        Total: <span id="detail-total-hours">0</span> timer fordelt på <span id="detail-customer-count">0</span> kunder.
+        <!-- Valgfritt: Kan også legge til dagens overtid her -->
+        <!-- Overtid i dag: <span id="detail-overtime">0</span> timer. -->
       </div>
-      
+
       <table id="detail-table" class="detail-table">
         <thead>
           <tr>
@@ -76,12 +88,13 @@
           </tr>
         </thead>
         <tbody id="detail-table-body">
-          <!-- Data fylles inn av JavaScript -->
+          <!-- Detaljer fylles inn av JavaScript -->
         </tbody>
       </table>
     </div>
   </div>
-  
+
+  <!-- Viktig: Sørg for at stien til JS-filen er korrekt -->
   <script src="daily-summary.js"></script>
 </body>
 </html>
