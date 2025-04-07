@@ -9,7 +9,7 @@ function debounce(func, wait) {
 }
 
 // Google Script URL - *** VIKTIG: Bytt ut med din egen publiserte URL ***
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwMri9xb7NBt3KNvOzHo0btwoZdMTAApkRQIRJlUhvFSChhbWrAsef0iFUMcMZrgGFO/exec';
+const GOOGLE_SCRIPT_URL = 'DIN_NETTAPP_URL_HER'; // <--- SETT INN DIN URL HER!
 
 // Globale variabler for tilstand
 const timers = {};
