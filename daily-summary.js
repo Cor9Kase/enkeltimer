@@ -2,7 +2,7 @@
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbygsRX8Xyl_0FzXDIZdPayuNToV7Kq0M6HAtpVw2drqIJg3y7h_nXEpksw-dqXMlHrI/exec'; // <-- ERSTATT MED DIN FAKTISKE URL HVIS DENNE ER FEIL
 
 // --- NY KONSTANT for overtidsterskel ---
-const WEEKDAY_OVERTIME_THRESHOLD = 7,5; // Timer før overtid starter på hverdager
+const WEEKDAY_OVERTIME_THRESHOLD = 8; // Timer før overtid starter på hverdager
 
 // Globale variabler
 let currentMonth = new Date().getMonth(); // 0 = Januar, 11 = Desember
