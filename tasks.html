@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oppgaver - Cornys Timetracker</title>
+  <!-- Bruk felles stiler OG oppgavespesifikke stiler -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="tasks.css">
+</head>
+<body>
+  <div class="header">
+    <h1>Cornys Timetracker - Oppgaver</h1>
+    <div id="current-date" class="current-date">Laster dato...</div>
+    <!-- Oppdateringsstatus er kanskje mindre relevant her, kan fjernes -->
+    <!-- <div class="update-status">Sist oppdatert: <span id="last-updated">Aldri</span></div> -->
+    <div class="nav-buttons">
+      <button class="nav-btn" onclick="window.location.href='index.html'">
+        Til Timeregistrering
+      </button>
+      <button class="nav-btn" onclick="window.location.href='daily-summary.html'">
+        Til Dagsoversikt
+      </button>
+      <!-- Refresh-knapp spesifikt for oppgaver -->
+      <button id="refresh-tasks-button" class="refresh-btn" title="Oppdater oppgaveliste">
+        Oppdater Oppgaver
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter og kontroller -->
+  <div class="task-controls">
+    <div class="task-filters">
+      <div class="filter-group">
+        <label for="customer-filter">Filtrer på kunde:</label>
+        <select id="customer-filter">
+          <option value="all">Alle kunder</option>
+          <!-- Kundealternativer lastes inn av JS -->
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Filtrer på status:</label>
+        <div class="status-filter-buttons">
+           <button class="status-filter-btn active" data-status="open">Åpne (Ny/Pågår)</button>
+           <button class="status-filter-btn" data-status="Ny">Ny</button>
+           <button class="status-filter-btn" data-status="Pågår">Pågår</button>
+           <button class="status-filter-btn" data-status="Ferdig">Ferdig</button>
+           <button class="status-filter-btn" data-status="all">Alle statuser</button>
+        </div>
+      </div>
+    </div>
+    <button id="add-task-btn" class="submit-btn">
+      + Legg til Oppgave
+    </button>
+  </div>
+
+  <!-- Hovedinnhold - Kanban Board -->
+  <div id="task-board-container">
+      <div id="task-board" class="kanban-board">
+          <div class="kanban-column" data-status="Ny">
+              <h3><span class="status-dot status-ny"></span>Ny</h3>
+              <div class="task-list">
+                  <!-- Oppgavekort legges til her av JS -->
+                  <div class="task-placeholder">Laster oppgaver...</div>
+              </div>
+          </div>
+          <div class="kanban-column" data-status="Pågår">
+              <h3><span class="status-dot status-pågår"></span>Pågår</h3>
+              <div class="task-list"></div>
+          </div>
+           <div class="kanban-column" data-status="Venter">
+              <h3><span class="status-dot status-venter"></span>Venter</h3>
+              <div class="task-list"></div>
+          </div>
+          <div class="kanban-column" data-status="Ferdig">
+              <h3><span class="status-dot status-ferdig"></span>Ferdig</h3>
+              <div class="task-list"></div>
+          </div>
+      </div>
+  </div>
+
+  <!-- Modal for å legge til/redigere oppgave -->
+  <div id="taskModal" class="modal">
+    <div class="modal-content task-modal-content">
+      <span class="close" onclick="closeModal('taskModal')" title="Lukk">×</span>
+      <h2 id="task-modal-title">Legg til ny oppgave</h2>
+
+      <input type="hidden" id="task-id"> <!-- Skjult felt for redigering -->
+
+      <div class="form-group">
+        <label for="task-customer">Kunde:</label>
+        <select id="task-customer">
+          <option value="">-- Velg kunde --</option>
+          <!-- Kundealternativer lastes inn av JS -->
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="task-name">Oppgavenavn:</label>
+        <input type="text" id="task-name" placeholder="Kort beskrivelse av oppgaven">
+      </div>
+
+      <div class="form-group">
+        <label for="task-description">Beskrivelse (valgfri):</label>
+        <textarea id="task-description" placeholder="Mer detaljer om oppgaven..."></textarea>
+      </div>
+
+      <div class="form-row">
+          <div class="form-group">
+            <label for="task-status">Status:</label>
+            <select id="task-status">
+              <option value="Ny">Ny</option>
+              <option value="Pågår">Pågår</option>
+              <option value="Venter">Venter</option>
+              <option value="Ferdig">Ferdig</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="task-priority">Prioritet (valgfri):</label>
+            <select id="task-priority">
+              <option value="">Ingen</option>
+              <option value="Lav">Lav</option>
+              <option value="Medium">Medium</option>
+              <option value="Høy">Høy</option>
+            </select>
+          </div>
+
+           <div class="form-group">
+            <label for="task-due-date">Frist (valgfri):</label>
+            <input type="date" id="task-due-date">
+          </div>
+      </div>
+
+      <div class="modal-buttons">
+        <button class="cancel-btn" onclick="closeModal('taskModal')">Avbryt</button>
+        <button class="submit-btn" id="save-task-btn">Lagre Oppgave</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Link til JavaScript-filen -->
+  <script src="tasks.js"></script>
+</body>
+</html>
