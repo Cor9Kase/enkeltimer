@@ -4,12 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cornys Timetracker</title>
+  <!-- Sørg for at stien til styles.css er korrekt -->
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="header">
     <h1>Cornys Timetracker</h1>
-    <div id="current-date" class="current-date"></div>
+    <div id="current-date" class="current-date">Laster dato...</div>
     <div class="update-status">Sist oppdatert: <span id="last-updated">Aldri</span></div>
     <div class="header-actions">
       <button id="refresh-button" class="refresh-btn">
@@ -19,55 +20,78 @@
         Vis dagsoversikt
       </button>
       <!-- === NY KNAPP TIL OPPGAVER === -->
-  <button class="nav-btn" onclick="window.location.href='tasks.html'">
-    Vis Oppgaver
-  </button>
+      <button class="nav-btn" onclick="window.location.href='tasks.html'">
+        Vis Oppgaver
+      </button>
+      <!-- === SLUTT NY KNAPP === -->
     </div>
   </div>
 
-  <button id="test-connection-button" style="position:fixed; bottom:10px; right:10px; background-color:#ff5555; color:white; padding:8px 15px; border-radius:5px; border:none; cursor:pointer; z-index:1000;">Nødtest</button>
+  <!-- Nødtest-knapp -->
+  <button id="test-connection-button" title="Test tilkobling til Google Script">Nødtest</button>
 
+  <!-- Hovedcontainer for kundebokser -->
   <div class="container" id="customer-container">
-    <!-- Add customer button always comes first -->
-    <div class="add-customer" id="add-customer-box" onclick="startNewCustomerTimer()">
+    <!-- "Legg til ny kunde"-boks -->
+    <div class="add-customer" id="add-customer-box" onclick="startNewCustomerTimer()" title="Start timer for ny kunde">
       <div class="add-customer-icon">+</div>
       <div class="add-customer-timer" id="new-customer-timer">00:00:00</div>
+      <!-- Tekst under for klarhet -->
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">Ny kunde</div>
     </div>
 
-    <!-- Customer boxes will be added here, sorted alphabetically -->
+    <!-- Kundebokser lastes inn her av script.js -->
+    <div style="width: 100%; text-align: center; padding: 30px; color: var(--text-secondary);" id="loading-indicator">Laster kunder...</div>
+
   </div>
 
-  <!-- Modal for comments -->
+  <!-- Modal for å legge til kommentar etter timerstopp -->
   <div id="commentModal" class="modal">
     <div class="modal-content">
-      <span class="close" onclick="closeModal('commentModal')">×</span>
+      <span class="close" onclick="closeModal('commentModal')" title="Lukk">×</span>
       <h2>Legg til kommentar</h2>
       <p id="modal-customer-name">Kunde AS</p>
       <p id="modal-time-spent">Tid brukt: 00:00:00</p>
-      <textarea id="comment-text" placeholder="Skriv en kommentar om arbeidet..."></textarea>
+
+      <!-- === START OPPGAVEVALG === -->
+      <div class="form-group task-link-group" style="display: none; margin-bottom: 15px;"> <!-- Skjult som standard -->
+        <label for="task-select" style="font-size: 14px; margin-bottom: 5px;">Knytt til oppgave (valgfri):</label>
+        <select id="task-select" style="width: 100%; padding: 8px; font-size: 14px; background-color: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-inactive); border-radius: 6px;">
+          <option value="">-- Ingen oppgave --</option>
+          <!-- Oppgaver lastes inn her av script.js -->
+        </select>
+      </div>
+      <!-- === SLUTT OPPGAVEVALG === -->
+
+      <div class="form-group">
+        <!-- Flyttet label utenfor textarea for bedre struktur -->
+        <label for="comment-text" style="display: block; margin-bottom: 5px;">Kommentar:</label>
+        <textarea id="comment-text" placeholder="Skriv en kommentar om arbeidet..."></textarea>
+      </div>
+
       <button class="submit-btn" id="submit-comment-btn">Lagre og avslutt</button>
     </div>
   </div>
 
-  <!-- Modal for new customer -->
+  <!-- Modal for å legge til ny kunde -->
   <div id="newCustomerModal" class="modal new-customer-modal">
     <div class="modal-content">
-      <span class="close" onclick="cancelNewCustomer()">×</span>
+      <span class="close" onclick="cancelNewCustomer()" title="Lukk">×</span>
       <h2>Legg til ny kunde</h2>
       <p id="new-customer-time-spent">Tid brukt: 00:00:00</p>
 
       <div class="form-group">
         <label for="new-customer-name">Kundenavn:</label>
-        <input type="text" id="new-customer-name" placeholder="Skriv inn kundenavn">
+        <input type="text" id="new-customer-name" placeholder="Skriv inn kundenavn" required>
       </div>
 
       <div class="form-group">
         <label for="new-customer-hours">Timer tilgjengelig (ved start):</label>
-        <input type="number" id="new-customer-hours" placeholder="Antall timer">
+        <input type="number" id="new-customer-hours" placeholder="Antall timer" required>
       </div>
 
       <div class="form-group">
-        <label for="new-customer-comment">Kommentar (valgfri):</label>
+        <label for="new-customer-comment">Kommentar (knyttes til første tidslogg, valgfri):</label>
         <textarea id="new-customer-comment" placeholder="Skriv en kommentar om arbeidet..."></textarea>
       </div>
 
@@ -75,20 +99,20 @@
     </div>
   </div>
 
-  <!-- Modal for editing customer -->
+  <!-- Modal for å redigere kunde -->
   <div id="editCustomerModal" class="modal">
     <div class="modal-content">
-      <span class="close" onclick="closeModal('editCustomerModal')">×</span>
+      <span class="close" onclick="closeModal('editCustomerModal')" title="Lukk">×</span>
       <h2>Rediger kunde</h2>
 
       <div class="form-group">
         <label for="edit-customer-name">Kundenavn:</label>
-        <input type="text" id="edit-customer-name">
+        <input type="text" id="edit-customer-name" required>
       </div>
 
       <div class="form-group">
         <label for="edit-customer-hours">Timer tilgjengelig (nåværende):</label>
-        <input type="number" id="edit-customer-hours">
+        <input type="number" id="edit-customer-hours" required>
       </div>
 
       <input type="hidden" id="edit-customer-id">
@@ -96,13 +120,13 @@
     </div>
   </div>
 
-  <!-- Confirmation modal for delete -->
+  <!-- Bekreftelsesmodal for sletting -->
   <div id="confirmDeleteModal" class="modal">
     <div class="modal-content">
-      <span class="close" onclick="closeModal('confirmDeleteModal')">×</span>
+      <span class="close" onclick="closeModal('confirmDeleteModal')" title="Lukk">×</span>
       <h2>Bekreft sletting</h2>
       <p>Er du sikker på at du vil slette kunden <strong id="delete-customer-name" style="color: var(--accent-primary);"></strong>?</p>
-      <p>Dette vil også slette kunden fra 'Kunder'-arket, men logget tid i 'Tidslogg' blir værende.</p>
+      <p>Dette sletter kunden fra kundelisten. Logget tid i 'Tidslogg' blir værende.</p>
       <p>Handlingen kan ikke angres.</p>
 
       <input type="hidden" id="delete-customer-id">
@@ -113,6 +137,7 @@
     </div>
   </div>
 
+  <!-- Sørg for at stien til script.js er korrekt -->
   <script src="script.js"></script>
 </body>
 </html>
