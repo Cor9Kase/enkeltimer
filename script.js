@@ -9,7 +9,7 @@ function debounce(func, wait) {
 }
 
 // Google Script URL - *** VIKTIG: Bytt ut med din egen publiserte URL ***
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwMri9xb7NBt3KNvOzHo0btwoZdMTAApkRQIRJlUhvFSChhbWrAsef0iFUMcMZrgGFO/exec'; // <--- SETT INN DIN URL HER!
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx41-6kS-KuMnBzSQmXUt9hsF0Q5BKRrzpkfA-3eFZ-5r3glDTMqqb3ZL-244LXi4wN/exec'; // <--- SETT INN DIN URL HER!
 
 // Globale variabler for tilstand
 const timers = {};
@@ -500,33 +500,72 @@ function toggleTimer(box) {
   }
 }
 
-// Viser kommentarmodalen
+// ========== START OPPDATERT showCommentModal med oppgavevalg ==========
 function showCommentModal(customerId) {
-    const customerData = timers[customerId];
-    if (!customerData) {
-        console.error(`showCommentModal: Fant ikke timer data for kunde ID ${customerId}`);
+    const timerData = timers[customerId];
+    if (!timerData?.customerName) {
+        console.error(`showCommentModal: Fant ikke timer/kunde data for ID ${customerId}`);
         alert("Feil: Kunne ikke hente data for kommentarmodal.");
         return;
     }
-    console.log(`Viser kommentarmodal for: ${customerData.customerName}, Tid: ${customerData.timeSpentFormatted}`);
+    console.log(`Viser kommentarmodal for: ${timerData.customerName}, Tid: ${timerData.timeSpentFormatted}`);
 
     const modal = document.getElementById('commentModal');
     const nameEl = document.getElementById('modal-customer-name');
     const timeEl = document.getElementById('modal-time-spent');
     const commentEl = document.getElementById('comment-text');
+    // --- Hent elementer for oppgavevalg ---
+    const taskSelectGroup = document.querySelector('#commentModal .task-link-group');
+    const taskSelect = document.getElementById('task-select');
 
-    if (!modal || !nameEl || !timeEl || !commentEl) {
-        console.error("FEIL: Mangler elementer i kommentarmodalen!");
+    if (!modal || !nameEl || !timeEl || !commentEl || !taskSelectGroup || !taskSelect) {
+        console.error("FEIL: Mangler elementer i kommentarmodalen (inkl. oppgavevalg)!");
         return;
     }
 
-    nameEl.textContent = customerData.customerName;
-    timeEl.textContent = `Tid brukt: ${customerData.timeSpentFormatted}`;
+    // Fyll ut standardinfo
+    nameEl.textContent = timerData.customerName;
+    timeEl.textContent = `Tid brukt: ${timerData.timeSpentFormatted}`;
     commentEl.value = '';
-    modal.style.display = 'block';
     modal.setAttribute('data-current-customer-id', customerId); // Lagre ID
-}
 
+    // --- Logikk for å laste oppgaver ---
+    taskSelect.innerHTML = '<option value="">-- Laster oppgaver... --</option>'; // Vis lasteindikator
+    taskSelectGroup.style.display = 'none'; // Skjul mens vi laster
+
+    // Kall backend for å hente åpne oppgaver for denne kunden
+    // Bruk sendDataToGoogleScript også for GET for å få fallback etc.
+    sendDataToGoogleScript({ action: 'getTasks', customer: timerData.customerName, status: 'open' }, "Hentet oppgaver")
+        .then(taskData => {
+            taskSelect.innerHTML = '<option value="">-- Ingen oppgave --</option>'; // Nullstill
+            if (taskData.success && taskData.tasks && taskData.tasks.length > 0) {
+                taskData.tasks.forEach(task => {
+                    const option = document.createElement('option');
+                    option.value = task.id; // Lagre OppgaveID
+                    option.textContent = task.name; // Vis Oppgavenavn
+                    taskSelect.appendChild(option);
+                });
+                taskSelectGroup.style.display = 'block'; // Vis dropdown
+                console.log(`Lastet ${taskData.tasks.length} åpne oppgaver for ${timerData.customerName}`);
+            } else if (!taskData.success) {
+                console.warn("Kunne ikke laste oppgaver for modal:", taskData.message);
+                taskSelect.innerHTML = '<option value="">-- Feil ved lasting av oppg. --</option>';
+                taskSelectGroup.style.display = 'block'; // Vis feilmelding
+            } else {
+                console.log(`Ingen åpne oppgaver funnet for ${timerData.customerName}`);
+                // Gruppen forblir skjult
+            }
+        })
+        .catch(error => {
+             console.error("Feil ved henting av oppgaver for modal:", error);
+             taskSelect.innerHTML = '<option value="">-- Feil ved lasting av oppg. --</option>';
+             taskSelectGroup.style.display = 'block'; // Vis feilmelding
+        });
+    // --- Slutt logikk for oppgavelasting ---
+
+    modal.style.display = 'block'; // Vis modalen
+}
+// ========== SLUTT OPPDATERT showCommentModal ==========
 
 // Starter timer for "Legg til ny kunde"
 function startNewCustomerTimer() {
@@ -653,35 +692,34 @@ function padZero(num) {
   return num.toString().padStart(2, '0');
 }
 
-// Lukker en modal
+// ========== START OPPDATERT closeModal med oppgavevalg-reset ==========
 function closeModal(modalId) {
    const modal = document.getElementById(modalId);
-   if (modal) {
-       modal.style.display = 'none';
-       console.log(`Lukket modal: ${modalId}`);
-       if (modalId === 'commentModal') {
-            const commentEl = document.getElementById('comment-text');
-            if(commentEl) commentEl.value = '';
-            const closedCustomerId = modal.getAttribute('data-current-customer-id');
-             if (closedCustomerId && timers[closedCustomerId]) {
-                 delete timers[closedCustomerId]; // Slett midlertidig data
-                 console.log(`Slettet midlertidig timerdata for kunde ID ${closedCustomerId}`);
-             }
-            modal.removeAttribute('data-current-customer-id');
-       } else if (modalId === 'newCustomerModal') {
-            // Håndter eventuell opprydding hvis cancelNewCustomer ikke ble kalt
-            if (newCustomerTimer && !document.getElementById('add-customer-box')?.classList.contains('active')) {
-                cancelNewCustomer(); // Kall cancel for å rydde helt opp
-            }
-       } else if (modalId === 'editCustomerModal') {
-            document.getElementById('edit-customer-id').value = ''; // Tøm skjult felt
-       } else if (modalId === 'confirmDeleteModal') {
-            document.getElementById('delete-customer-id').value = ''; // Tøm skjult felt
-       }
-   } else {
-       console.warn(`Forsøkte å lukke ukjent modal: ${modalId}`);
+   if (!modal) { console.warn(`Modal ${modalId} ikke funnet`); return; }
+   modal.style.display = 'none';
+   console.log(`Lukket modal: ${modalId}`);
+
+   // Spesifikk opprydding per modal
+   if (modalId === 'commentModal') {
+        document.getElementById('comment-text').value = '';
+        // Nullstill og skjul oppgave-dropdown
+        const taskSelect = document.getElementById('task-select');
+        const taskSelectGroup = document.querySelector('#commentModal .task-link-group');
+        if(taskSelect) taskSelect.innerHTML = '<option value="">-- Ingen oppgave --</option>';
+        if(taskSelectGroup) taskSelectGroup.style.display = 'none';
+        // Fjern lagret kunde-id og timerdata
+        const closedCustomerId = modal.getAttribute('data-current-customer-id');
+        if (closedCustomerId && timers[closedCustomerId]) delete timers[closedCustomerId];
+        modal.removeAttribute('data-current-customer-id');
+   } else if (modalId === 'newCustomerModal' && newCustomerTimer) {
+        cancelNewCustomer(); // Sørg for full opprydning
+   } else if (modalId === 'editCustomerModal') {
+        document.getElementById('edit-customer-id').value = ''; // Tøm skjult felt
+   } else if (modalId === 'confirmDeleteModal') {
+        document.getElementById('delete-customer-id').value = ''; // Tøm skjult felt
    }
 }
+// ========== SLUTT OPPDATERT closeModal ==========
 
 // Konverterer millisekunder til desimaltimer, avrundet til nærmeste kvarter
 function calculateHoursFromMs(ms) {
@@ -691,115 +729,72 @@ function calculateHoursFromMs(ms) {
   return quarterHours;
 }
 
-// Sender inn logget tid for en eksisterende kunde
-// --- START OPPDATERT submitTime ---
+// ========== START OPPDATERT submitTime med oppgavevalg ==========
 function submitTime() {
-  console.log("Forsøker å sende inn tid...");
-  if (isSubmitting) {
-    console.warn("Innsending pågår, avventer...");
-    return;
-  }
+  if (isSubmitting) { console.warn("Innsending pågår..."); return; }
   isSubmitting = true;
 
   const modal = document.getElementById('commentModal');
-  const currentCustomerId = modal?.getAttribute('data-current-customer-id'); // Hent ID fra modal
+  const currentCustomerId = modal?.getAttribute('data-current-customer-id');
+  const timerData = currentCustomerId !== null ? timers[currentCustomerId] : null;
 
-  if (currentCustomerId === null || currentCustomerId === undefined) {
-       console.error("FEIL: Kunne ikke finne kunde-ID for innsending fra modal.");
-       alert("Kritisk feil: Kunne ikke identifisere kunden for tidsregistrering.");
-       closeModal('commentModal');
-       isSubmitting = false;
-       return;
-  }
-
-  const timerData = timers[currentCustomerId]; // Hent lagret timerdata
-  if (!timerData) {
-       console.error(`FEIL: Ingen timerdata funnet for kunde ID ${currentCustomerId} ved innsending.`);
-       alert("Kritisk feil: Mangler data for tidsregistrering. Prøv igjen.");
-       closeModal('commentModal');
-       isSubmitting = false;
-       return;
+  if (!timerData?.customerName) {
+       console.error("FEIL: Fant ikke kunde/timer data for innsending.");
+       alert("Kritisk feil ved innsending. Prøv igjen.");
+       closeModal('commentModal'); isSubmitting = false; return;
   }
 
   const comment = document.getElementById('comment-text')?.value.trim() || "";
+  const selectedTaskId = document.getElementById('task-select')?.value || null; // <-- Hent valgt oppgave-ID
   const customerName = timerData.customerName;
   const timeSpentMs = timerData.timeSpentMs;
   const decimalHours = calculateHoursFromMs(timeSpentMs);
 
-  console.log(`Sender tid for: ${customerName}, Timer: ${decimalHours}, Kommentar: "${comment}"`);
+  console.log(`Sender tid for: ${customerName}, Timer: ${decimalHours}, Oppgave: ${selectedTaskId || 'Ingen'}, Kommentar: "${comment}"`);
 
   const submitButton = document.getElementById('submit-comment-btn');
-  if (submitButton) {
-    submitButton.disabled = true;
-    submitButton.textContent = 'Sender...';
-  }
+  if (submitButton) { submitButton.disabled = true; submitButton.textContent = 'Sender...'; }
 
-  // Finn kunden i den globale listen for å sende med riktig data
   const customerIndex = customers.findIndex(c => c.name === customerName);
-  let originalAvailableHours = 0; // Default hvis ikke funnet
-  if(customerIndex !== -1) {
-      originalAvailableHours = customers[customerIndex].availableHours;
-  } else {
-       console.warn(`Fant ikke kunden ${customerName} i listen for å hente originalt timeantall.`);
-       // Bør vi stoppe her? La oss fortsette, men det kan føre til feil balanse hvis kunden ble slettet/endret.
-  }
-  // Beregn gjenstående timer basert på *denne økten* og det vi *tror* er nåværende balanse
-  const estimatedRemainingHours = originalAvailableHours - decimalHours;
-
 
   const dataToSend = {
     action: "logTime",
     customerName: customerName,
-    timeSpent: decimalHours, // Send avrundet desimaltid
-    // Ikke lenger nødvendig å sende original/remaining, backend håndterer dette
-    // originalHours: originalAvailableHours,
-    // remainingHours: estimatedRemainingHours,
+    timeSpent: decimalHours,
     comment: comment,
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split('T')[0],
+    oppgaveId: selectedTaskId // <-- Send med OppgaveID
   };
 
-  sendDataToGoogleScript(dataToSend, `Tid (${decimalHours}t) registrert for ${customerName}`)
+  sendDataToGoogleScript(dataToSend, `Tid registrert for ${customerName}`)
     .then(response => {
       console.log("Tidsregistrering vellykket:", response);
-
-      // Oppdater baren og lokale data *umiddelbart*
-      const actualRemainingHours = response.updatedAvailableHours; // Stol på svaret fra backend!
+      const actualRemainingHours = response.updatedAvailableHours;
       if (customerIndex !== -1 && actualRemainingHours !== undefined) {
           console.log(`Oppdaterer UI for kunde ${customerIndex} til ${actualRemainingHours} timer.`);
           updateCustomerBar(customerIndex, actualRemainingHours);
-          // Oppdater også den lokale datastrukturen
           customers[customerIndex].availableHours = actualRemainingHours;
-      } else if (customerIndex === -1) {
-           console.warn("Kunne ikke oppdatere UI lokalt da kundeindeks ikke ble funnet.");
-           // Data er lagret, men UI viser kanskje gammel verdi til neste refresh
       } else {
-           console.warn("Backend returnerte ikke 'updatedAvailableHours', UI oppdateres kanskje ikke korrekt før neste refresh.");
+           console.warn("Kunne ikke oppdatere UI lokalt etter tidslogging.");
+           fetchCustomerData(); // Hent alt på nytt som fallback
       }
-
-      // Ingen grunn til full render/fetch hvis vi oppdaterte spesifikt
-      // fetchCustomerData(); // Kan hentes i bakgrunnen ved behov, men unngå for rask UI
-      closeModal('commentModal'); // Lukk modal FØR alert
-      // alert(`Timer lagret for ${customerName}!`); // Kan være litt mye, fjernes?
-
+      closeModal('commentModal'); // closeModal håndterer sletting av timerData
     })
     .catch(error => {
       console.error('Feil ved logging av tid:', error);
-      alert('Kunne ikke lagre tid: ' + error.message + "\n\nPrøv igjen senere.");
+      alert('Kunne ikke lagre tid: ' + error.message);
+      // Ikke slett timerData ved feil, kanskje? La closeModal håndtere det uansett
+      closeModal('commentModal');
     })
     .finally(() => {
       isSubmitting = false;
-      // Slett timer data uansett utfall
-       if (timers[currentCustomerId]) {
-           delete timers[currentCustomerId];
-           console.log(`Slettet midlertidig timerdata for kunde ID ${currentCustomerId} etter innsendingsforsøk.`);
-       }
-      if (submitButton) {
-        submitButton.disabled = false;
-        submitButton.textContent = 'Lagre og avslutt';
-      }
-       activeBox = null; // Sikre at ingen boks er aktiv
+      // Timer data slettes nå i closeModal uansett
+      // if (timers[currentCustomerId]) delete timers[currentCustomerId];
+      if (submitButton) { submitButton.disabled = false; submitButton.textContent = 'Lagre og avslutt'; }
+      activeBox = null;
     });
 }
+// ========== SLUTT OPPDATERT submitTime ==========
 // --- SLUTT OPPDATERT submitTime ---
 
 // Viser modal for å redigere kunde
@@ -1128,73 +1123,85 @@ function deleteCustomer() {
 
 
 // Robust sending til Google Apps Script
+// --- START OPPDATERT Generisk Data Sender (med fallbacks) ---
 function sendDataToGoogleScript(data, successMessage) {
   console.log("sendDataToGoogleScript kalt med data:", data);
-  let statusMessage = null;
-
-  function showStatus(message, isError = false) { /* ... (som før) ... */ }
-  function hideStatus() { /* ... (som før) ... */ }
-
   return new Promise((resolve, reject) => {
-    // Vis status (kan kommenteres ut hvis irriterende)
-    // showStatus("Sender data...");
-
     const formData = new FormData();
     for (const key in data) {
-      formData.append(key, data[key]);
+        // Send tom streng for null eller undefined
+        const value = (data[key] === null || data[key] === undefined) ? '' : data[key];
+        formData.append(key, value);
     }
 
-    // --- 1. Forsøk: POST med 'no-cors' ---
+    // Metode 1: POST (no-cors - antar suksess, returnerer ikke data fra backend)
     console.log("Metode 1: Forsøker POST (no-cors)");
     fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: formData })
-    .then(response => {
-      console.log("POST (no-cors) fullført (antar suksess).");
-      hideStatus();
-      // VIKTIG: Siden vi ikke får svar, kan vi ikke returnere spesifikk data fra backend her.
-      // Vi må stole på at backend gjorde det den skulle.
-      resolve({ success: true, message: successMessage || "Handlingen ble utført (POST)." });
+    .then(() => {
+      console.log("POST (no-cors) OK (antar suksess). Svaret kan ikke leses.");
+      resolve({ success: true, message: successMessage || "Handlingen ble utført (POST/no-cors)." });
     })
-    .catch(error => {
-      console.warn("POST (no-cors) feilet:", error, "- Prøver GET.");
-      tryGetMethod();
+    .catch(err1 => {
+      console.warn("POST (no-cors) feilet:", err1, "- Prøver GET.");
+      tryGetMethod(); // Fallback til GET
     });
 
-    // --- 2. Forsøk: GET med parametere ---
+    // Metode 2: GET (prøver å få JSON-svar)
     function tryGetMethod() {
-        // showStatus("Sender data (Metode 2)...");
         const params = new URLSearchParams();
-        for (const key in data) { params.append(key, data[key]); }
-        params.append('nocache', Date.now()); // Legg til nocache for GET
+         for (const key in data) {
+             const value = (data[key] === null || data[key] === undefined) ? '' : data[key];
+             params.append(key, value);
+         }
+        params.append('nocache', Date.now());
         const getUrl = `${GOOGLE_SCRIPT_URL}?${params.toString()}`;
         console.log("Metode 2: Forsøker GET:", getUrl.substring(0, 200) + "...");
 
         fetch(getUrl)
             .then(response => {
-                console.log("GET respons status:", response.status);
-                if (!response.ok) throw new Error(`HTTP error ${response.status} (${response.statusText})`);
-                return response.text();
+                if (!response.ok) return response.text().then(text => { throw new Error(text || `HTTP ${response.status}`) });
+                // Prøv alltid å parse som JSON
+                return response.json();
             })
-            .then(text => {
-                 console.log("GET respons tekst:", text);
-                try {
-                    const jsonData = JSON.parse(text);
-                    if (jsonData && jsonData.success !== undefined) { // Sjekk at success er definert
-                         console.log("GET vellykket med JSON-svar:", jsonData);
-                         hideStatus();
-                         resolve(jsonData); // Bruk svaret fra serveren (kan inneholde data)
-                    } else {
-                        throw new Error(jsonData.message || "Server rapporterte feil eller ukjent format (GET).");
-                    }
-                } catch (e) {
-                    console.warn("Kunne ikke parse GET-svar som JSON:", e);
-                    throw new Error("Uventet svarformat fra server (GET).");
-                }
+            .then(jsonData => {
+                 // Sjekk om svaret er et objekt og har en 'success'-egenskap
+                 if (typeof jsonData === 'object' && jsonData !== null && jsonData.success !== undefined) {
+                     console.log("GET OK:", jsonData);
+                     resolve(jsonData); // Bruk svaret fra serveren
+                 } else {
+                     throw new Error("Ugyldig JSON-format mottatt (GET)");
+                 }
             })
-            .catch(error => {
-                console.warn("GET feilet:", error, "- Prøver iframe POST.");
-                tryIframeMethod();
+            .catch(err2 => {
+                console.warn("GET feilet:", err2, "- Prøver iframe POST.");
+                tryIframeMethod(); // Fallback til iframe
             });
     }
+
+    // Metode 3: iframe POST (antar suksess, returnerer ikke data)
+    function tryIframeMethod() {
+        const iframeId = 'hidden-comm-iframe-' + Date.now(), formId = 'hidden-comm-form-' + Date.now();
+        console.log("Metode 3: Forsøker iframe POST");
+        let iframe = document.getElementById(iframeId); if(iframe) iframe.remove();
+        iframe = document.createElement('iframe'); iframe.id = iframeId; iframe.name = iframeId; iframe.style.display = 'none'; document.body.appendChild(iframe);
+        let form = document.getElementById(formId); if(form) form.remove();
+        form = document.createElement('form'); form.id = formId; form.method = 'POST'; form.action = GOOGLE_SCRIPT_URL; form.target = iframeId;
+        for (const key in data) {
+             const input = document.createElement('input'); input.type = 'hidden'; input.name = key;
+             // Send tom streng for null/undefined også her
+             input.value = (data[key] === null || data[key] === undefined) ? '' : data[key];
+             form.appendChild(input);
+         }
+        document.body.appendChild(form);
+        let cleanupPerformed = false; const cleanup = () => { if(cleanupPerformed) return; clearTimeout(timeoutId); iframe?.remove(); form?.remove(); cleanupPerformed = true; };
+        const timeoutId = setTimeout(() => { cleanup(); reject(new Error('Timeout (iframe)')); }, 20000);
+        iframe.onload = () => { cleanup(); resolve({ success: true, message: successMessage || "Handlingen utført (iframe)." }); };
+        iframe.onerror = (err3) => { cleanup(); reject(new Error('Iframe feil:' + err3)); };
+        form.submit();
+    }
+  }); // End Promise
+} // End sendDataToGoogleScript
+// --- SLUTT OPPDATERT Generisk Data Sender ---
 
     // --- 3. Forsøk: Skjult iframe med POST ---
     function tryIframeMethod() {
