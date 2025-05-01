@@ -1,7 +1,7 @@
 // tasks.js - Logikk for oppgavesiden
 
 // Google Script URL - *** VIKTIG: MÅ VÆRE SAMME SOM I ANDRE JS-FILER ***
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx41-6kS-KuMnBzSQmXUt9hsF0Q5BKRrzpkfA-3eFZ-5r3glDTMqqb3ZL-244LXi4wN/exec'; // <-- SETT INN DIN URL HER!
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzlUqfCMJ3L_ZXB9dYzZTwPqohjEyfiwzFCuZBIz3i7F8N1cI0w0U6dN2ED7O4UhTts/exec'; // <-- SETT INN DIN URL HER!
 
 // Globale variabler for oppgavehåndtering
 let allTasks = []; // Holder alle hentede oppgaver
