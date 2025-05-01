@@ -1275,8 +1275,6 @@ function sendDataToGoogleScript(data, successMessage) {
         form.submit();
     }
   }); // End Promise
-} // End sendDataToGoogleScript
-
 
 // Testfunksjon for tilkobling
 function testConnection() {
