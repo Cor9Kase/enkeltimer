@@ -76,14 +76,20 @@ function addGlobalEventListeners() {
 
 // Oppdaterer datovisningen i headeren
 function updateCurrentDate() {
-  console.log("Prøver å sette test-dato...");
-  const dateEl = document.getElementById('current-date');
-  if (dateEl) {
-    dateEl.textContent = "Test Dato OK"; // Enkel tekst
-    console.log("Fant #current-date og satte tekst.");
-  } else {
-    console.error("FEIL: Fant IKKE element med ID 'current-date'!");
-    alert("FEIL: Fant ikke #current-date elementet!"); // Gjør det åpenbart
+  try {
+      const now = new Date();
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      const dateEl = document.getElementById('current-date');
+      if(dateEl) {
+          dateEl.textContent = now.toLocaleDateString('no-NO', options);
+          console.log("Dato oppdatert i header.");
+      } else {
+          console.error("FEIL: Fant IKKE element med ID 'current-date' for dato-oppdatering!");
+      }
+  } catch (error) {
+       console.error("Feil i updateCurrentDate:", error);
+       const dateEl = document.getElementById('current-date');
+       if(dateEl) dateEl.textContent = "Feil ved lasting av dato";
   }
 }
 
