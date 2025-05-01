@@ -1212,69 +1212,6 @@ function sendDataToGoogleScript(data, successMessage) {
     }
   }); // End Promise
 } // End sendDataToGoogleScript
-// --- SLUTT OPPDATERT Generisk Data Sender ---
-
-    // --- 3. Forsøk: Skjult iframe med POST ---
-    function tryIframeMethod() {
-        // showStatus("Sender data (Metode 3)...");
-        const iframeId = 'hidden-comm-iframe-' + Date.now();
-        const formId = 'hidden-comm-form-' + Date.now();
-        console.log("Metode 3: Forsøker iframe POST");
-
-        let iframe = document.getElementById(iframeId);
-        if (iframe) iframe.parentNode.removeChild(iframe);
-
-        iframe = document.createElement('iframe');
-        iframe.id = iframeId; iframe.name = iframeId; iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-
-        let form = document.getElementById(formId);
-        if (form) form.parentNode.removeChild(form);
-
-        form = document.createElement('form');
-        form.id = formId; form.method = 'POST'; form.action = GOOGLE_SCRIPT_URL; form.target = iframeId;
-        for (const key in data) {
-            const input = document.createElement('input');
-            input.type = 'hidden'; input.name = key; input.value = data[key];
-            form.appendChild(input);
-        }
-        document.body.appendChild(form);
-
-        let cleanupPerformed = false;
-        const cleanup = () => {
-            if (cleanupPerformed) return;
-            cleanupPerformed = true;
-            clearTimeout(timeoutId);
-            if (iframe && iframe.parentNode) iframe.parentNode.removeChild(iframe);
-            if (form && form.parentNode) form.parentNode.removeChild(form);
-            console.log("iframe/form ryddet opp.");
-        };
-
-        const timeoutId = setTimeout(() => {
-            console.error("Iframe POST timed out.");
-            cleanup();
-            // showStatus("Tidsavbrudd. Handlingen kan ha feilet.", true); // Valgfri brukerfeedback
-            reject(new Error('Forespørselen via iframe tok for lang tid.'));
-        }, 20000);
-
-        iframe.onload = () => {
-             console.log("Iframe 'load' event mottatt (antar suksess).");
-             cleanup();
-             hideStatus();
-             // Returner bare generell suksess, vi får ikke data tilbake
-             resolve({ success: true, message: successMessage || "Handlingen ble utført (iframe)." });
-        };
-        iframe.onerror = (err) => {
-            console.error("Iframe 'error' event mottatt:", err);
-            cleanup();
-            // showStatus("Feil under sending (Metode 3).", true); // Valgfri
-            reject(new Error('Kommunikasjonsfeil via iframe.'));
-        };
-
-        console.log("Sender skjult form til iframe...");
-        form.submit();
-    }
-  }); // End Promise
 
 // Testfunksjon for tilkobling
 function testConnection() {
