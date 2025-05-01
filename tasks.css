@@ -1,0 +1,289 @@
+/* tasks.css - Stilsetting for oppgavesiden */
+
+/* Bruker variabler fra :root definert i styles.css */
+
+/* --- Kontroller og filtere --- */
+.task-controls {
+    display: flex;
+    flex-wrap: wrap; /* Tillat wrapping */
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    margin: 10px auto 20px auto; /* Sentrert med margin */
+    max-width: 1200px; /* Litt bredere enn Kanban */
+    background-color: var(--bg-card);
+    border-radius: 8px;
+    border: 1px solid var(--border-inactive);
+}
+
+.task-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px; /* Mer luft mellom filtergrupper */
+    align-items: center;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-group label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.filter-group select,
+.filter-group input {
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    border: 1px solid var(--border-inactive);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    min-width: 150px; /* Forhindre at de blir for små */
+}
+.filter-group select:focus,
+.filter-group input:focus {
+     outline: none;
+     border-color: var(--accent-primary);
+}
+
+.status-filter-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.status-filter-btn {
+    background-color: var(--bg-dark);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-inactive);
+    padding: 5px 12px;
+    font-size: 12px;
+    border-radius: 15px; /* Pilleformet */
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.status-filter-btn:hover {
+    border-color: var(--accent-secondary);
+    color: var(--text-primary);
+}
+
+.status-filter-btn.active {
+    background-color: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+    font-weight: bold;
+}
+
+#add-task-btn {
+    padding: 8px 18px; /* Matcher nav-knapper */
+    font-size: 14px;
+    margin-left: auto; /* Skyv til høyre hvis det er plass */
+}
+
+
+/* --- Kanban Board --- */
+#task-board-container {
+    max-width: 1200px; /* Matcher kontroller */
+    margin: 0 auto; /* Sentrert */
+    padding: 0 15px; /* Samme sidepadding */
+}
+
+.kanban-board {
+    display: flex;
+    gap: 15px; /* Mellomrom mellom kolonner */
+    overflow-x: auto; /* Horisontal scroll på små skjermer */
+    padding-bottom: 15px; /* Litt luft under for scrollbar */
+    min-height: 400px; /* Forhindre kollaps når tom */
+}
+
+.kanban-column {
+    background-color: var(--bg-card);
+    border-radius: 8px;
+    padding: 10px 15px;
+    min-width: 280px; /* Minimum bredde for kolonner */
+    max-width: 300px; /* Maks bredde */
+    flex: 1 0 auto; /* Tillat vekst, men ikke krymping under min-width */
+    border: 1px solid var(--border-inactive);
+    display: flex;
+    flex-direction: column;
+}
+
+.kanban-column h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 16px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-inactive);
+    padding-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Status prikker */
+.status-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.status-ny { background-color: #64b5f6; } /* Blå */
+.status-pågår { background-color: var(--bar-yellow); } /* Gul */
+.status-venter { background-color: #ff9800; } /* Oransje */
+.status-ferdig { background-color: var(--bar-green); } /* Grønn */
+
+
+.task-list {
+    flex-grow: 1; /* Tar opp resterende plass i kolonnen */
+    min-height: 100px; /* Minimumshøyde for dropp */
+    list-style: none;
+    padding: 0;
+    margin: 0 -5px; /* Juster for kort-margin */
+    /* For drag-and-drop */
+    transition: background-color 0.2s ease;
+}
+.task-placeholder {
+    color: var(--text-secondary);
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+    font-size: 14px;
+}
+
+/* --- Oppgavekort --- */
+.task-card {
+    background-color: var(--bg-dark); /* Litt mørkere enn kolonne */
+    border: 1px solid var(--border-inactive);
+    border-radius: 6px;
+    padding: 12px;
+    margin: 0 5px 10px 5px; /* Margin rundt kortet */
+    cursor: grab; /* Indikerer at det kan flyttes */
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    position: relative; /* For prioritet */
+    overflow: hidden;
+}
+.task-card:hover {
+    border-color: var(--accent-secondary);
+    box-shadow: 0 2px 10px rgba(0,0,0, 0.4);
+}
+
+.task-card h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: var(--text-primary);
+}
+
+.task-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.task-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.task-customer {
+    font-weight: 500;
+    color: var(--accent-primary); /* Fremhev kunde */
+}
+
+.task-due-date.overdue {
+    color: var(--bar-red); /* Rød tekst for forfalt frist */
+    font-weight: bold;
+}
+
+/* Prioritetsindikator (liten strek på venstre side) */
+.task-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background-color: transparent; /* Ingen farge som default */
+}
+.task-card.priority-høy::before { background-color: var(--bar-red); }
+.task-card.priority-medium::before { background-color: var(--bar-yellow); }
+.task-card.priority-lav::before { background-color: #42a5f5; } /* En lys blå for lav */
+
+
+/* --- Drag and Drop Styling --- */
+.task-card.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+    transform: rotate(3deg); /* Liten rotasjon under drag */
+}
+
+.kanban-column.drag-over .task-list {
+    background-color: rgba(157, 78, 221, 0.1); /* Indiker drop target */
+    border: 1px dashed var(--accent-primary);
+    border-radius: 5px;
+}
+
+
+/* --- Oppgave Modal --- */
+.task-modal-content {
+  max-width: 600px; /* Litt bredere modal for oppgaver */
+}
+
+/* For å plassere status/prio/frist side-ved-side */
+.form-row {
+    display: flex;
+    flex-wrap: wrap; /* Wrap på små skjermer */
+    gap: 15px;
+}
+.form-row .form-group {
+    flex: 1 1 150px; /* Fleksibel bredde, minimum 150px */
+    margin-bottom: 10px; /* Mindre bunnmargin i rad */
+}
+.form-row .form-group label {
+    font-size: 13px;
+}
+
+
+/* --- Responsivitet --- */
+@media (max-width: 900px) {
+    .task-controls {
+        flex-direction: column; /* Kontroller under hverandre */
+        align-items: stretch; /* Ta full bredde */
+        gap: 15px;
+    }
+    #add-task-btn {
+        margin-left: 0; /* Ikke skyv til høyre */
+        align-self: flex-end; /* Men hold den til høyre */
+    }
+}
+
+@media (max-width: 600px) {
+    .kanban-column {
+        min-width: 250px; /* Litt smalere kolonner */
+    }
+     .filter-group {
+        flex-direction: column; /* Filter-label over select/buttons */
+        align-items: flex-start;
+    }
+    .status-filter-buttons {
+        flex-wrap: wrap; /* La statusknapper wrappe */
+    }
+     #add-task-btn {
+        width: 100%; /* Full bredde */
+    }
+    .form-row .form-group {
+        flex-basis: 100%; /* Tving hvert felt til ny linje */
+    }
+}
