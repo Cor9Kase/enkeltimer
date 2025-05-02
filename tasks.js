@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchInitialData_Tasks();
 
     // Sjekk URL her også
-    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'DIN_NETTAPP_URL_HER' || GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbx41-6kS-KuMnBzSQmXUt9hsF0Q5BKRrzpkfA-3eFZ-5r3glDTMqqb3ZL-244LXi4wN/exec') {
+    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'DIN_NETTAPP_URL_HER' || GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbxpfYJg1haeFXvPxGbZaKB_9VEizTelyA5Qb5lW0knZEhiU5FQENxX0i0oc3jZEb_V9/exec') {
         alert("FEIL: GOOGLE_SCRIPT_URL er ikke satt riktig i tasks.js!");
     }
 });
