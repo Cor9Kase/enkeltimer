@@ -19,11 +19,11 @@
       <button class="daily-summary-btn" onclick="window.location.href='daily-summary.html'">
         Vis dagsoversikt
       </button>
-      <!-- === NY KNAPP TIL OPPGAVER === -->
+      <!-- === KNAPP TIL OPPGAVER === -->
       <button class="nav-btn" onclick="window.location.href='tasks.html'">
         Vis Oppgaver
       </button>
-      <!-- === SLUTT NY KNAPP === -->
+      <!-- === SLUTT KNAPP === -->
     </div>
   </div>
 
@@ -36,9 +36,14 @@
     <div class="add-customer" id="add-customer-box" onclick="startNewCustomerTimer()" title="Start timer for ny kunde">
       <div class="add-customer-icon">+</div>
       <div class="add-customer-timer" id="new-customer-timer">00:00:00</div>
-      <!-- Tekst under for klarhet -->
       <div style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">Ny kunde</div>
     </div>
+
+    <!-- Lasteindikator (skjules av JS når kunder er lastet) -->
+    <div style="width: 100%; text-align: center; padding: 30px; color: var(--text-secondary);" id="loading-indicator">Laster kunder...</div>
+
+    <!-- Kundebokser lastes inn her av script.js -->
+
   </div>
 
   <!-- Modal for å legge til kommentar etter timerstopp -->
@@ -49,18 +54,27 @@
       <p id="modal-customer-name">Kunde AS</p>
       <p id="modal-time-spent">Tid brukt: 00:00:00</p>
 
-      <!-- === START OPPGAVEVALG === -->
-      <div class="form-group task-link-group" style="display: none; margin-bottom: 15px;"> <!-- Skjult som standard -->
-        <label for="task-select" style="font-size: 14px; margin-bottom: 5px;">Knytt til oppgave (valgfri):</label>
-        <select id="task-select" style="width: 100%; padding: 8px; font-size: 14px; background-color: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-inactive); border-radius: 6px;">
-          <option value="">-- Ingen oppgave --</option>
-          <!-- Oppgaver lastes inn her av script.js -->
-        </select>
+      <!-- ========== START OPPDATERT OPPGAVEVALG (Checkboxes) ========== -->
+      <div class="form-group task-link-group" style="display: none; margin-bottom: 15px;">
+        <label style="font-size: 14px; margin-bottom: 8px; display: block;">Knytt til oppgave(r) (valgfri):</label>
+        <div id="task-checkbox-list" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--border-inactive); padding: 10px; border-radius: 6px; background-color: var(--bg-dark);">
+          <!-- Checkboxes for oppgaver lastes inn her av script.js -->
+          <span style="color: var(--text-secondary); font-style: italic;">Laster oppgaver...</span>
+        </div>
+        <!-- Valg for å sette status på valgte oppgaver -->
+        <div id="task-status-update-options" style="margin-top: 10px; display: none;">
+           <label style="font-size: 13px; margin-right: 10px;">Sett status for valgte oppgaver til:</label>
+           <select id="update-task-status-select" style="padding: 5px; font-size: 13px; background-color: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-inactive); border-radius: 6px;">
+               <option value="">-- Ikke endre status --</option>
+               <option value="Pågår">Pågår</option>
+               <option value="Ferdig">Ferdig</option>
+               <!-- Kan legge til flere statuser her om nødvendig -->
+           </select>
+        </div>
       </div>
-      <!-- === SLUTT OPPGAVEVALG === -->
+      <!-- ========== SLUTT OPPDATERT OPPGAVEVALG ========== -->
 
       <div class="form-group">
-        <!-- Flyttet label utenfor textarea for bedre struktur -->
         <label for="comment-text" style="display: block; margin-bottom: 5px;">Kommentar:</label>
         <textarea id="comment-text" placeholder="Skriv en kommentar om arbeidet..."></textarea>
       </div>
@@ -82,7 +96,8 @@
       </div>
 
       <div class="form-group">
-        <label for="new-customer-hours">Timer tilgjengelig (ved start):</label>
+        <!-- Endret label for å reflektere ny struktur -->
+        <label for="new-customer-hours">Timer Tildelt (denne måneden):</label>
         <input type="number" id="new-customer-hours" placeholder="Antall timer" required>
       </div>
 
@@ -91,7 +106,8 @@
         <textarea id="new-customer-comment" placeholder="Skriv en kommentar om arbeidet..."></textarea>
       </div>
 
-      <button class="submit-btn" id="create-customer-btn">Lagre kunde og tid</button>
+      <!-- Endret knappetekst for klarhet -->
+      <button class="submit-btn" id="create-customer-btn">Lagre kunde for denne måneden</button>
     </div>
   </div>
 
@@ -99,7 +115,7 @@
   <div id="editCustomerModal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeModal('editCustomerModal')" title="Lukk">×</span>
-      <h2>Rediger kunde</h2>
+      <h2>Rediger kunde (denne måneden)</h2>
 
       <div class="form-group">
         <label for="edit-customer-name">Kundenavn:</label>
@@ -107,8 +123,9 @@
       </div>
 
       <div class="form-group">
-        <label for="edit-customer-hours">Timer tilgjengelig (nåværende):</label>
+        <label for="edit-customer-hours">Timer Gjenstående (nåværende):</label>
         <input type="number" id="edit-customer-hours" required>
+        <small style="color: var(--text-secondary); display: block; margin-top: 4px;">Endring her justerer kun saldoen. For å endre tildelte timer, gjør det i regnearket.</small>
       </div>
 
       <input type="hidden" id="edit-customer-id">
@@ -121,14 +138,14 @@
     <div class="modal-content">
       <span class="close" onclick="closeModal('confirmDeleteModal')" title="Lukk">×</span>
       <h2>Bekreft sletting</h2>
-      <p>Er du sikker på at du vil slette kunden <strong id="delete-customer-name" style="color: var(--accent-primary);"></strong>?</p>
-      <p>Dette sletter kunden fra kundelisten. Logget tid i 'Tidslogg' blir værende.</p>
+      <p>Er du sikker på at du vil slette oppføringen for kunden <strong id="delete-customer-name" style="color: var(--accent-primary);"></strong> for **denne måneden**?</p>
+      <p>Dette sletter raden fra 'Kunder'-arket for inneværende måned. Logget tid i 'Tidslogg' blir værende.</p>
       <p>Handlingen kan ikke angres.</p>
 
       <input type="hidden" id="delete-customer-id">
       <div class="modal-buttons">
         <button class="cancel-btn" onclick="closeModal('confirmDeleteModal')">Avbryt</button>
-        <button class="delete-btn" id="confirm-delete-btn">Slett kunde</button>
+        <button class="delete-btn" id="confirm-delete-btn">Slett for denne måneden</button>
       </div>
     </div>
   </div>
