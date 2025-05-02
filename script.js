@@ -543,7 +543,7 @@ function showCommentModal(customerId) {
     updateTaskStatusSelect.value = ""; // Nullstill statusvalg
 
     // Kall backend for å hente åpne oppgaver
-    sendDataToGoogleScript({ action: 'getTasks', customer: timerData.customerName, status: 'open' }, "Hentet oppgaver")
+    /*sendDataToGoogleScript({ action: 'getTasks', customer: timerData.customerName, status: 'open' }, "Hentet oppgaver")
         .then(taskData => {
             taskCheckboxList.innerHTML = ''; // Tøm lasteindikator
             if (taskData.success && taskData.tasks && taskData.tasks.length > 0) {
@@ -589,7 +589,7 @@ function showCommentModal(customerId) {
         });
 
     modal.style.display = 'block';
-}
+}*/
 // ========== SLUTT OPPDATERT showCommentModal ==========
 
 // Starter timer for "Legg til ny kunde"
