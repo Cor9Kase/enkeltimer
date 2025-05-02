@@ -9,7 +9,7 @@ function debounce(func, wait) {
 }
 
 // Google Script URL - *** VIKTIG: Bytt ut med din egen publiserte URL ***
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzByHWAG2YtFVpoLWl9exkpmM8Ez6ATyUGiHRGj0aCSNmS_dWncpp8rHcZiuZ2bsMv0/exec'; // <--- SETT INN DIN URL HER!
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0nnCTeP2GhYc__kJOuCB9UFCc3jpaek6uD_B_yurSSxIv0uHTO1z1Luayzyg9-dHH/exec'; // <--- SETT INN DIN URL HER!
 
 // Globale variabler for tilstand
 const timers = {};
