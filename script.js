@@ -1203,7 +1203,7 @@ function deleteCustomer() {
 }
 
 
-// Robust sending til Google Apps Script
+/* // Robust sending til Google Apps Script
 // --- START OPPDATERT Generisk Data Sender (med fallbacks) ---
 function sendDataToGoogleScript(data, successMessage) {
   console.log("sendDataToGoogleScript kalt med data:", data);
@@ -1281,7 +1281,7 @@ function sendDataToGoogleScript(data, successMessage) {
         form.submit();
     }
   }); // End Promise
-} // End sendDataToGoogleScript
+} // End sendDataToGoogleScript*/
 
 // Testfunksjon for tilkobling
 function testConnection() {
