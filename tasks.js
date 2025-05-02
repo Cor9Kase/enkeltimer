@@ -17,8 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchInitialData_Tasks();
 
     // Sjekk URL her også
-    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'DIN_NETTAPP_URL_HER') {
-        alert("FEIL: GOOGLE_SCRIPT_URL er ikke satt i tasks.js!");
+    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'DIN_NETTAPP_URL_HER' || GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbx41-6kS-KuMnBzSQmXUt9hsF0Q5BKRrzpkfA-3eFZ-5r3glDTMqqb3ZL-244LXi4wN/exec') {
+        alert("FEIL: GOOGLE_SCRIPT_URL er ikke satt riktig i tasks.js!");
     }
 });
 
@@ -41,10 +41,19 @@ function setupEventListeners_Tasks() {
     document.getElementById('add-task-btn')?.addEventListener('click', openAddTaskModal);
     document.getElementById('save-task-btn')?.addEventListener('click', handleSaveTask);
 
-    // Lukkeknapper for modal (hvis ikke allerede globalt håndtert)
+    // Lukkeknapper for modal
     document.querySelectorAll('#taskModal .close, #taskModal .cancel-btn').forEach(btn => {
          btn.addEventListener('click', () => closeModal('taskModal'));
     });
+
+     // Lukk modal ved klikk utenfor
+    window.addEventListener('click', function(event) {
+        const taskModal = document.getElementById('taskModal');
+        if (taskModal && taskModal.style.display === 'block' && event.target === taskModal) {
+            closeModal('taskModal');
+        }
+    });
+
 
     // Drag and Drop Listeners (på kolonnene)
     document.querySelectorAll('.kanban-column .task-list').forEach(list => {
@@ -57,13 +66,11 @@ function setupEventListeners_Tasks() {
 // --- Datahenting ---
 function fetchInitialData_Tasks() {
     console.log("Henter initiale data for oppgaver...");
-    // Vis en lasteindikator?
     showLoadingIndicator(true);
 
-    // Hent både kunder (for filter) og oppgaver
     Promise.all([
         fetchCustomers_Tasks(),
-        fetchTasks_Tasks() // Henter alle tasks initialt, filtreres i frontend
+        fetchTasks_Tasks()
     ])
     .then(() => {
         console.log("Kunder og oppgaver hentet.");
@@ -73,9 +80,14 @@ function fetchInitialData_Tasks() {
     .catch(error => {
         console.error("Feil ved henting av initiale data:", error);
         alert("Kunne ikke hente data for oppgavesiden: " + error.message);
+        // Vis en feilmelding i stedet for lasteindikator
+         const board = document.getElementById('task-board');
+         if(board) {
+            board.querySelectorAll('.task-list').forEach(list => list.innerHTML = '<div class="task-placeholder">Kunne ikke laste oppgaver.</div>');
+         }
     })
     .finally(() => {
-        showLoadingIndicator(false); // Skjul lasteindikator
+        showLoadingIndicator(false);
     });
 }
 
@@ -86,28 +98,32 @@ function fetchCustomers_Tasks() {
                 allCustomers = data.customers.sort((a, b) => a.name.localeCompare(b.name, 'no'));
                 console.log("Kunder hentet:", allCustomers.length);
             } else {
-                throw new Error(data.message || "Kunne ikke hente kundeliste");
+                // Ikke kast feil her, la Promise.all fortsette hvis mulig
+                console.error("Kunne ikke hente kundeliste:", data.message);
+                allCustomers = []; // Sett til tom liste ved feil
+                // throw new Error(data.message || "Kunne ikke hente kundeliste");
             }
+            return allCustomers; // Returner uansett for Promise.all
         });
 }
 
 function fetchTasks_Tasks() {
-    // Henter *alle* tasks her for enklere frontend-filtrering initialt.
-    // Kan endres til å sende filter med til backend for store datamengder.
-    return fetchDataFromScript_Tasks({ action: 'getTasks' })
+    return fetchDataFromScript_Tasks({ action: 'getTasks' }) // Henter alle som standard
         .then(data => {
             if (data.success && Array.isArray(data.tasks)) {
                 allTasks = data.tasks;
                 console.log("Oppgaver hentet:", allTasks.length);
             } else {
-                throw new Error(data.message || "Kunne ikke hente oppgaveliste");
+                console.error("Kunne ikke hente oppgaveliste:", data.message);
+                allTasks = []; // Sett til tom liste ved feil
+                // throw new Error(data.message || "Kunne ikke hente oppgaveliste");
             }
+            return allTasks; // Returner uansett for Promise.all
         });
 }
 
-// Generisk funksjon for API-kall (kan gjenbrukes fra andre filer hvis strukturert)
+
 function fetchDataFromScript_Tasks(params) {
-    // Forenklet fetch for denne filen (ingen JSONP fallback her som standard)
     const urlParams = new URLSearchParams(params);
     urlParams.append('nocache', Date.now());
     const url = `${GOOGLE_SCRIPT_URL}?${urlParams.toString()}`;
@@ -116,13 +132,16 @@ function fetchDataFromScript_Tasks(params) {
     return fetch(url)
         .then(response => {
             if (!response.ok) {
-                throw new Error(`Nettverksfeil: ${response.status} ${response.statusText}`);
+                // Prøv å få tekstlig feilmelding fra responsen
+                 return response.text().then(text => {
+                    throw new Error(text || `Nettverksfeil: ${response.status}`);
+                 });
             }
             return response.json();
         })
         .catch(error => {
              console.error("Feil i fetchDataFromScript_Tasks:", error);
-             // Returner et standard feilobjekt slik at Promise.all ikke stopper helt opp?
+             // Returner et feilobjekt som Promise.all kan håndtere
              return { success: false, message: error.message };
         });
 }
@@ -131,75 +150,86 @@ function fetchDataFromScript_Tasks(params) {
 function populateCustomerFilter() {
     const select = document.getElementById('customer-filter');
     if (!select) return;
-    // Tøm eksisterende options (unntatt "Alle kunder")
-    while (select.options.length > 1) {
-        select.remove(1);
-    }
-    // Legg til kunder
+    while (select.options.length > 1) select.remove(1);
     allCustomers.forEach(customer => {
         const option = document.createElement('option');
-        option.value = customer.name;
-        option.textContent = customer.name;
+        option.value = customer.name; option.textContent = customer.name;
         select.appendChild(option);
     });
 }
 
+// ========== START OPPDATERT renderTaskBoard MED SORTERING ==========
 function renderTaskBoard() {
     console.log("Rendrer Kanban-tavle...");
     const board = document.getElementById('task-board');
     if (!board) return;
 
-    // Tøm alle kolonner først
-    board.querySelectorAll('.task-list').forEach(list => list.innerHTML = '');
+    board.querySelectorAll('.task-list').forEach(list => list.innerHTML = ''); // Tøm kolonner
 
-    // Filtrer tasks basert på valgte filtere
-    const filteredTasks = filterTasks(allTasks);
-    console.log(`Viser ${filteredTasks.length} av ${allTasks.length} oppgaver.`);
+    let filteredTasks = filterTasks(allTasks);
+    console.log(`Viser ${filteredTasks.length} av ${allTasks.length} oppgaver etter filter.`);
+
+    // Sorter etter frist (dueDate), tidligst først, de uten frist sist
+    filteredTasks.sort((a, b) => {
+        const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity; // Bruk getTime() for tall, Infinity for null
+        const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+        return dateA - dateB; // Sorter numerisk
+    });
+    console.log("Oppgaver sortert etter frist.");
 
     if (filteredTasks.length === 0) {
-        // Vis melding hvis ingen oppgaver matcher filter
         const nyKolonne = board.querySelector('.kanban-column[data-status="Ny"] .task-list');
-        if(nyKolonne) nyKolonne.innerHTML = '<div class="task-placeholder">Ingen oppgaver funnet for valgte filtre.</div>';
+        if(nyKolonne) nyKolonne.innerHTML = '<div class="task-placeholder">Ingen oppgaver funnet.</div>';
         return;
     }
 
-    // Legg til oppgavekort i riktig kolonne
     filteredTasks.forEach(task => {
-        const card = createTaskCardElement(task);
-        const column = board.querySelector(`.kanban-column[data-status="${task.status}"] .task-list`);
-        if (column) {
-            column.appendChild(card);
+        const card = createTaskCardElement(task); // Denne lager nå kort med frist-klasser
+        const columnList = board.querySelector(`.kanban-column[data-status="${task.status}"] .task-list`);
+        if (columnList) {
+            columnList.appendChild(card);
         } else {
-            console.warn(`Fant ikke kolonne for status: ${task.status}`);
-            // Legg til i "Ny"-kolonnen som fallback?
+            console.warn(`Fant ikke kolonne for status: ${task.status}, legger i "Ny".`);
             board.querySelector('.kanban-column[data-status="Ny"] .task-list')?.appendChild(card);
         }
     });
 }
+// ========== SLUTT OPPDATERT renderTaskBoard ==========
 
+
+// ========== START OPPDATERT createTaskCardElement MED FRIST-KLASSER ==========
 function createTaskCardElement(task) {
     const card = document.createElement('div');
     card.className = 'task-card';
     card.setAttribute('draggable', true);
     card.setAttribute('data-task-id', task.id);
 
-    // Legg til prioritetklasse
-    if (task.priority) {
-        card.classList.add(`priority-${task.priority.toLowerCase()}`);
-    }
+    if (task.priority) card.classList.add(`priority-${task.priority.toLowerCase()}`);
 
-    // Beregn om frist er forfalt
+    // Sjekk frist og legg til markeringsklasser
     let dueDateHtml = '';
+    let isOverdue = false;
+
     if (task.dueDate) {
         const dueDate = new Date(task.dueDate);
         const today = new Date();
+        dueDate.setHours(0, 0, 0, 0);
         today.setHours(0, 0, 0, 0);
-        dueDate.setHours(0, 0, 0, 0); // Sammenlign kun dato
-        const isOverdue = dueDate < today;
+        const timeDiff = dueDate.getTime() - today.getTime();
+        const daysUntilDue = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+        isOverdue = daysUntilDue < 0;
+
+        card.classList.remove('due-near', 'due-soon', 'due-overdue'); // Fjern gamle klasser først
+        if (isOverdue) card.classList.add('due-overdue');
+        else if (daysUntilDue <= 3) card.classList.add('due-soon');
+        else if (daysUntilDue <= 7) card.classList.add('due-near');
+
         dueDateHtml = `
             <span class="task-due-date ${isOverdue ? 'overdue' : ''}" title="Frist">
-                📅 ${new Date(task.dueDate).toLocaleDateString('no-NO', { day: 'numeric', month: 'short' })} ${isOverdue ? '(Forfalt)' : ''}
+                📅 ${new Date(task.dueDate).toLocaleDateString('no-NO', { day: 'numeric', month: 'short' })}
+                ${isOverdue ? ' (Forfalt)' : (daysUntilDue <= 7 ? ` (${daysUntilDue} d)` : '')}
             </span>`;
+        // console.log(`Task ${task.id}: Frist ${task.dueDate}, Dager: ${daysUntilDue}, Overdue: ${isOverdue}, Klasse: ${card.classList}`);
     }
 
     card.innerHTML = `
@@ -211,32 +241,28 @@ function createTaskCardElement(task) {
         </div>
     `;
 
-    // Legg til event listeners for drag og klikk (for redigering)
     card.addEventListener('dragstart', handleDragStart);
     card.addEventListener('dragend', handleDragEnd);
     card.addEventListener('click', () => openEditTaskModal(task.id));
-
     return card;
 }
+// ========== SLUTT OPPDATERT createTaskCardElement ==========
 
 function getPriorityIcon(priority) {
     switch (priority?.toLowerCase()) {
-        case 'høy': return '🔴';
-        case 'medium': return '🟡';
-        case 'lav': return '🔵';
-        default: return '';
+        case 'høy': return '🔴'; case 'medium': return '🟡'; case 'lav': return '🔵'; default: return '';
     }
 }
 
 function showLoadingIndicator(isLoading) {
-    // Implementer visning/skjuling av en lasteindikator, f.eks.:
-    const boardContainer = document.getElementById('task-board-container');
+    const board = document.getElementById('task-board');
+    if(!board) return;
     if (isLoading) {
-        boardContainer?.classList.add('loading'); // CSS må definere .loading
-        console.log("Viser lasteindikator");
+        // Vis en enkel melding i første kolonne
+         const nyKolonne = board.querySelector('.kanban-column[data-status="Ny"] .task-list');
+         if(nyKolonne) nyKolonne.innerHTML = '<div class="task-placeholder">Laster oppgaver...</div>';
     } else {
-        boardContainer?.classList.remove('loading');
-        console.log("Skjuler lasteindikator");
+        // Innhold fjernes uansett av renderTaskBoard, så ingen handling nødvendig her
     }
 }
 
@@ -244,146 +270,117 @@ function showLoadingIndicator(isLoading) {
 function handleCustomerFilterChange(event) {
     currentCustomerFilter = event.target.value;
     console.log("Kundefilter endret til:", currentCustomerFilter);
-    renderTaskBoard(); // Render på nytt med nytt filter
+    renderTaskBoard();
 }
 
 function handleStatusFilterChange(event) {
     const clickedButton = event.target;
     currentStatusFilter = clickedButton.getAttribute('data-status');
     console.log("Statusfilter endret til:", currentStatusFilter);
-
-    // Oppdater aktiv knapp
     document.querySelectorAll('.status-filter-btn').forEach(btn => btn.classList.remove('active'));
     clickedButton.classList.add('active');
-
-    renderTaskBoard(); // Render på nytt
+    renderTaskBoard();
 }
 
 function filterTasks(tasks) {
     return tasks.filter(task => {
         const customerMatch = currentCustomerFilter === 'all' || task.customer === currentCustomerFilter;
-
         let statusMatch = false;
         const taskStatusLower = task.status?.toLowerCase();
-        if (currentStatusFilter === 'all') {
-            statusMatch = true;
-        } else if (currentStatusFilter === 'open') {
-            statusMatch = taskStatusLower === 'ny' || taskStatusLower === 'pågår';
-        } else {
-            statusMatch = taskStatusLower === currentStatusFilter?.toLowerCase();
-        }
-
+        if (currentStatusFilter === 'all') statusMatch = true;
+        else if (currentStatusFilter === 'open') statusMatch = taskStatusLower === 'ny' || taskStatusLower === 'pågår';
+        else statusMatch = taskStatusLower === currentStatusFilter?.toLowerCase();
         return customerMatch && statusMatch;
     });
 }
-
 
 // --- Modal og Lagring ---
 function openAddTaskModal() {
     console.log("Åpner Legg til Oppgave-modal");
     clearTaskModal();
     document.getElementById('task-modal-title').textContent = 'Legg til ny oppgave';
-    populateCustomerDropdown_Modal(); // Fyll kunde-dropdown
+    populateCustomerDropdown_Modal();
     document.getElementById('taskModal').style.display = 'block';
 }
 
 function openEditTaskModal(taskId) {
     console.log("Åpner Rediger Oppgave-modal for:", taskId);
     const task = allTasks.find(t => t.id === taskId);
-    if (!task) {
-        alert("Fant ikke oppgaven som skulle redigeres.");
-        return;
-    }
+    if (!task) { alert("Fant ikke oppgaven."); return; }
     clearTaskModal();
     document.getElementById('task-modal-title').textContent = 'Rediger oppgave';
-    populateCustomerDropdown_Modal(); // Fyll kunde-dropdown
+    populateCustomerDropdown_Modal();
 
-    // Fyll ut skjema
     document.getElementById('task-id').value = task.id;
     document.getElementById('task-customer').value = task.customer;
     document.getElementById('task-name').value = task.name;
     document.getElementById('task-description').value = task.description || '';
     document.getElementById('task-status').value = task.status;
     document.getElementById('task-priority').value = task.priority || '';
-    document.getElementById('task-due-date').value = task.dueDate || '';
+    document.getElementById('task-due-date').value = task.dueDate || ''; // Backend sender yyyy-mm-dd
 
     document.getElementById('taskModal').style.display = 'block';
 }
 
 function clearTaskModal() {
     document.getElementById('task-id').value = '';
-    document.getElementById('task-customer').value = '';
+    document.getElementById('task-customer').value = ''; // Vil bli satt av populate, men greit å nullstille
     document.getElementById('task-name').value = '';
     document.getElementById('task-description').value = '';
-    document.getElementById('task-status').value = 'Ny'; // Default
-    document.getElementById('task-priority').value = ''; // Default
+    document.getElementById('task-status').value = 'Ny';
+    document.getElementById('task-priority').value = '';
     document.getElementById('task-due-date').value = '';
 }
 
 function populateCustomerDropdown_Modal() {
      const select = document.getElementById('task-customer');
     if (!select) return;
-    // Tøm eksisterende options (unntatt placeholder)
-    while (select.options.length > 1) {
-        select.remove(1);
-    }
-    // Legg til kunder
+    const currentValue = select.value; // Ta vare på valgt kunde ved redigering
+    while (select.options.length > 1) select.remove(1); // Behold placeholder
     allCustomers.forEach(customer => {
         const option = document.createElement('option');
-        option.value = customer.name;
-        option.textContent = customer.name;
+        option.value = customer.name; option.textContent = customer.name;
         select.appendChild(option);
     });
+    if(currentValue) select.value = currentValue; // Sett tilbake valgt kunde
 }
 
 function handleSaveTask() {
     const taskId = document.getElementById('task-id').value;
     const taskData = {
-        // Samle data fra skjemaet
-        id: taskId || null, // Inkluder ID hvis den finnes (for oppdatering)
+        id: taskId || undefined, // Send kun med ID hvis den finnes
         customer: document.getElementById('task-customer').value,
         name: document.getElementById('task-name').value.trim(),
         description: document.getElementById('task-description').value.trim(),
         status: document.getElementById('task-status').value,
-        priority: document.getElementById('task-priority').value || null,
-        dueDate: document.getElementById('task-due-date').value || null,
+        priority: document.getElementById('task-priority').value || null, // Send null hvis tom
+        dueDate: document.getElementById('task-due-date').value || null, // Send null hvis tom
     };
 
-    // Validering (enkel)
-    if (!taskData.customer) {
-        alert("Vennligst velg en kunde.");
-        return;
-    }
-    if (!taskData.name) {
-        alert("Vennligst skriv inn et oppgavenavn.");
-        return;
-    }
+    if (!taskData.customer) { alert("Velg en kunde."); return; }
+    if (!taskData.name) { alert("Skriv inn et oppgavenavn."); return; }
 
     console.log("Lagrer oppgave:", taskData);
-    const action = taskId ? 'updateTask' : 'addTask'; // Bestem backend-handling
-    taskData.action = action; // Legg til action for GAS
+    const action = taskId ? 'updateTask' : 'addTask';
+    taskData.action = action;
 
-    // Deaktiver knapp
     const saveButton = document.getElementById('save-task-btn');
-    saveButton.disabled = true;
-    saveButton.textContent = 'Lagrer...';
+    saveButton.disabled = true; saveButton.textContent = 'Lagrer...';
 
-    // Kall backend
-    // Bruk en POST-versjon av sendData... hvis du har en, ellers må 'sendDataToScript_Tasks' tilpasses
-    // Her antar vi en POST-funksjon `postDataToScript_Tasks` eksisterer (lignende sendDataToGoogleScript)
     postDataToScript_Tasks(taskData, action === 'addTask' ? 'Oppgave lagt til' : 'Oppgave oppdatert')
         .then(response => {
             if (response.success) {
                 closeModal('taskModal');
-                fetchTasks_Tasks().then(renderTaskBoard); // Hent oppgaver på nytt og re-render
-                // Vis en liten bekreftelse?
+                // Oppdater datalisten lokalt eller hent på nytt
+                // Enklest å hente på nytt for å sikre konsistens
+                return fetchTasks_Tasks().then(renderTaskBoard);
             } else {
-                alert(`Kunne ikke lagre oppgave: ${response.message || 'Ukjent feil'}`);
+                throw new Error(response.message || 'Ukjent feil ved lagring');
             }
         })
         .catch(error => {
             console.error("Feil ved lagring av oppgave:", error);
-            alert(`Feil ved lagring av oppgave: ${error.message}`);
+            alert(`Kunne ikke lagre oppgave: ${error.message}`);
         })
         .finally(() => {
             saveButton.disabled = false;
@@ -395,127 +392,146 @@ function handleSaveTask() {
 let draggedTaskId = null;
 
 function handleDragStart(event) {
+    // Sjekk at det er selve kortet som dras, ikke et internt element
+    if (!event.target.classList.contains('task-card')) return;
     draggedTaskId = event.target.getAttribute('data-task-id');
-    event.target.classList.add('dragging');
+    // Sett en liten forsinkelse før 'dragging'-klassen legges til
+    setTimeout(() => event.target.classList.add('dragging'), 0);
     console.log(`Starter drag for task: ${draggedTaskId}`);
-    // event.dataTransfer.setData('text/plain', draggedTaskId); // Trengs ofte ikke hvis vi bruker global var
+    // Trenger vanligvis ikke dataTransfer for dette scenarioet
+    // event.dataTransfer.effectAllowed = 'move';
 }
 
 function handleDragEnd(event) {
-    event.target.classList.remove('dragging');
+    // Sjekk at det er kortet som avsluttet drag
+    if (event.target.classList.contains('task-card')) {
+        event.target.classList.remove('dragging');
+    }
+    // Fjern 'drag-over' fra alle kolonner for sikkerhets skyld
+    document.querySelectorAll('.kanban-column .task-list.drag-over')
+            .forEach(list => list.classList.remove('drag-over'));
     console.log(`Avslutter drag for task: ${draggedTaskId}`);
-    draggedTaskId = null; // Nullstill
+    draggedTaskId = null; // Nullstill alltid
 }
 
 function handleDragOver(event) {
-    event.preventDefault(); // Nødvendig for å tillate drop
+    event.preventDefault(); // Må ha denne for at drop skal fungere
     event.currentTarget.classList.add('drag-over');
-    // console.log("Drag over:", event.currentTarget.closest('.kanban-column').getAttribute('data-status'));
+    event.dataTransfer.dropEffect = 'move';
 }
 
 function handleDragLeave(event) {
+    // Fjern kun hvis vi forlater selve lista, ikke interne elementer
+    if (event.currentTarget.contains(event.relatedTarget)) return;
     event.currentTarget.classList.remove('drag-over');
 }
 
 function handleDrop(event) {
     event.preventDefault();
-    event.currentTarget.classList.remove('drag-over');
-    const targetColumn = event.currentTarget.closest('.kanban-column');
+    const targetList = event.currentTarget; // Dette er .task-list
+    targetList.classList.remove('drag-over');
+    const targetColumn = targetList.closest('.kanban-column');
     const newStatus = targetColumn?.getAttribute('data-status');
+    const droppedOnCard = event.target.closest('.task-card'); // Fant vi et kort?
 
     if (newStatus && draggedTaskId) {
         console.log(`Slipper task ${draggedTaskId} i kolonne ${newStatus}`);
         const taskCard = document.querySelector(`.task-card[data-task-id='${draggedTaskId}']`);
-        const currentColumn = taskCard?.closest('.kanban-column');
+        if (!taskCard) { console.warn("Fant ikke dratt kort?"); return; }
+
+        const currentColumn = taskCard.closest('.kanban-column');
         const currentStatus = currentColumn?.getAttribute('data-status');
 
-        // Bare oppdater hvis status faktisk er endret
         if (newStatus !== currentStatus) {
-             // Flytt kortet i UI umiddelbart (optimistisk)
-            event.currentTarget.appendChild(taskCard); // 'currentTarget' er .task-list
+            // Optimistisk UI-oppdatering: Flytt kortet
+            if(droppedOnCard) {
+                // Hvis vi slapp på et annet kort, legg det nye før det
+                targetList.insertBefore(taskCard, droppedOnCard);
+            } else {
+                 // Ellers legg til på slutten av listen
+                targetList.appendChild(taskCard);
+            }
             // Oppdater status i backend
             updateTaskStatus(draggedTaskId, newStatus);
         } else {
-             console.log("Ingen statusendring.");
+            console.log("Ingen statusendring.");
         }
-
     } else {
-         console.warn("Drop feilet: mangler status eller task ID", newStatus, draggedTaskId);
+         console.warn("Drop feilet: mangler status eller task ID");
     }
-    // Nullstill uansett
-    draggedTaskId = null;
+    draggedTaskId = null; // Nullstill
 }
 
 function updateTaskStatus(taskId, newStatus) {
     console.log(`Oppdaterer status for ${taskId} til ${newStatus}`);
-    const taskData = {
-        action: 'updateTask',
-        id: taskId,
-        status: newStatus
-    };
+    const taskData = { action: 'updateTask', id: taskId, status: newStatus };
 
-    // Kall backend (uten å vente på svar for UI-oppdateringen, men logg feil)
+    // Oppdater den lokale datamodellen FØR nettverkskallet (Optimistic UI)
+    const taskIndex = allTasks.findIndex(t => t.id === taskId);
+    let originalStatus = null;
+    if (taskIndex > -1) {
+        originalStatus = allTasks[taskIndex].status; // Lagre gammel status for evt. reversering
+        allTasks[taskIndex].status = newStatus; // Oppdater lokalt
+    } else {
+        console.warn("Fant ikke oppgave lokalt for statusoppdatering:", taskId);
+    }
+
+
+    // Kall backend for å lagre endringen
     postDataToScript_Tasks(taskData, `Status oppdatert for ${taskId}`)
         .then(response => {
             if (!response.success) {
                 console.error(`Feil ved oppdatering av status for ${taskId} til ${newStatus}:`, response.message);
-                alert(`Kunne ikke oppdatere status for oppgaven: ${response.message || 'Ukjent feil'}. Last siden på nytt.`);
-                // Vurder å reversere UI-endringen ved feil?
-                fetchTasks_Tasks().then(renderTaskBoard); // Hent alt på nytt for å korrigere
+                alert(`Kunne ikke oppdatere status: ${response.message || 'Ukjent feil'}. Tilbakestiller.`);
+                // Reverser UI-endringen ved feil
+                 if (taskIndex > -1 && originalStatus) {
+                    allTasks[taskIndex].status = originalStatus; // Sett tilbake lokal data
+                    renderTaskBoard(); // Re-render for å flytte kortet tilbake
+                 } else {
+                    fetchTasks_Tasks().then(renderTaskBoard); // Hent alt på nytt hvis vi ikke fant den lokalt
+                 }
+
             } else {
                  console.log(`Status for ${taskId} lagret som ${newStatus}`);
-                 // Oppdater den lokale 'allTasks' arrayen også
-                 const taskIndex = allTasks.findIndex(t => t.id === taskId);
-                 if(taskIndex > -1) {
-                     allTasks[taskIndex].status = newStatus;
-                 }
+                 // UI er allerede oppdatert, ingen handling nødvendig
+                 // Vi kan hente data på nytt for å være 100% sikker, men det gir tregere UI
+                 // fetchTasks_Tasks().then(renderTaskBoard);
             }
         })
         .catch(error => {
              console.error(`Nettverksfeil ved oppdatering av status for ${taskId} til ${newStatus}:`, error);
-             alert(`Nettverksfeil ved oppdatering av status: ${error.message}. Last siden på nytt.`);
-             fetchTasks_Tasks().then(renderTaskBoard); // Hent alt på nytt for å korrigere
+             alert(`Nettverksfeil ved oppdatering av status: ${error.message}. Tilbakestiller.`);
+              // Reverser UI-endringen ved feil
+              if (taskIndex > -1 && originalStatus) {
+                 allTasks[taskIndex].status = originalStatus; // Sett tilbake lokal data
+                 renderTaskBoard(); // Re-render for å flytte kortet tilbake
+              } else {
+                 fetchTasks_Tasks().then(renderTaskBoard); // Hent alt på nytt
+              }
         });
 }
 
 
-// --- GENERELL POST-FUNKSJON (LIGNER sendDataToGoogleScript) ---
-// Denne MÅ tilpasses/erstattes med en robust funksjon som håndterer POST
-// og gjerne fallbacks, lik den i script.js.
-// For enkelhets skyld bruker vi en naiv fetch POST her.
+// --- GENERELL POST-FUNKSJON ---
+// Bruker enkel fetch POST. Bør vurderes å byttes ut med
+// den mer robuste sendDataToGoogleScript fra script.js hvis nødvendig.
 function postDataToScript_Tasks(data, successMessage) {
     console.log("Sender POST-data:", data);
     const formData = new FormData();
     for (const key in data) {
-        formData.append(key, data[key]);
+        // Send tom streng for null/undefined
+        const value = (data[key] === null || data[key] === undefined) ? '' : data[key];
+        formData.append(key, value);
     }
 
-    return fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        body: formData,
-        // mode: 'no-cors' // Kan brukes, men da får vi ikke svar
-    })
+    return fetch(GOOGLE_SCRIPT_URL, { method: 'POST', body: formData })
     .then(response => {
-        if (!response.ok) {
-             // Prøv å få tak i feilmelding fra body hvis mulig
-             return response.text().then(text => {
-                 try {
-                     const errorData = JSON.parse(text);
-                     throw new Error(errorData.message || `HTTP error ${response.status}`);
-                 } catch(e) {
-                      throw new Error(`HTTP error ${response.status} - Ugyldig feilrespons`);
-                 }
-             });
-        }
-        return response.json(); // Anta JSON-svar ved suksess
+        if (!response.ok) return response.text().then(text => { throw new Error(text || `HTTP ${response.status}`) });
+        return response.json();
     })
     .then(jsonData => {
-         if (jsonData.success !== undefined) { // Sjekk om success finnes
-             console.log("POST vellykket:", jsonData);
-             return jsonData; // Returner hele svaret
-         } else {
-             throw new Error("Ugyldig JSON-format i svar fra POST");
-         }
+         if (jsonData?.success !== undefined) return jsonData;
+         else throw new Error("Ugyldig JSON-format i svar fra POST");
     });
 }
 
