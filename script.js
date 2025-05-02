@@ -718,27 +718,64 @@ function padZero(num) {
 }
 
 // ========== START OPPDATERT closeModal ==========
+// Lukker en modal og utfører spesifikk opprydding
 function closeModal(modalId) {
-    // ... (Annen modal-logikk som før) ...
+   // 1. HENT MODAL-ELEMENTET BASERT PÅ ID <<< DENNE MANGLER SANNNSYNLIGVIS HOS DEG
+   const modal = document.getElementById(modalId);
 
-   if (modalId === 'commentModal') {
-        document.getElementById('comment-text').value = '';
-        // Nullstill og skjul oppgave-seksjonen
-        const taskCheckboxList = document.getElementById('task-checkbox-list');
-        const taskSelectGroup = document.querySelector('#commentModal .task-link-group');
-        const taskStatusUpdateOptions = document.getElementById('task-status-update-options');
-        const updateTaskStatusSelect = document.getElementById('update-task-status-select');
-        if(taskCheckboxList) taskCheckboxList.innerHTML = '';
-        if(taskSelectGroup) taskSelectGroup.style.display = 'none';
-        if(taskStatusUpdateOptions) taskStatusUpdateOptions.style.display = 'none';
-        if(updateTaskStatusSelect) updateTaskStatusSelect.value = '';
+   // 2. Sjekk om elementet faktisk ble funnet
+   if (modal) {
+       // 3. Skjul modalen
+       modal.style.display = 'none';
+       console.log(`Lukket modal: ${modalId}`);
 
-        const closedCustomerId = modal.getAttribute('data-current-customer-id');
-        if (closedCustomerId && timers[closedCustomerId]) delete timers[closedCustomerId];
-        modal.removeAttribute('data-current-customer-id');
+       // 4. Utfør spesifikk opprydding basert på modalens ID
+       if (modalId === 'commentModal') {
+            // --- Opprydding spesifikt for commentModal ---
+            const commentEl = document.getElementById('comment-text');
+            if (commentEl) commentEl.value = '';
+            const taskCheckboxList = document.getElementById('task-checkbox-list');
+            const taskSelectGroup = document.querySelector('#commentModal .task-link-group');
+            const taskStatusUpdateOptions = document.getElementById('task-status-update-options');
+            const updateTaskStatusSelect = document.getElementById('update-task-status-select');
+            if (taskCheckboxList) taskCheckboxList.innerHTML = '<span style="color: var(--text-secondary); font-style: italic;">Laster oppgaver...</span>';
+            if (taskSelectGroup) taskSelectGroup.style.display = 'none';
+            if (taskStatusUpdateOptions) taskStatusUpdateOptions.style.display = 'none';
+            if (updateTaskStatusSelect) updateTaskStatusSelect.value = '';
+
+            // Linje 736 (nå INNE i if(modal) og if(modalId === 'commentModal'))
+            const closedCustomerId = modal.getAttribute('data-current-customer-id');
+            if (closedCustomerId && timers[closedCustomerId]) {
+                 delete timers[closedCustomerId];
+                 console.log(`Slettet midlertidig timerdata for kunde ID ${closedCustomerId}`);
+            }
+            modal.removeAttribute('data-current-customer-id');
+            // --- Slutt på commentModal-opprydding ---
+
+       } else if (modalId === 'newCustomerModal') {
+            // ... (opprydding for newCustomerModal) ...
+             if (newCustomerTimer && !document.getElementById('add-customer-box')?.classList.contains('active')) { cancelNewCustomer(); }
+            const nameEl = document.getElementById('new-customer-name'); if(nameEl) nameEl.value = '';
+            const hoursEl = document.getElementById('new-customer-hours'); if(hoursEl) hoursEl.value = '';
+            const commentElNc = document.getElementById('new-customer-comment'); if(commentElNc) commentElNc.value = '';
+
+       } else if (modalId === 'editCustomerModal') {
+            // ... (opprydding for editCustomerModal) ...
+            const editIdEl = document.getElementById('edit-customer-id'); if(editIdEl) editIdEl.value = '';
+            const editNameEl = document.getElementById('edit-customer-name'); if(editNameEl) editNameEl.value = '';
+            const editHoursEl = document.getElementById('edit-customer-hours'); if(editHoursEl) editHoursEl.value = '';
+
+       } else if (modalId === 'confirmDeleteModal') {
+            // ... (opprydding for confirmDeleteModal) ...
+            const deleteIdEl = document.getElementById('delete-customer-id'); if(deleteIdEl) deleteIdEl.value = '';
+            const deleteNameStrongEl = document.getElementById('delete-customer-name'); if(deleteNameStrongEl) deleteNameStrongEl.textContent = '';
+       }
+       // --- Slutt på spesifikk opprydding ---
+
+   } else {
+       console.warn(`Forsøkte å lukke ukjent eller ikke-funnet modal: ${modalId}`);
    }
-    // ... (Annen modal-logikk som før) ...
-}
+} // Slutt på closeModal-funksjonen
 // ========== SLUTT OPPDATERT closeModal ==========
 
 // Konverterer millisekunder til desimaltimer, avrundet til nærmeste kvarter
