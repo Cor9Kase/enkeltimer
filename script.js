@@ -9,7 +9,7 @@ function debounce(func, wait) {
 }
 
 // Google Script URL - *** VIKTIG: Bytt ut med din egen publiserte URL ***
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyTjDaVk2yPEIKTH8p8wsAq92cLuErBSR06FkiCu_wHiiXFn76sZwDoExJt7cQ_4eu/exec'; // <-- SETT INN DIN URL HER!
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyTjDaVk2yPEIKTH8p8wsAq92cLuErBSR06FkiCu_wHiiXFn76sZwDoExJt7cQ_4eu/exec'; // <--- SETT INN DIN URL HER!
 
 // Globale variabler for tilstand
 const timers = {};
@@ -543,7 +543,7 @@ function showCommentModal(customerId) {
     updateTaskStatusSelect.value = ""; // Nullstill statusvalg
 
     // Kall backend for å hente åpne oppgaver
-    /*sendDataToGoogleScript({ action: 'getTasks', customer: timerData.customerName, status: 'open' }, "Hentet oppgaver")
+    sendDataToGoogleScript({ action: 'getTasks', customer: timerData.customerName, status: 'open' }, "Hentet oppgaver")
         .then(taskData => {
             taskCheckboxList.innerHTML = ''; // Tøm lasteindikator
             if (taskData.success && taskData.tasks && taskData.tasks.length > 0) {
@@ -589,7 +589,7 @@ function showCommentModal(customerId) {
         });
 
     modal.style.display = 'block';
-}*/
+}
 // ========== SLUTT OPPDATERT showCommentModal ==========
 
 // Starter timer for "Legg til ny kunde"
@@ -701,6 +701,7 @@ function cancelNewCustomer() {
   closeModal('newCustomerModal');
 }
 
+
 // Formaterer millisekunder til HH:MM:SS
 function formatTime(ms) {
   if (isNaN(ms) || ms < 0) ms = 0;
@@ -716,88 +717,29 @@ function padZero(num) {
   return num.toString().padStart(2, '0');
 }
 
-// Lukker en modal og utfører spesifikk opprydding
+// ========== START OPPDATERT closeModal ==========
 function closeModal(modalId) {
-   // 1. Hent modal-elementet basert på ID
-   const modal = document.getElementById(modalId);
+    // ... (Annen modal-logikk som før) ...
 
-   // 2. Sjekk om elementet faktisk ble funnet
-   if (modal) {
-       // 3. Skjul modalen
-       modal.style.display = 'none';
-       console.log(`Lukket modal: ${modalId}`);
+   if (modalId === 'commentModal') {
+        document.getElementById('comment-text').value = '';
+        // Nullstill og skjul oppgave-seksjonen
+        const taskCheckboxList = document.getElementById('task-checkbox-list');
+        const taskSelectGroup = document.querySelector('#commentModal .task-link-group');
+        const taskStatusUpdateOptions = document.getElementById('task-status-update-options');
+        const updateTaskStatusSelect = document.getElementById('update-task-status-select');
+        if(taskCheckboxList) taskCheckboxList.innerHTML = '';
+        if(taskSelectGroup) taskSelectGroup.style.display = 'none';
+        if(taskStatusUpdateOptions) taskStatusUpdateOptions.style.display = 'none';
+        if(updateTaskStatusSelect) updateTaskStatusSelect.value = '';
 
-       // 4. Utfør spesifikk opprydding basert på modalens ID
-       if (modalId === 'commentModal') {
-            // --- Opprydding spesifikt for commentModal ---
-
-            // a) Tøm kommentarfeltet
-            const commentEl = document.getElementById('comment-text');
-            if (commentEl) commentEl.value = '';
-
-            // b) Nullstill oppgave-seksjonen
-            const taskCheckboxList = document.getElementById('task-checkbox-list');
-            const taskSelectGroup = document.querySelector('#commentModal .task-link-group'); // Finner gruppen via klasse
-            const taskStatusUpdateOptions = document.getElementById('task-status-update-options');
-            const updateTaskStatusSelect = document.getElementById('update-task-status-select');
-
-            // Tøm listen og vis "Laster..." igjen (eller bare tøm: '')
-            if (taskCheckboxList) taskCheckboxList.innerHTML = '<span style="color: var(--text-secondary); font-style: italic;">Laster oppgaver...</span>';
-            // Skjul hele oppgave-seksjonen
-            if (taskSelectGroup) taskSelectGroup.style.display = 'none';
-            // Skjul statusvalg-seksjonen
-            if (taskStatusUpdateOptions) taskStatusUpdateOptions.style.display = 'none';
-            // Nullstill valgt status i dropdown
-            if (updateTaskStatusSelect) updateTaskStatusSelect.value = '';
-
-            // c) Fjern midlertidig timer-data og kunde-ID-attributt
-            const closedCustomerId = modal.getAttribute('data-current-customer-id');
-            if (closedCustomerId && timers[closedCustomerId]) {
-                 delete timers[closedCustomerId]; // Slett midlertidig data
-                 console.log(`Slettet midlertidig timerdata for kunde ID ${closedCustomerId}`);
-            }
-            modal.removeAttribute('data-current-customer-id');
-            // --- Slutt på commentModal-opprydding ---
-
-       } else if (modalId === 'newCustomerModal') {
-            // --- Opprydding for newCustomerModal ---
-            // Sikrer opprydding hvis modalen lukkes manuelt uten å lagre/avbryte
-             if (newCustomerTimer && !document.getElementById('add-customer-box')?.classList.contains('active')) {
-                cancelNewCustomer(); // Bruk den dedikerte avbryt-funksjonen for full opprydding
-            }
-            // Tøm feltene uansett
-            const nameEl = document.getElementById('new-customer-name');
-            const hoursEl = document.getElementById('new-customer-hours');
-            const commentElNc = document.getElementById('new-customer-comment'); // Unikt navn
-            if(nameEl) nameEl.value = '';
-            if(hoursEl) hoursEl.value = '';
-            if(commentElNc) commentElNc.value = '';
-
-       } else if (modalId === 'editCustomerModal') {
-            // --- Opprydding for editCustomerModal ---
-            // Tøm feltene når modalen lukkes
-            const editIdEl = document.getElementById('edit-customer-id');
-            const editNameEl = document.getElementById('edit-customer-name');
-            const editHoursEl = document.getElementById('edit-customer-hours');
-            if(editIdEl) editIdEl.value = '';
-            if(editNameEl) editNameEl.value = '';
-            if(editHoursEl) editHoursEl.value = '';
-
-       } else if (modalId === 'confirmDeleteModal') {
-            // --- Opprydding for confirmDeleteModal ---
-            // Tøm ID-feltet og navnevisningen
-            const deleteIdEl = document.getElementById('delete-customer-id');
-            const deleteNameStrongEl = document.getElementById('delete-customer-name');
-            if(deleteIdEl) deleteIdEl.value = '';
-            if(deleteNameStrongEl) deleteNameStrongEl.textContent = ''; // Tøm navnet som vises
-       }
-       // --- Slutt på spesifikk opprydding ---
-
-   } else {
-       // Hvis modalen ikke ble funnet (f.eks. pga. skrivefeil i ID)
-       console.warn(`Forsøkte å lukke ukjent eller ikke-funnet modal: ${modalId}`);
+        const closedCustomerId = modal.getAttribute('data-current-customer-id');
+        if (closedCustomerId && timers[closedCustomerId]) delete timers[closedCustomerId];
+        modal.removeAttribute('data-current-customer-id');
    }
-} // Slutt på closeModal-funksjonen
+    // ... (Annen modal-logikk som før) ...
+}
+// ========== SLUTT OPPDATERT closeModal ==========
 
 // Konverterer millisekunder til desimaltimer, avrundet til nærmeste kvarter
 function calculateHoursFromMs(ms) {
@@ -1202,7 +1144,8 @@ function deleteCustomer() {
     });
 }
 
- // Robust sending til Google Apps Script
+
+// Robust sending til Google Apps Script
 // --- START OPPDATERT Generisk Data Sender (med fallbacks) ---
 function sendDataToGoogleScript(data, successMessage) {
   console.log("sendDataToGoogleScript kalt med data:", data);
