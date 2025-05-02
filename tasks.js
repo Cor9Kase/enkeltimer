@@ -9,17 +9,19 @@ let allCustomers = []; // Holder kundelisten for filter
 let currentCustomerFilter = 'all'; // 'all' eller kundenavn
 let currentStatusFilter = 'open'; // 'all', 'Ny', 'Pågår', 'Ferdig', 'Venter', 'open'
 
-// --- Initialisering ---
 document.addEventListener('DOMContentLoaded', () => {
     console.log("Tasks DOM lastet.");
     updateCurrentDateHeader_Tasks(); // Bruker egen funksjon for å unngå konflikt
     setupEventListeners_Tasks();
     fetchInitialData_Tasks();
 
-    // Sjekk URL her også
-    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'DIN_NETTAPP_URL_HER' || GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbxpfYJg1haeFXvPxGbZaKB_9VEizTelyA5Qb5lW0knZEhiU5FQENxX0i0oc3jZEb_V9/exec') {
+    // --- KORRIGERT SJEKK ---
+    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'DIN_NETTAPP_URL_HER') {
         alert("FEIL: GOOGLE_SCRIPT_URL er ikke satt riktig i tasks.js!");
+        // Du kan vurdere å stoppe videre kjøring her hvis URL er kritisk
+        // return;
     }
+    // --- SLUTT KORRIGERT SJEKK ---
 });
 
 function updateCurrentDateHeader_Tasks() {
