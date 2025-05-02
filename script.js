@@ -9,7 +9,7 @@ function debounce(func, wait) {
 }
 
 // Google Script URL - *** VIKTIG: Bytt ut med din egen publiserte URL ***
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwjAaYB7BWYxqHmY367iEUPoyOPLEuT_reoxKHQs4ASeONdgnOSbNZG_IwZPRC3aJg/exec'; // <-- SETT INN DIN URL HER!
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyTjDaVk2yPEIKTH8p8wsAq92cLuErBSR06FkiCu_wHiiXFn76sZwDoExJt7cQ_4eu/exec'; // <-- SETT INN DIN URL HER!
 
 // Globale variabler for tilstand
 const timers = {};
@@ -1202,8 +1202,7 @@ function deleteCustomer() {
     });
 }
 
-
-/* // Robust sending til Google Apps Script
+ // Robust sending til Google Apps Script
 // --- START OPPDATERT Generisk Data Sender (med fallbacks) ---
 function sendDataToGoogleScript(data, successMessage) {
   console.log("sendDataToGoogleScript kalt med data:", data);
@@ -1281,7 +1280,7 @@ function sendDataToGoogleScript(data, successMessage) {
         form.submit();
     }
   }); // End Promise
-} // End sendDataToGoogleScript*/
+} // End sendDataToGoogleScript
 
 // Testfunksjon for tilkobling
 function testConnection() {
