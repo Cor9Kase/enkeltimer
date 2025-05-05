@@ -542,7 +542,6 @@ function showCommentModal(customerId) {
     modal.style.display = 'block';
 } 
 
-} // Slutt på showCommentModal
 // ========== SLUTT OPPDATERT showCommentModal (Oppgavehenting deaktivert) ==========
 
 // Starter timer for "Legg til ny kunde"
