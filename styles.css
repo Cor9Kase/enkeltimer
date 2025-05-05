@@ -82,6 +82,65 @@ body {
   flex-wrap: wrap;
 }
 
+/* === Styling for Gamification Display i Header === */
+.gamification-display {
+  /* Plassering: Rett under dato/status, før knapper (styres av HTML-rekkefølge) */
+  margin-top: 8px; /* Litt luft opp til status/dato */
+  margin-bottom: 10px; /* Litt luft ned til knapperaden */
+  display: flex; /* Legg elementene ved siden av hverandre */
+  justify-content: center; /* Sentrer span-elementene */
+  align-items: center; /* Sentrer vertikalt */
+  gap: 15px; /* Mellomrom mellom streak og rank */
+  font-size: 13px; /* Juster størrelse etter ønske */
+  font-weight: 500; /* Litt tyngde */
+  color: var(--text-secondary); /* Standard farge, kan overstyres */
+  flex-wrap: wrap; /* Tillat wrap hvis det blir trangt */
+}
+
+#streak-display {
+  color: #ff9800; /* Oransje farge for streak (eller velg en annen) */
+  /* display: none; -- styres av JavaScript */
+}
+
+#rank-display {
+  color: var(--accent-primary); /* Bruk hovedfargen for rank */
+  /* display: none; -- styres av JavaScript */
+}
+
+/* Ikoner/Emojis (valgfritt, men forbedrer lesbarhet) */
+#streak-display::before {
+  content: "🔥 "; /* Legg til flamme-emoji før teksten */
+  margin-right: 3px;
+}
+
+#rank-display::before {
+  content: "🏆 "; /* Legg til pokal-emoji før teksten */
+  margin-right: 3px;
+}
+
+
+/* === Responsivitet for Gamification === */
+@media (max-width: 768px) {
+  .gamification-display {
+    font-size: 12px; /* Litt mindre på tablet */
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .gamification-display {
+    font-size: 11px; /* Enda mindre på mobil */
+    gap: 5px; /* Mindre gap */
+    flex-direction: column; /* Stack vertikalt på små skjermer */
+    align-items: center; /* Sentrer vertikalt */
+    margin-bottom: 15px; /* Mer luft ned til knappene når de stackes */
+  }
+  #streak-display::before,
+  #rank-display::before {
+      margin-right: 5px; /* Litt mer luft til emoji */
+  }
+}
+
 /* === Knapper (Generelle stiler) === */
 button {
   cursor: pointer;
