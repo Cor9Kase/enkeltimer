@@ -3,111 +3,178 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daglig Timesoversikt - Cornys Timetracker</title>
-  <!-- Viktig: Sørg for at stiene til CSS-filene er korrekte -->
+  <title>Oppgaver - Cornys Timetracker</title>
+  <!-- Felles stiler -->
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="daily-summary.css">
+  <!-- Oppgavespesifikke stiler -->
+  <link rel="stylesheet" href="tasks.css">
+  <!-- FullCalendar Biblioteker (via CDN) -->
+  <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css' rel='stylesheet' />
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core/locales/no.global.min.js'></script>
 </head>
 <body>
+  <!-- Header -->
   <div class="header">
-    <h1>Cornys Timetracker - Daglig Oversikt</h1>
-    <div id="current-date" class="current-date"></div>
-    <div class="update-status">Sist oppdatert: <span id="last-updated">Aldri</span></div>
+    <h1>Cornys Timetracker - Oppgaver</h1>
+    <div id="current-date" class="current-date">Laster dato...</div>
     <div class="nav-buttons">
       <button class="nav-btn" onclick="window.location.href='index.html'">
-        Tilbake til Timeregistrering
+        Til Timeregistrering
       </button>
-       <button class="nav-btn" onclick="window.location.href='tasks.html'"> <!-- Ekstra knapp til Oppgaver -->
-        Vis Oppgaver
+      <button class="nav-btn" onclick="window.location.href='daily-summary.html'">
+        Til Dagsoversikt
       </button>
-      <button id="refresh-button" class="refresh-btn" onclick="loadDailySummary()">
-        Oppdater data
+      <button id="refresh-tasks-button" class="refresh-btn" title="Oppdater oppgaveliste">
+        Oppdater Oppgaver
       </button>
     </div>
   </div>
 
-  <div class="date-selector">
-    <button id="prev-month" class="nav-arrow" title="Forrige måned">◀</button>
-    <div id="month-display">Laster...</div>
-    <button id="next-month" class="nav-arrow" title="Neste måned">▶</button>
+  <!-- Filter, Visningsbytte og Kontroller -->
+  <div class="task-controls">
+    <div class="task-filters">
+      <!-- Kundefilter -->
+      <div class="filter-group">
+        <label for="customer-filter">Filtrer på kunde:</label>
+        <select id="customer-filter">
+          <option value="all">Alle kunder</option>
+          <!-- Alternativer lastes av JS -->
+        </select>
+      </div>
+      <!-- Statusfilter -->
+      <div class="filter-group">
+        <label>Filtrer på status:</label>
+        <div class="status-filter-buttons">
+           <button class="status-filter-btn active" data-status="open">Åpne (Ny/Pågår)</button>
+           <button class="status-filter-btn" data-status="Ny">Ny</button>
+           <button class="status-filter-btn" data-status="Pågår">Pågår</button>
+           <button class="status-filter-btn" data-status="Ferdig">Ferdig</button>
+           <button class="status-filter-btn" data-status="all">Alle statuser</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visningsbytte-knapper -->
+    <div class="view-switcher">
+      <button id="kanban-view-btn" class="view-btn active">Kanban</button>
+      <button id="calendar-view-btn" class="view-btn">Kalender</button>
+    </div>
+
+    <!-- Legg til Oppgave-knapp -->
+    <button id="add-task-btn" class="submit-btn">
+      + Legg til Oppgave
+    </button>
   </div>
 
-  <div class="summary-container">
-    <!-- === START NY SEKSJON FOR TOTALER === -->
-    <div class="overall-summary">
-      <div class="card allocated-card"> <!-- Endret klasse for spesifikk stil -->
-        <h3>Totalt Tildelt (Solgt)</h3>
-        <div id="month-allocated-total" class="card-value">Laster...</div>
+  <!-- Container for Kanban Board (Standardvisning) -->
+  <div id="task-board-container">
+      <div id="task-board" class="kanban-board">
+          <!-- Kolonne: Ny -->
+          <div class="kanban-column" data-status="Ny">
+              <h3><span class="status-dot status-ny"></span>Ny</h3>
+              <div class="task-list">
+                  <div class="task-placeholder">Laster oppgaver...</div>
+              </div>
+          </div>
+          <!-- Kolonne: Pågår -->
+          <div class="kanban-column" data-status="Pågår">
+              <h3><span class="status-dot status-pågår"></span>Pågår</h3>
+              <div class="task-list">
+                 <!-- Tom som standard, JS fyller inn -->
+              </div>
+          </div>
+          <!-- Kolonne: Venter -->
+           <div class="kanban-column" data-status="Venter">
+              <h3><span class="status-dot status-venter"></span>Venter</h3>
+              <div class="task-list">
+                 <!-- Tom som standard, JS fyller inn -->
+              </div>
+          </div>
+          <!-- Kolonne: Ferdig -->
+          <div class="kanban-column" data-status="Ferdig">
+              <h3><span class="status-dot status-ferdig"></span>Ferdig</h3>
+              <div class="task-list">
+                 <!-- Tom som standard, JS fyller inn -->
+              </div>
+          </div>
       </div>
-      <div class="card remaining-card"> <!-- Endret klasse for spesifikk stil -->
-        <h3>Totalt Gjenstående</h3>
-        <div id="month-remaining-total" class="card-value">Laster...</div>
-      </div>
-    </div>
-    <!-- === SLUTT NY SEKSJON === -->
-
-    <div class="summary-header">
-      <!-- Eksisterende kort (Totalt Logget, Gj.snitt, Overtid) -->
-      <div class="card total-card">
-        <h3>Totalt Logget Denne Måneden</h3> <!-- Tydeliggjort tittel -->
-        <div id="month-total" class="card-value">0.00 timer</div>
-      </div>
-      <div class="card average-card">
-        <h3>Gjennomsnitt per arbeidsdag</h3>
-        <div id="day-average" class="card-value">0.00 timer</div>
-      </div>
-      <div class="card overtime-card">
-        <h3>Logget Overtid denne måneden</h3> <!-- Tydeliggjort tittel -->
-        <div id="month-overtime" class="card-value">0.00 timer</div>
-      </div>
-    </div>
-
-    <div class="summary-table-container">
-      <table id="daily-summary-table" class="summary-table">
-        <thead>
-          <tr>
-            <th>Dato</th>
-            <th>Ukedag</th>
-            <th>Totale timer</th>
-            <!-- Overtid-kolonne legges til av JS -->
-            <th>Antall kunder</th>
-            <th>Detaljer</th>
-          </tr>
-        </thead>
-        <tbody id="summary-table-body">
-          <!-- Rader fylles inn av JavaScript -->
-          <tr><td colspan="6" style="text-align: center; padding: 20px;">Laster data...</td></tr> <!-- Nå colspan 6 -->
-        </tbody>
-      </table>
-    </div>
   </div>
 
-  <!-- Modal for dag-detaljer -->
-  <div id="dayDetailsModal" class="modal">
-    <div class="modal-content daily-details-modal">
-      <!-- Bruker riktig funksjon for å lukke -->
-      <span class="close" onclick="closeModal('dayDetailsModal')" title="Lukk">×</span>
-      <h2>Timedetaljer for <span id="detail-date">dato</span></h2>
-      <div id="detail-summary" class="detail-summary-text">
-        Total: <span id="detail-total-hours">0</span> timer fordelt på <span id="detail-customer-count">0</span> kunder.
-      </div>
-
-      <table id="detail-table" class="detail-table">
-        <thead>
-          <tr>
-            <th>Kunde</th>
-            <th>Timer brukt</th>
-            <th>Kommentar</th>
-          </tr>
-        </thead>
-        <tbody id="detail-table-body">
-          <!-- Detaljer fylles inn av JavaScript -->
-        </tbody>
-      </table>
+  <!-- Container for Kalender (Skjult som standard) -->
+  <div id="calendar-view-container" style="display: none;">
+    <div id="calendar">
+        <!-- FullCalendar vil rendre kalenderen her -->
     </div>
   </div>
 
-  <!-- Viktig: Sørg for at stien til JS-filen er korrekt -->
-  <script src="daily-summary.js"></script>
+
+  <!-- Modal for å legge til/redigere oppgave -->
+  <div id="taskModal" class="modal">
+    <div class="modal-content task-modal-content">
+      <span class="close" onclick="closeModal('taskModal')" title="Lukk">×</span>
+      <h2 id="task-modal-title">Legg til ny oppgave</h2>
+
+      <input type="hidden" id="task-id"> <!-- For redigering -->
+
+      <!-- Kunde -->
+      <div class="form-group">
+        <label for="task-customer">Kunde:</label>
+        <select id="task-customer">
+          <option value="">-- Velg kunde --</option>
+          <!-- Alternativer lastes av JS -->
+        </select>
+      </div>
+
+      <!-- Oppgavenavn -->
+      <div class="form-group">
+        <label for="task-name">Oppgavenavn:</label>
+        <input type="text" id="task-name" placeholder="Kort beskrivelse av oppgaven">
+      </div>
+
+      <!-- Beskrivelse -->
+      <div class="form-group">
+        <label for="task-description">Beskrivelse (valgfri):</label>
+        <textarea id="task-description" placeholder="Mer detaljer om oppgaven..."></textarea>
+      </div>
+
+      <!-- Rad med Status, Prioritet, Frist -->
+      <div class="form-row">
+          <div class="form-group">
+            <label for="task-status">Status:</label>
+            <select id="task-status">
+              <option value="Ny">Ny</option>
+              <option value="Pågår">Pågår</option>
+              <option value="Venter">Venter</option>
+              <option value="Ferdig">Ferdig</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="task-priority">Prioritet (valgfri):</label>
+            <select id="task-priority">
+              <option value="">Ingen</option>
+              <option value="Lav">Lav</option>
+              <option value="Medium">Medium</option>
+              <option value="Høy">Høy</option>
+            </select>
+          </div>
+
+           <div class="form-group">
+            <label for="task-due-date">Frist (valgfri):</label>
+            <input type="date" id="task-due-date">
+          </div>
+      </div>
+
+      <!-- Knapper for modal -->
+      <div class="modal-buttons">
+        <button class="cancel-btn" onclick="closeModal('taskModal')">Avbryt</button>
+        <button class="submit-btn" id="save-task-btn">Lagre Oppgave</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Link til Oppgave-JavaScript -->
+  <script src="tasks.js"></script>
 </body>
 </html>
