@@ -1,6 +1,6 @@
 // script.js (Starten av filen - Korrigert)
 
-/ Debounce-funksjon for å unngå doble innsendinger
+// Debounce-funksjon for å unngå doble innsendinger
 function debounce(func, wait) {
   let timeout;
   return function(...args) {
