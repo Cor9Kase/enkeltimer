@@ -7,31 +7,34 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="header">
+  <div class="header"> <!-- Hovedheader-container -->
     <h1>Cornys Timetracker</h1>
     <div id="current-date" class="current-date"></div>
     <div class="update-status">Sist oppdatert: <span id="last-updated">Aldri</span></div>
-      <button id="theme-btn-dark-purple" title="Mørk Lilla Tema" class="theme-btn theme-dark-purple"></button>
-      <button id="theme-btn-light-blue" title="Lys Blå Tema" class="theme-btn theme-light-blue"></button>
-      <button id="theme-btn-forest-green" title="Skog Grønn Tema" class="theme-btn theme-forest-green"></button>
-      <!-- NYE KNAPPER -->
-      <button id="theme-btn-ocean-breeze" title="Havbris Tema" class="theme-btn theme-ocean-breeze"></button>
-      <button id="theme-btn-sunset-glow" title="Solnedgang Tema" class="theme-btn theme-sunset-glow"></button>
-      <button id="theme-btn-monochrome-mint" title="Mint Tema" class="theme-btn theme-monochrome-mint"></button>
-    </div>
-    </div>
+
+    <!-- Hoved-handlingsknapper (sentrert under teksten) -->
     <div class="header-actions">
       <button id="refresh-button" class="refresh-btn">
         Oppdater data
       </button>
-      <button class="daily-summary-btn" onclick="window.location.href='daily-summary.html'">
+      <button class="daily-summary-btn nav-btn" onclick="window.location.href='daily-summary.html'">
         Vis dagsoversikt
       </button>
-        <!-- NY KNAPP lagt til her -->
-      <button class="tasks-btn nav-btn" onclick="window.location.href='tasks.html'"> <!-- Bruker nav-btn -->
+      <button class="tasks-btn nav-btn" onclick="window.location.href='tasks.html'">
         Vis Oppgaver
       </button>
     </div>
+
+    <!-- Container for temaknapper (posisjoneres av CSS) -->
+    <div class="theme-switcher">
+      <button id="theme-btn-dark-purple" title="Mørk Lilla Tema" class="theme-btn theme-dark-purple"></button>
+      <button id="theme-btn-light-blue" title="Lys Blå Tema" class="theme-btn theme-light-blue"></button>
+      <button id="theme-btn-forest-green" title="Skog Grønn Tema" class="theme-btn theme-forest-green"></button>
+      <button id="theme-btn-ocean-breeze" title="Havbris Tema" class="theme-btn theme-ocean-breeze"></button>
+      <button id="theme-btn-sunset-glow" title="Solnedgang Tema" class="theme-btn theme-sunset-glow"></button>
+      <button id="theme-btn-monochrome-mint" title="Mint Tema" class="theme-btn theme-monochrome-mint"></button>
+    </div>
+
   </div>
 
   <button id="test-connection-button" style="position:fixed; bottom:10px; right:10px; background-color:#ff5555; color:white; padding:8px 15px; border-radius:5px; border:none; cursor:pointer; z-index:1000;">Nødtest</button>
