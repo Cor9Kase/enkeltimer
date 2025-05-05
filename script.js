@@ -10,19 +10,6 @@ function debounce(func, wait) {
 
 // Google Script URL - *** VIKTIG: Bytt ut med din egen publiserte URL ***
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMeOJzFvbl7CzHhD-45LLxK7Bsdy2d2XdH7XE3R_XkNIedztkLVTcYAWCsblQs3q_N/exec'; // <--- SETT INN DIN URL HER!
-// === START TILLEGG FOR GAMIFICATION ===
-
-// === DEFINISJON AV RANKS (Plassert Globalt) ===
-const ranks = [
-    // Sortert fra lavest til høyest krav
-    { name: "Nybegynner", minDays: 0, minStreak: 0 },
-    { name: "Lærling", minDays: 7, minStreak: 3 },      // Minst 1 uke gammel, 3 dager streak
-    { name: "Svenn", minDays: 14, minStreak: 5 },     // Minst 2 uker, 5 dager streak
-    { name: "Erfaren", minDays: 30, minStreak: 7 },    // Minst 1 måned, 7 dager streak (1 uke+)
-    { name: "Mester", minDays: 60, minStreak: 10 },   // Minst 2 måneder, 10 dager streak (2 uker+)
-    { name: "Guru", minDays: 90, minStreak: 14 },    // Minst 3 måneder, 14 dager streak (nesten 3 uker)
-];
-// =============================================
 
 // Globale variabler for tilstand
 const timers = {};
@@ -523,158 +510,6 @@ function toggleTimer(box) {
   }
 }
 
-// --- HJELPEFUNKSJONER FOR STREAK ---
-function isWeekend(date) {
-    const day = date.getDay(); // 0 = Søndag, 6 = Lørdag
-    return day === 0 || day === 6;
-}
-
-function getISODateString(date) {
-    // Sikrer at Date-objektet er gyldig før kall til toISOString
-    if (date instanceof Date && !isNaN(date)) {
-        return date.toISOString().split('T')[0];
-    }
-    console.warn("getISODateString mottok ugyldig dato:", date);
-    return null; // Returner null hvis datoen er ugyldig
-}
-// --- SLUTT HJELPEFUNKSJONER FOR STREAK ---
-
-
-// --- FUNKSJON for å beregne og lagre Rank ---
-function calculateAndSaveRank(firstDateStr, streak) {
-    // 'ranks'-arrayet er definert globalt over
-    if (!firstDateStr) {
-         localStorage.setItem('user_rank', ranks[0].name);
-         console.log("Rank: Mangler første logg-dato, setter rank til Nybegynner.");
-         return;
-    }
-    const firstDate = new Date(firstDateStr);
-    if (isNaN(firstDate)) { // Sjekk om datoen er gyldig
-         localStorage.setItem('user_rank', ranks[0].name);
-         console.warn("Rank: Ugyldig første logg-dato lagret:", firstDateStr);
-         return;
-    }
-    const today = new Date();
-    firstDate.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
-    const daysSinceStart = Math.floor((today - firstDate) / (1000 * 60 * 60 * 24));
-    let currentRank = ranks[0].name;
-    for (let i = ranks.length - 1; i >= 0; i--) {
-        if (daysSinceStart >= ranks[i].minDays && streak >= ranks[i].minStreak) {
-            currentRank = ranks[i].name;
-            break;
-        }
-    }
-    console.log(`Rank Beregning: Dager=${daysSinceStart}, Streak=${streak} => Rank=${currentRank}`);
-    localStorage.setItem('user_rank', currentRank);
-}
-// --- SLUTT calculateAndSaveRank ---
-
-
-// --- FUNKSJON for å oppdatere Streak og Rank ---
-function updateStreakAndRank() {
-    const today = new Date();
-    const todayStr = getISODateString(today);
-    if (!todayStr) return; // Ikke gjør noe hvis dagens dato er ugyldig
-
-    if (isWeekend(today)) {
-        console.log("Streak: Hopper over helgedag.");
-        localStorage.setItem('streak_lastLogDate', todayStr); // Lagre dato likevel
-        // Kall display for å vise evt. eksisterende data (selv om vi ikke økte streak)
-        if (typeof displayStreakAndRank === 'function') { displayStreakAndRank(); }
-        return;
-    }
-
-    const lastLogStr = localStorage.getItem('streak_lastLogDate');
-    let currentStreak = parseInt(localStorage.getItem('streak_count') || '0');
-    let firstLogStr = localStorage.getItem('streak_firstLogDate'); // Endret til let
-
-    if (!firstLogStr) {
-        firstLogStr = todayStr; // Sett første logg-dato NÅ
-        localStorage.setItem('streak_firstLogDate', firstLogStr);
-        console.log("Streak: Setter første logg-dato:", firstLogStr);
-    }
-
-    let streakContinued = false;
-    if (lastLogStr) {
-        const lastLogDate = new Date(lastLogStr);
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
-
-        if (!isNaN(lastLogDate)) { // Sjekk om gyldig dato
-            const lastLogDateStrComp = getISODateString(lastLogDate);
-            const yesterdayStrComp = getISODateString(yesterday);
-
-            if (lastLogDateStrComp === yesterdayStrComp) {
-                streakContinued = true;
-            } else if (today.getDay() === 1) { // Mandag
-                const lastFriday = new Date(today);
-                lastFriday.setDate(today.getDate() - 3);
-                const lastFridayStrComp = getISODateString(lastFriday);
-                if (lastLogDateStrComp && lastFridayStrComp && lastLogDateStrComp >= lastFridayStrComp) {
-                    streakContinued = true;
-                    console.log("Streak: Fortsetter fra helgen.");
-                }
-            }
-        } else {
-             console.warn("Ugyldig lastLogDate funnet i localStorage:", lastLogStr);
-        }
-    }
-
-    if (lastLogStr === todayStr) {
-         console.log("Streak: Allerede logget i dag, streak uendret:", currentStreak);
-    } else if (streakContinued) {
-        currentStreak++;
-        console.log("Streak: Fortsatt! Ny streak:", currentStreak);
-    } else {
-        currentStreak = 1;
-        console.log("Streak: Ny streak startet:", currentStreak);
-    }
-
-    localStorage.setItem('streak_count', currentStreak.toString());
-    localStorage.setItem('streak_lastLogDate', todayStr);
-
-    calculateAndSaveRank(firstLogStr, currentStreak); // Oppdater rank basert på ny streak/info
-
-    // Kall displayStreakAndRank (fra theme.js) for å vise oppdatert status
-    if (typeof displayStreakAndRank === 'function') {
-         displayStreakAndRank();
-    } else {
-         console.error("displayStreakAndRank function not found (expected in theme.js)");
-    }
-}
-// --- SLUTT updateStreakAndRank ---
-
-// === SLUTT TILLEGG FOR GAMIFICATION ===
-
-
-// --- Start på din eksisterende kode (fortsetter fra linje 22 e.l.) ---
-// Initialisering når siden er lastet
-document.addEventListener('DOMContentLoaded', function() {
-  console.log("DOM lastet, initialiserer app");
-  updateCurrentDate();
-  loadCustomers();
-  startAutoRefresh();
-  addGlobalEventListeners();
-
-  // Sjekk om URL er satt
-   if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'DIN_NETTAPP_URL_HER') {
-       alert("ADVARSEL: GOOGLE_SCRIPT_URL er ikke satt i script.js! Appen vil ikke kunne kommunisere med Google Sheets.");
-       const statusElement = document.getElementById('last-updated');
-       if(statusElement) statusElement.textContent = 'Konfigurasjonsfeil!';
-   }
-
-   // === Kall displayStreakAndRank ved sidelasting (funksjonen ligger i theme.js) ===
-  if (typeof displayStreakAndRank === 'function') {
-       console.log("DOMContentLoaded: Kaller displayStreakAndRank");
-       displayStreakAndRank();
-  } else {
-       console.warn("DOMContentLoaded: displayStreakAndRank function not found (expected in theme.js, ensures initial display)");
-  }
-  // ===========================================================================
-
-});
-
 // Viser kommentarmodalen
 function showCommentModal(customerId) {
     const customerData = timers[customerId];
@@ -867,85 +702,124 @@ function calculateHoursFromMs(ms) {
 }
 
 // Sender inn logget tid for en eksisterende kunde
+// --- START OPPDATERT submitTime ---
 function submitTime() {
   console.log("Forsøker å sende inn tid...");
-  if (isSubmitting) { console.warn("Innsending pågår..."); return; }
+  if (isSubmitting) {
+    console.warn("Innsending pågår, avventer...");
+    return;
+  }
   isSubmitting = true;
 
   const modal = document.getElementById('commentModal');
-  const currentCustomerId = modal?.getAttribute('data-current-customer-id');
+  const currentCustomerId = modal?.getAttribute('data-current-customer-id'); // Hent ID fra modal
+
   if (currentCustomerId === null || currentCustomerId === undefined) {
        console.error("FEIL: Kunne ikke finne kunde-ID for innsending fra modal.");
-       alert("Kritisk feil: Kunne ikke identifisere kunden.");
-       closeModal('commentModal'); isSubmitting = false; return;
+       alert("Kritisk feil: Kunne ikke identifisere kunden for tidsregistrering.");
+       closeModal('commentModal');
+       isSubmitting = false;
+       return;
   }
-  const timerData = timers[currentCustomerId];
+
+  const timerData = timers[currentCustomerId]; // Hent lagret timerdata
   if (!timerData) {
-       console.error(`FEIL: Ingen timerdata funnet for kunde ID ${currentCustomerId}.`);
-       alert("Kritisk feil: Mangler data for tidsregistrering.");
-       closeModal('commentModal'); isSubmitting = false; return;
+       console.error(`FEIL: Ingen timerdata funnet for kunde ID ${currentCustomerId} ved innsending.`);
+       alert("Kritisk feil: Mangler data for tidsregistrering. Prøv igjen.");
+       closeModal('commentModal');
+       isSubmitting = false;
+       return;
   }
 
   const comment = document.getElementById('comment-text')?.value.trim() || "";
   const customerName = timerData.customerName;
   const timeSpentMs = timerData.timeSpentMs;
   const decimalHours = calculateHoursFromMs(timeSpentMs);
+
   console.log(`Sender tid for: ${customerName}, Timer: ${decimalHours}, Kommentar: "${comment}"`);
 
   const submitButton = document.getElementById('submit-comment-btn');
-  if (submitButton) { submitButton.disabled = true; submitButton.textContent = 'Sender...'; }
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = 'Sender...';
+  }
+
+  // Finn kunden i den globale listen for å sende med riktig data
+  const customerIndex = customers.findIndex(c => c.name === customerName);
+  let originalAvailableHours = 0; // Default hvis ikke funnet
+  if(customerIndex !== -1) {
+      originalAvailableHours = customers[customerIndex].availableHours;
+  } else {
+       console.warn(`Fant ikke kunden ${customerName} i listen for å hente originalt timeantall.`);
+       // Bør vi stoppe her? La oss fortsette, men det kan føre til feil balanse hvis kunden ble slettet/endret.
+  }
+  // Beregn gjenstående timer basert på *denne økten* og det vi *tror* er nåværende balanse
+  const estimatedRemainingHours = originalAvailableHours - decimalHours;
+
 
   const dataToSend = {
-    action: "logTime", customerName: customerName, timeSpent: decimalHours,
-    comment: comment, date: new Date().toISOString().split('T')[0]
+    action: "logTime",
+    customerName: customerName,
+    timeSpent: decimalHours, // Send avrundet desimaltid
+    // Ikke lenger nødvendig å sende original/remaining, backend håndterer dette
+    // originalHours: originalAvailableHours,
+    // remainingHours: estimatedRemainingHours,
+    comment: comment,
+    date: new Date().toISOString().split('T')[0]
   };
 
-  console.log("--- DEBUG submitTime --- Data som sendes:", dataToSend);
+console.log("--- DEBUG submitTime ---");
+console.log("Customer ID (fra modal):", currentCustomerId);
+console.log("Timer Data:", timerData); // Se hele timerData-objektet
+console.log("Data som sendes:", dataToSend); // Se nøyaktig hva som sendes
+console.log("-----------------------");
 
   sendDataToGoogleScript(dataToSend, `Tid (${decimalHours}t) registrert for ${customerName}`)
     .then(response => {
-      console.log("Tidsregistrering (Backend):", response);
+      // VIKTIG: Backend returnerer ikke lenger spesifikke timer, så vi oppdaterer ikke UI direkte her.
+      // UI vil oppdateres ved neste automatiske eller manuelle refresh.
+      console.log("Tidsregistrering (kun Tidslogg) vellykket:", response); // Logg responsen fra backend
 
-      if (response.success) { // Oppdater kun hvis backend sa OK
-          // === START TILLEGG: KALL STREAK/RANK-OPPDATERING ===
-          try {
-              updateStreakAndRank(); // Oppdater streak og rank ved vellykket lagring
-          } catch (e) {
-              console.error("Feil under oppdatering av streak/rank:", e);
-              // Ikke stopp flyten selv om dette feiler, men logg det.
-          }
-          // ===================================================
-
-          // Hent ferske data for å oppdatere UI (som du hadde før)
-          console.log("Henter ferske kundedata etter tidslogging...");
-          fetchCustomerData();
-
+      // Fjernet kode for å oppdatere bar og lokal data:
+      /*
+      const actualRemainingHours = response.updatedAvailableHours;
+      if (customerIndex !== -1 && actualRemainingHours !== undefined) {
+          console.log(`Oppdaterer UI for kunde ${customerIndex} til ${actualRemainingHours} timer.`);
+          updateCustomerBar(customerIndex, actualRemainingHours);
+          customers[customerIndex].availableHours = actualRemainingHours;
+      } else if (customerIndex === -1) {
+           console.warn("Kunne ikke oppdatere UI lokalt da kundeindeks ikke ble funnet.");
       } else {
-           console.warn("Backend rapporterte feil, oppdaterer ikke streak/rank.");
-           // Vurder å vise feilmelding til brukeren
-           alert(`Lagring feilet hos backend: ${response.message || 'Ukjent feil'}`);
-           // Ikke hent data på nytt ved feil
+           // Denne meldingen vil ikke lenger vises, da vi ikke forventer updatedAvailableHours
+           // console.warn("Backend returnerte ikke 'updatedAvailableHours', UI oppdateres kanskje ikke korrekt før neste refresh.");
       }
-      // Lukk modal ved suksess eller håndtert feil fra backend
-      closeModal('commentModal');
+      */
+
+      closeModal('commentModal'); // Lukk modalen
+      // Optional: Vis en enkel bekreftelse hvis ønskelig
+      // alert(`Tid lagret i Tidslogg for ${customerName}!`);
 
     })
+    
     .catch(error => {
-      console.error('Feil ved logging av tid (nettverk e.l.):', error);
+      console.error('Feil ved logging av tid:', error);
       alert('Kunne ikke lagre tid: ' + error.message + "\n\nPrøv igjen senere.");
-      // IKKE lukk modalen her, la brukeren prøve igjen
     })
     .finally(() => {
       isSubmitting = false;
-      if (timers[currentCustomerId]) { // Rydd opp timerdata uansett
-          delete timers[currentCustomerId];
-          console.log(`Slettet timerdata for kunde ID ${currentCustomerId} etter submit forsøk.`);
+      // Slett timer data uansett utfall
+       if (timers[currentCustomerId]) {
+           delete timers[currentCustomerId];
+           console.log(`Slettet midlertidig timerdata for kunde ID ${currentCustomerId} etter innsendingsforsøk.`);
+       }
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Lagre og avslutt';
       }
-      if (submitButton) { submitButton.disabled = false; submitButton.textContent = 'Lagre og avslutt'; }
-      activeBox = null;
+       activeBox = null; // Sikre at ingen boks er aktiv
     });
 }
-// --- SLUTT submitTime ---
+// --- SLUTT OPPDATERT submitTime ---
 
 // Viser modal for å redigere kunde
 function showEditCustomer(customerId) {
