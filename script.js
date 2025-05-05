@@ -511,64 +511,36 @@ function toggleTimer(box) {
   }
 }
 
-// ========== showCommentModal MED OPPGAVEHENTING DEAKTIVERT ==========
+// Viser kommentarmodalen (UTEN oppgavevalg)
 function showCommentModal(customerId) {
     const timerData = timers[customerId];
-    // Tidlig retur hvis kritisk timerData mangler
-    if (!timerData?.customerName || timerData.timeSpentMs === undefined || timerData.timeSpentFormatted === undefined) {
-         console.error(`showCommentModal: Mangler nødvendig timerData for kunde ID ${customerId}`);
-         alert("Feil: Kunne ikke hente nødvendig data for å vise kommentarmodal.");
-         return;
-     }
+    if (!timerData?.customerName) {
+        console.error(`showCommentModal: Fant ikke timer/kunde data for ID ${customerId}`);
+        alert("Feil: Kunne ikke hente data for kommentarmodal.");
+        return;
+    }
     console.log(`Viser kommentarmodal for: ${timerData.customerName}, Tid: ${timerData.timeSpentFormatted}`);
 
-    // Hent nødvendige modal-elementer
     const modal = document.getElementById('commentModal');
     const nameEl = document.getElementById('modal-customer-name');
     const timeEl = document.getElementById('modal-time-spent');
     const commentEl = document.getElementById('comment-text');
-    // --- Hent elementer for oppgavevalg (selv om de ikke vises) ---
-    const taskSelectGroup = document.querySelector('#commentModal .task-link-group');
-    const taskCheckboxList = document.getElementById('task-checkbox-list');
-    const taskStatusUpdateOptions = document.getElementById('task-status-update-options');
-    const updateTaskStatusSelect = document.getElementById('update-task-status-select');
 
-    // Sjekk om alle elementer ble funnet
-    if (!modal || !nameEl || !timeEl || !commentEl || !taskSelectGroup || !taskCheckboxList || !taskStatusUpdateOptions || !updateTaskStatusSelect) {
-        console.error("FEIL: Mangler ett eller flere forventede elementer i kommentarmodalen!");
-        return; // Ikke vis modalen hvis elementer mangler
+    if (!modal || !nameEl || !timeEl || !commentEl) {
+        console.error("FEIL: Mangler elementer i kommentarmodalen!");
+        return;
     }
 
-    // Sett grunnleggende info
     nameEl.textContent = timerData.customerName;
     timeEl.textContent = `Tid brukt: ${timerData.timeSpentFormatted}`;
-    commentEl.value = ''; // Tøm kommentarfelt
-    modal.setAttribute('data-current-customer-id', customerId); // Lagre ID for submit
+    commentEl.value = '';
+    modal.setAttribute('data-current-customer-id', customerId);
 
-    // --- DEAKTIVERT DEL: Nullstill og skjul oppgave-seksjonen ---
-    // Vi skjuler den uansett, men nullstiller for sikkerhets skyld
-    taskCheckboxList.innerHTML = ''; // Tøm eventuelt gammelt innhold
-    taskSelectGroup.style.display = 'none'; // Sørg for at den er skjult
-    taskStatusUpdateOptions.style.display = 'none'; // Sørg for at den er skjult
-    updateTaskStatusSelect.value = ""; // Nullstill statusvalg
+    // Legg til klasse på body for å deaktivere bakgrunnsklikk (Metode 2)
+    document.body.classList.add('modal-open');
 
-
-    // --- DEAKTIVERT DEL: Kall backend for å hente åpne oppgaver ---
-    /* // Start multiline-kommentar
-    console.log("DEBUG: Henting av oppgaver er deaktivert i showCommentModal."); // Legg til en logg
-    sendDataToGoogleScript({ action: 'getTasks', customer: timerData.customerName, status: 'open' }, "Hentet oppgaver")
-        .then(taskData => {
-            // ... (all kode for å vise checkboxes / meldinger) ...
-        })
-        .catch(error => {
-             // ... (all feilhåndtering for oppgavehenting) ...
-        });
-    */ // Slutt multiline-kommentar
-
-
-    // Vis modalen (uavhengig av oppgavehenting)
     modal.style.display = 'block';
-    console.log("Kommentarmodal vist (uten oppgavehenting).");
+} 
 
 } // Slutt på showCommentModal
 // ========== SLUTT OPPDATERT showCommentModal (Oppgavehenting deaktivert) ==========
@@ -698,71 +670,37 @@ function padZero(num) {
   return num.toString().padStart(2, '0');
 }
 
-// ========== closeModal (Ingen endringer nødvendig for å deaktivere oppgavehenting) ==========
-// Lukker en modal og utfører spesifikk opprydding
+// Lukker modalvinduer (UTEN oppgavevalg-reset)
 function closeModal(modalId) {
-   // 1. Hent modal-elementet basert på ID
    const modal = document.getElementById(modalId);
+   if (!modal) { console.warn(`Modal ${modalId} ikke funnet`); return; }
+   modal.style.display = 'none';
+   console.log(`Lukket modal: ${modalId}`);
 
-   // 2. Sjekk om elementet faktisk ble funnet
-   if (modal) {
-       // 3. Skjul modalen
-       modal.style.display = 'none';
-       console.log(`Lukket modal: ${modalId}`);
-
-       // 4. Utfør spesifikk opprydding basert på modalens ID
-       if (modalId === 'commentModal') {
-            // --- Opprydding spesifikt for commentModal ---
-
-            // a) Tøm kommentarfeltet
-            const commentEl = document.getElementById('comment-text');
-            if (commentEl) commentEl.value = '';
-
-            // b) Nullstill oppgave-seksjonen (dette skader ikke, selv om henting er deaktivert)
-            const taskCheckboxList = document.getElementById('task-checkbox-list');
-            const taskSelectGroup = document.querySelector('#commentModal .task-link-group');
-            const taskStatusUpdateOptions = document.getElementById('task-status-update-options');
-            const updateTaskStatusSelect = document.getElementById('update-task-status-select');
-
-            // Tøm listen og skjul elementene
-            if (taskCheckboxList) taskCheckboxList.innerHTML = ''; // Bare tøm, ingen grunn til "Laster..."
-            if (taskSelectGroup) taskSelectGroup.style.display = 'none';
-            if (taskStatusUpdateOptions) taskStatusUpdateOptions.style.display = 'none';
-            if (updateTaskStatusSelect) updateTaskStatusSelect.value = '';
-
-            // c) Fjern midlertidig timer-data og kunde-ID-attributt
-            const closedCustomerId = modal.getAttribute('data-current-customer-id');
-            if (closedCustomerId && timers[closedCustomerId]) {
-                 delete timers[closedCustomerId];
-                 console.log(`Slettet midlertidig timerdata for kunde ID ${closedCustomerId}`);
-            }
-            modal.removeAttribute('data-current-customer-id');
-            // --- Slutt på commentModal-opprydding ---
-
-       } else if (modalId === 'newCustomerModal') {
-            // ... (opprydding for newCustomerModal) ...
-             if (newCustomerTimer && !document.getElementById('add-customer-box')?.classList.contains('active')) { cancelNewCustomer(); }
-            const nameEl = document.getElementById('new-customer-name'); if(nameEl) nameEl.value = '';
-            const hoursEl = document.getElementById('new-customer-hours'); if(hoursEl) hoursEl.value = '';
-            const commentElNc = document.getElementById('new-customer-comment'); if(commentElNc) commentElNc.value = '';
-
-       } else if (modalId === 'editCustomerModal') {
-            // ... (opprydding for editCustomerModal) ...
-            const editIdEl = document.getElementById('edit-customer-id'); if(editIdEl) editIdEl.value = '';
-            const editNameEl = document.getElementById('edit-customer-name'); if(editNameEl) editNameEl.value = '';
-            const editHoursEl = document.getElementById('edit-customer-hours'); if(editHoursEl) editHoursEl.value = '';
-
-       } else if (modalId === 'confirmDeleteModal') {
-            // ... (opprydding for confirmDeleteModal) ...
-            const deleteIdEl = document.getElementById('delete-customer-id'); if(deleteIdEl) deleteIdEl.value = '';
-            const deleteNameStrongEl = document.getElementById('delete-customer-name'); if(deleteNameStrongEl) deleteNameStrongEl.textContent = '';
-       }
-       // --- Slutt på spesifikk opprydding ---
-
-   } else {
-       console.warn(`Forsøkte å lukke ukjent eller ikke-funnet modal: ${modalId}`);
+   // Spesifikk opprydding per modal
+   if (modalId === 'commentModal') {
+        document.getElementById('comment-text').value = '';
+        // Fjern lagret kunde-id og timerdata
+        const closedCustomerId = modal.getAttribute('data-current-customer-id');
+        if (closedCustomerId && timers[closedCustomerId]) delete timers[closedCustomerId];
+        modal.removeAttribute('data-current-customer-id');
+   } else if (modalId === 'newCustomerModal' && newCustomerTimer) {
+        cancelNewCustomer(); // Sørg for full opprydning
+   } else if (modalId === 'editCustomerModal') {
+        document.getElementById('edit-customer-id').value = '';
+   } else if (modalId === 'confirmDeleteModal') {
+        document.getElementById('delete-customer-id').value = '';
    }
-} // Slutt på closeModal-funksjonen
+
+   // Fjern klasse fra body HVIS ingen andre modaler er åpne
+   setTimeout(() => {
+       const anyModalOpen = Array.from(document.querySelectorAll('.modal')).some(m => m.style.display === 'block');
+       if (!anyModalOpen) {
+           document.body.classList.remove('modal-open');
+           console.log("Fjernet modal-open fra body");
+       }
+   }, 50);
+}
 // ========== SLUTT closeModal (Ingen endringer nødvendig) ==========
 
 // Konverterer millisekunder til desimaltimer, avrundet til nærmeste kvarter
@@ -774,6 +712,7 @@ function calculateHoursFromMs(ms) {
 }
 
 // ========== submitTime (Oppgavekobling DEAKTIVERT for sending) ==========
+// Sender inn logget tid (UTEN oppgavevalg)
 function submitTime() {
   if (isSubmitting) { console.warn("Innsending pågår..."); return; }
   isSubmitting = true;
@@ -782,73 +721,52 @@ function submitTime() {
   const currentCustomerId = modal?.getAttribute('data-current-customer-id');
   const timerData = currentCustomerId !== null ? timers[currentCustomerId] : null;
 
-  // Tidlig retur hvis kritisk data mangler
-  if (!timerData?.customerName || timerData.timeSpentMs === undefined) {
-       console.error(`submitTime: Mangler timerData for kunde ID ${currentCustomerId}.`);
-       alert("Kritisk feil: Mangler data for tidsregistrering.");
-        // Prøv å lukke modalen selv om det er feil, men stopp innsending
-        closeModal('commentModal');
-        isSubmitting = false; // VIKTIG: Sett tilbake
-        return;
-   }
+  if (!timerData?.customerName) {
+       console.error("FEIL: Fant ikke kunde/timer data for innsending.");
+       alert("Kritisk feil ved innsending. Prøv igjen.");
+       closeModal('commentModal'); isSubmitting = false; return;
+  }
 
   const comment = document.getElementById('comment-text')?.value.trim() || "";
   const customerName = timerData.customerName;
   const timeSpentMs = timerData.timeSpentMs;
   const decimalHours = calculateHoursFromMs(timeSpentMs);
 
-  // --- DEAKTIVERT: Henting av valgte oppgave-IDer ---
-  /* // Start multiline-kommentar
-  const selectedTaskCheckboxes = document.querySelectorAll('#task-checkbox-list input[type="checkbox"]:checked');
-  const selectedTaskIds = Array.from(selectedTaskCheckboxes).map(cb => cb.value);
-  */ // Slutt multiline-kommentar
-  const selectedTaskIds = []; // Sett til tomt array for logging
-
-  // --- DEAKTIVERT: Henting av valgt status ---
-  /* // Start multiline-kommentar
-  const newStatusForTasks = document.getElementById('update-task-status-select')?.value || null;
-  */ // Slutt multiline-kommentar
-  const newStatusForTasks = null; // Sett til null for logging og sending
-
-  // Oppdatert logg for å reflektere deaktivering
-  console.log(`Sender tid for: ${customerName}, Timer: ${decimalHours}, Oppgave(r): DEAKTIVERT, Ny status: DEAKTIVERT, Kommentar: "${comment}"`);
+  console.log(`Sender tid for: ${customerName}, Timer: ${decimalHours}, Kommentar: "${comment}"`);
 
   const submitButton = document.getElementById('submit-comment-btn');
   if (submitButton) { submitButton.disabled = true; submitButton.textContent = 'Sender...'; }
 
   const customerIndex = customers.findIndex(c => c.name === customerName);
 
-  // Bygg data som skal sendes UTEN oppgaveinfo
   const dataToSend = {
     action: "logTime",
     customerName: customerName,
     timeSpent: decimalHours,
     comment: comment,
-    date: new Date().toISOString().split('T')[0]
-    // --- DEAKTIVERT: Fjerner oppgaveIds og newStatus fra sending ---
-    // oppgaveIds: selectedTaskIds.join(','), // IKKE SEND
-    // newStatus: newStatusForTasks // IKKE SEND
+    date: new Date().toISOString().split('T')[0],
+    oppgaveId: null // Send alltid null (eller fjern helt hvis backend takler det)
+    // oppgaveIds: fjernet
+    // newStatus: fjernet
   };
 
-  // Kall backend (backend vil nå motta undefined eller null for oppgaveIds/newStatus)
   sendDataToGoogleScript(dataToSend, `Tid registrert for ${customerName}`)
     .then(response => {
-      console.log("Tidsregistrering vellykket (oppgavekobling deaktivert):", response);
-      const actualRemainingHours = response.updatedAvailableHours; // Forventes fortsatt fra backend
+      console.log("Tidsregistrering vellykket:", response);
+      const actualRemainingHours = response.updatedAvailableHours;
       if (customerIndex !== -1 && actualRemainingHours !== undefined) {
           updateCustomerBar(customerIndex, actualRemainingHours);
           customers[customerIndex].availableHours = actualRemainingHours;
       } else {
-           console.warn("Kunne ikke oppdatere UI lokalt etter tidslogging (oppgavekobling deaktivert).");
+           console.warn("Kunne ikke oppdatere UI lokalt etter tidslogging.");
            fetchCustomerData(); // Hent alt på nytt som fallback
       }
       closeModal('commentModal');
     })
     .catch(error => {
-      console.error('Feil ved logging (oppgavekobling deaktivert):', error);
-      // Viser feilmeldingen som kommer fra sendDataToGoogleScript eller nettverket
+      console.error('Feil ved logging av tid:', error);
       alert('Kunne ikke lagre tid: ' + error.message);
-      closeModal('commentModal'); // Lukk modalen selv ved feil
+      closeModal('commentModal');
     })
     .finally(() => {
       isSubmitting = false;
