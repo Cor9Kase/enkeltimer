@@ -758,6 +758,12 @@ function submitTime() {
     date: new Date().toISOString().split('T')[0]
   };
 
+console.log("--- DEBUG submitTime ---");
+console.log("Customer ID (fra modal):", currentCustomerId);
+console.log("Timer Data:", timerData); // Se hele timerData-objektet
+console.log("Data som sendes:", dataToSend); // Se nøyaktig hva som sendes
+console.log("-----------------------");
+
   sendDataToGoogleScript(dataToSend, `Tid (${decimalHours}t) registrert for ${customerName}`)
     .then(response => {
       console.log("Tidsregistrering vellykket:", response);
