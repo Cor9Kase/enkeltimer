@@ -37,6 +37,7 @@ body {
   justify-content: center;
   margin-top: 15px; /* Litt luft etter status */
   margin-bottom: 20px; /* Luft før datovelger */
+  flex-wrap: wrap; /* Tillat wrapping */
 }
 
 /* Stil for knapper (gjenbruker fra styles.css via klassenavn) */
@@ -93,6 +94,34 @@ body {
   padding: 0 15px; /* Litt padding på sidene for mindre skjermer */
 }
 
+/* --- Styling for ny overall summary --- */
+.overall-summary {
+  display: flex;
+  flex-wrap: wrap; /* Tillat wrap på små skjermer */
+  gap: 20px; /* Samme gap som summary-header */
+  margin-bottom: 30px; /* Luft ned til neste rad med kort */
+  border-bottom: 1px solid var(--border-inactive); /* Skillelinje */
+  padding-bottom: 20px; /* Padding under skillelinje */
+}
+
+/* Gi de nye kortene samme fleksibilitet som de andre */
+.overall-summary .card {
+  flex: 1 1 200px;
+  min-width: 200px;
+}
+
+/* Valgfri ekstra styling for de nye kortene */
+ .allocated-card { /* Ny klasse */
+  /* border-left: 4px solid var(--bar-green); */ /* Grønn kant? */
+ }
+ .remaining-card { /* Ny klasse */
+  /* border-left: 4px solid var(--accent-secondary); */ /* Lilla kant? */
+ }
+ /* Fargen kan settes dynamisk basert på om tallet er positivt/negativt i JS */
+ /* #month-remaining-total */
+
+
+/* --- Styling for eksisterende summary header --- */
 .summary-header {
   display: flex;
   flex-wrap: wrap; /* La kortene wrappe på mindre skjermer */
@@ -100,6 +129,7 @@ body {
   margin-bottom: 30px;
 }
 
+/* Felles kort-styling */
 .card {
   background-color: var(--bg-card);
   border-radius: 12px;
@@ -135,15 +165,6 @@ body {
   color: var(--accent-primary);
   margin-top: auto; /* Skyv verdien ned hvis kortet får ekstra høyde */
 }
-
-/* --- Spesifikk styling for overtidskort (valgfritt) --- */
-/* .overtime-card { */
-  /* border-left: 4px solid var(--bar-red); Rød kant for å indikere "advarsel"? */
-/* } */
-/* .overtime-card .card-value { */
-  /* color: var(--bar-red); Gjør verdien rød? */
-/* } */
-
 
 /* --- Sammendragstabell --- */
 .summary-table-container {
@@ -211,12 +232,10 @@ body {
 /* Styling for helg og dagens dato */
 .weekend td { /* Stil hele raden */
   background-color: rgba(40, 40, 40, 0.3); /* Litt svakere */
-  /* color: var(--text-secondary); */ /* Kan gjøre teksten gråere? */
 }
 
 .current-day td { /* Stil hele raden */
   background-color: rgba(157, 78, 221, 0.1); /* Litt svakere */
-  /* font-weight: bold; */ /* Kan utheve teksten? */
 }
 
 
@@ -290,6 +309,7 @@ body {
 
 /* Responsive justering */
 @media (max-width: 768px) {
+  .overall-summary, /* Bruk samme regler */
   .summary-header {
     /* flex-direction: column; */ /* Vurder å beholde flex for smalere kort */
   }
