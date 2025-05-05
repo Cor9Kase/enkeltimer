@@ -19,6 +19,14 @@
     <h1>Cornys Timetracker - Oppgaver</h1>
     <div id="current-date" class="current-date">Laster dato...</div>
 
+     <!-- === START GAMIFICATION DISPLAY === -->
+    <!-- Plassert her for å være synlig under dato/status -->
+    <div class="gamification-display">
+        <span id="streak-display" style="display: none;"></span> <!-- Skjult som standard, vises av JS -->
+        <span id="rank-display" style="display: none;"></span>   <!-- Skjult som standard, vises av JS -->
+    </div>
+    <!-- === SLUTT GAMIFICATION DISPLAY === -->
+
     <!-- Hoved-navigeringsknapper (sentrert under teksten) -->
     <div class="nav-buttons">
       <button class="nav-btn" onclick="window.location.href='index.html'">
