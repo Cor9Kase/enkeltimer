@@ -210,6 +210,7 @@ body {
     text-align: center;
     padding: 20px;
     font-size: 14px;
+    display: none; /* Skjult som standard, vises av JS ved behov */
 }
 
 /* --- Oppgavekort --- */
@@ -296,26 +297,7 @@ body {
     font-weight: bold;
 }
 
-/* Stil for Nødknapp */
-.emergency-help-btn {
-    background-color: transparent;
-    color: var(--bar-red);
-    border: none;
-    padding: 2px 4px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px; /* Størrelse på emoji */
-    margin-left: auto; /* Skyv til høyre */
-    transition: transform 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1; /* Unngå ekstra høyde */
-}
-.emergency-help-btn:hover {
-    background-color: rgba(229, 57, 53, 0.1); /* Lett rød bakgrunn */
-    transform: scale(1.15); /* Forstørr litt */
-}
+/* Nødknapp-styling er fjernet */
 
 /* --- Drag and Drop Styling --- */
 .task-card.dragging {
@@ -358,18 +340,19 @@ body {
     text-decoration: none;
 }
 .fc-event { /* Stil på hendelsene/oppgavene */
-   border: 1px solid var(--accent-secondary) !important;
-   background-color: rgba(123, 44, 191, 0.7) !important; /* Semi-transparent lilla */
-   color: white !important;
+   /* Farger settes nå via JS basert på status */
    padding: 2px 4px;
    font-size: 12px;
    cursor: pointer;
    overflow: hidden;
    text-overflow: ellipsis;
    white-space: nowrap;
+   border-width: 1px !important; /* Sørg for kant vises */
+   border-style: solid !important; /* Sørg for kant vises */
+   border-radius: 4px; /* Litt avrundede kanter */
 }
 .fc-event:hover {
-    background-color: rgba(123, 44, 191, 0.9) !important; /* Mørkere på hover */
+    filter: brightness(1.2); /* Gjør fargen litt lysere på hover */
 }
 .fc-daygrid-event-dot { /* De små prikkene ved mange hendelser */
     border-color: var(--accent-primary) !important;
@@ -446,5 +429,17 @@ body {
     .form-row .form-group {
         flex-basis: auto; /* La dem ta nødvendig bredde */
         min-width: 0;
+    }
+    #calendar .fc-toolbar { /* Gjør kalender-toolbar mer mobilvennlig */
+        flex-direction: column;
+        gap: 10px;
+    }
+    #calendar .fc-toolbar-chunk {
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+    }
+    .fc-event { /* Litt større tekst på mobil? */
+        font-size: 11px;
     }
 }
