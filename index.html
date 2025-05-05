@@ -12,6 +12,14 @@
     <div id="current-date" class="current-date"></div>
     <div class="update-status">Sist oppdatert: <span id="last-updated">Aldri</span></div>
 
+    <!-- === START GAMIFICATION DISPLAY === -->
+    <!-- Plassert her for å være synlig under dato/status -->
+    <div class="gamification-display">
+        <span id="streak-display" style="display: none;"></span> <!-- Skjult som standard, vises av JS -->
+        <span id="rank-display" style="display: none;"></span>   <!-- Skjult som standard, vises av JS -->
+    </div>
+    <!-- === SLUTT GAMIFICATION DISPLAY === -->
+
     <!-- Hoved-handlingsknapper (sentrert under teksten) -->
     <div class="header-actions">
       <button id="refresh-button" class="refresh-btn">
@@ -34,8 +42,7 @@
       <button id="theme-btn-sunset-glow" title="Solnedgang Tema" class="theme-btn theme-sunset-glow"></button>
       <button id="theme-btn-monochrome-mint" title="Mint Tema" class="theme-btn theme-monochrome-mint"></button>
     </div>
-
-  </div>
+ </div>
 
   <button id="test-connection-button" style="position:fixed; bottom:10px; right:10px; background-color:#ff5555; color:white; padding:8px 15px; border-radius:5px; border:none; cursor:pointer; z-index:1000;">Nødtest</button>
 
