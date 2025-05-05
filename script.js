@@ -9,7 +9,7 @@ function debounce(func, wait) {
 }
 
 // Google Script URL - *** VIKTIG: Bytt ut med din egen publiserte URL ***
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmCUCFoYzj9e4ys_lslz_bHRCWnzxwTwCzTRQeXH0qtsn4nVtfC_ZBHGh7YZs-6oY-/exec'; // <--- SETT INN DIN URL HER!
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw4IeBACpA8_XwqrbkTEH-Smfr-lhkyujdUFMbJM79K9kYh4K-gqpHCeFxpsnI5Oh_i/exec'; // <--- SETT INN DIN URL HER!
 
 // Globale variabler for tilstand
 const timers = {};
@@ -766,28 +766,31 @@ console.log("-----------------------");
 
   sendDataToGoogleScript(dataToSend, `Tid (${decimalHours}t) registrert for ${customerName}`)
     .then(response => {
-      console.log("Tidsregistrering vellykket:", response);
+      // VIKTIG: Backend returnerer ikke lenger spesifikke timer, så vi oppdaterer ikke UI direkte her.
+      // UI vil oppdateres ved neste automatiske eller manuelle refresh.
+      console.log("Tidsregistrering (kun Tidslogg) vellykket:", response); // Logg responsen fra backend
 
-      // Oppdater baren og lokale data *umiddelbart*
-      const actualRemainingHours = response.updatedAvailableHours; // Stol på svaret fra backend!
+      // Fjernet kode for å oppdatere bar og lokal data:
+      /*
+      const actualRemainingHours = response.updatedAvailableHours;
       if (customerIndex !== -1 && actualRemainingHours !== undefined) {
           console.log(`Oppdaterer UI for kunde ${customerIndex} til ${actualRemainingHours} timer.`);
           updateCustomerBar(customerIndex, actualRemainingHours);
-          // Oppdater også den lokale datastrukturen
           customers[customerIndex].availableHours = actualRemainingHours;
       } else if (customerIndex === -1) {
            console.warn("Kunne ikke oppdatere UI lokalt da kundeindeks ikke ble funnet.");
-           // Data er lagret, men UI viser kanskje gammel verdi til neste refresh
       } else {
-           console.warn("Backend returnerte ikke 'updatedAvailableHours', UI oppdateres kanskje ikke korrekt før neste refresh.");
+           // Denne meldingen vil ikke lenger vises, da vi ikke forventer updatedAvailableHours
+           // console.warn("Backend returnerte ikke 'updatedAvailableHours', UI oppdateres kanskje ikke korrekt før neste refresh.");
       }
+      */
 
-      // Ingen grunn til full render/fetch hvis vi oppdaterte spesifikt
-      // fetchCustomerData(); // Kan hentes i bakgrunnen ved behov, men unngå for rask UI
-      closeModal('commentModal'); // Lukk modal FØR alert
-      // alert(`Timer lagret for ${customerName}!`); // Kan være litt mye, fjernes?
+      closeModal('commentModal'); // Lukk modalen
+      // Optional: Vis en enkel bekreftelse hvis ønskelig
+      // alert(`Tid lagret i Tidslogg for ${customerName}!`);
 
     })
+    
     .catch(error => {
       console.error('Feil ved logging av tid:', error);
       alert('Kunne ikke lagre tid: ' + error.message + "\n\nPrøv igjen senere.");
