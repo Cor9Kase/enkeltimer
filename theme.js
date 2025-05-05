@@ -1,8 +1,6 @@
-// theme.js - Håndtering av fargetemaer med automatisk ukentlig bytte
+// theme.js - Håndtering av fargetemaer med automatisk ukentlig bytte OG manuell overstyring
 
 // Definer de ulike temaene med sine fargeverdier
-// Sørg for at nøklene (f.eks. 'dark-purple') er unike
-// og at verdiene inneholder alle CSS-variablene du vil styre.
 const themes = {
   'dark-purple': { // Samsvarer med din opprinnelige stil (ca.)
     '--bg-dark': '#121212',
@@ -13,12 +11,10 @@ const themes = {
     '--accent-primary': '#9d4edd',
     '--accent-secondary': '#7b2cbf',
     '--border-inactive': '#383838',
-    // Farger for status/barer
     '--bar-green': '#4CAF50',
     '--bar-yellow': '#ffc107',
     '--bar-red': '#e53935',
-    '--bar-background': '#333' // Bakgrunn for timebar f.eks.
-    // Legg til flere fargevariabler du bruker her...
+    '--bar-background': '#333'
   },
   'light-blue': { // Eksempel på et lyst tema
     '--bg-dark': '#f4f7f9',
@@ -29,7 +25,6 @@ const themes = {
     '--accent-primary': '#3498db',
     '--accent-secondary': '#2980b9',
     '--border-inactive': '#dce4e8',
-    // Farger for status/barer
     '--bar-green': '#2ecc71',
     '--bar-yellow': '#f1c40f',
     '--bar-red': '#e74c3c',
@@ -41,16 +36,15 @@ const themes = {
     '--bg-modal': '#2a4a43',
     '--text-primary': '#e0e0e0',
     '--text-secondary': '#a0a0a0',
-    '--accent-primary': '#2ecc71',
-    '--accent-secondary': '#27ae60',
+    '--accent-primary': '#2ecc71', // Grønn hovedfarge
+    '--accent-secondary': '#27ae60', // Mørkere grønn
     '--border-inactive': '#3e5a54',
-    // Farger for status/barer
     '--bar-green': '#4CAF50',
     '--bar-yellow': '#ffc107',
     '--bar-red': '#e53935',
     '--bar-background': '#44645d'
   }
-  // Legg gjerne til flere temaer her for mer variasjon!
+  // Legg til flere temaer her...
 };
 
 // --- Hjelpefunksjoner ---
@@ -63,8 +57,7 @@ const themes = {
 function getStartOfWeek(date = new Date()) {
   const d = new Date(date);
   const day = d.getDay(); // 0 = Søndag, 1 = Mandag, ..., 6 = Lørdag
-  // Beregn differansen til mandag. Hvis søndag (0), gå 6 dager tilbake. Ellers (day - 1) dager tilbake.
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Juster til mandag
   const monday = new Date(d.setDate(diff));
   monday.setHours(0, 0, 0, 0); // Sett tid til midnatt for pålitelig sammenligning
   return monday;
@@ -74,7 +67,8 @@ function getStartOfWeek(date = new Date()) {
 
 /**
  * Bruker et gitt tema ved å sette CSS-variabler på rot-elementet (<html>).
- * @param {string} themeName Navnet på temaet som skal brukes (må finnes i themes-objektet).
+ * Legger også til en klasse på body for spesifikk styling.
+ * @param {string} themeName Navnet på temaet som skal brukes.
  */
 function applyTheme(themeName) {
   const theme = themes[themeName];
@@ -84,15 +78,16 @@ function applyTheme(themeName) {
   }
 
   console.log(`Bruker tema: ${themeName}`);
-  // Oppdater CSS-variablene definert i temaet
+  // Oppdater CSS-variablene
   for (const variable in theme) {
-    // Sjekk for sikkerhets skyld at det er en egenskap i objektet
     if (Object.hasOwnProperty.call(theme, variable)) {
        document.documentElement.style.setProperty(variable, theme[variable]);
     }
   }
-   // Legg til en klasse på body for eventuell CSS-spesifikk styling per tema
-   document.body.className = `theme-${themeName}`; // Fjerner gamle tema-klasser
+  // Fjern gamle tema-klasser og legg til den nye på body
+  // Dette er nyttig hvis du trenger tema-spesifikk CSS utover variabler
+  const bodyClasses = document.body.className.split(' ').filter(cls => !cls.startsWith('theme-'));
+  document.body.className = [...bodyClasses, `theme-${themeName}`].join(' ');
 }
 
 /**
@@ -103,7 +98,7 @@ function saveThemeAndDate(themeName) {
   if (themes[themeName]) {
     const today = new Date().toISOString().split('T')[0]; // Lagre dato som YYYY-MM-DD
     localStorage.setItem('selectedTheme', themeName);
-    localStorage.setItem('themeLastChanged', today);
+    localStorage.setItem('themeLastChanged', today); // Lagre datoen da valget ble gjort
     console.log(`Tema "${themeName}" lagret med dato ${today}.`);
   } else {
     console.warn(`Kan ikke lagre ukjent tema: ${themeName}`);
@@ -112,60 +107,73 @@ function saveThemeAndDate(themeName) {
 
 /**
  * Hovedfunksjon som kjøres ved sideinnlasting:
- * 1. Henter lagret tema og dato.
- * 2. Sjekker om det er på tide å bytte tema (hvis sist byttet var før denne mandagen).
- * 3. Velger neste tema syklisk hvis det er på tide å bytte.
- * 4. Bruker det valgte temaet.
- * 5. Lagrer det nye temaet og/eller datoen hvis en endring skjedde.
+ * Sjekker om det er på tide å bytte tema automatisk,
+ * og bruker enten det lagrede eller det nye automatiske temaet.
  */
 function loadCheckAndApplyTheme() {
   const savedTheme = localStorage.getItem('selectedTheme');
   const lastChangedStr = localStorage.getItem('themeLastChanged');
-  const themeKeys = Object.keys(themes); // Få listen over tilgjengelige temanavn
+  const themeKeys = Object.keys(themes);
 
-  // Bestem starttema: lagret tema hvis gyldig, ellers det første i listen
-  let themeToApply = savedTheme && themes[savedTheme] ? savedTheme : themeKeys[0];
-  let needsSave = !savedTheme; // Må lagre hvis det ikke fantes et lagret tema
+  let themeToApply = savedTheme && themes[savedTheme] ? savedTheme : themeKeys[0]; // Start med lagret/default
+  let needsSave = !savedTheme; // Må lagre hvis ingen tema var lagret fra før
 
-  const startOfThisWeek = getStartOfWeek(); // Finner mandag denne uken
+  const startOfThisWeek = getStartOfWeek();
 
   if (lastChangedStr) {
     const lastChangedDate = new Date(lastChangedStr);
-    lastChangedDate.setHours(0, 0, 0, 0); // Nullstill tid for sammenligning
+    lastChangedDate.setHours(0, 0, 0, 0);
 
-    // Sjekk om sist lagret dato er FØR starten av denne uken
     if (lastChangedDate < startOfThisWeek) {
-      console.log("Ny uke! På tide å bytte tema. Sist byttet:", lastChangedStr);
-      // Finn indeksen til det nåværende temaet
+      console.log("Ny uke! Velger neste tema automatisk. Sist lagret:", lastChangedStr);
       const currentIndex = themeKeys.indexOf(themeToApply);
-      // Beregn neste indeks, gå tilbake til 0 hvis vi er på slutten
       const nextIndex = (currentIndex + 1) % themeKeys.length;
-      themeToApply = themeKeys[nextIndex]; // Velg neste tema
-      console.log("Nytt automatisk tema valgt:", themeToApply);
-      needsSave = true; // Marker at vi må lagre det nye temaet og datoen
+      themeToApply = themeKeys[nextIndex];
+      console.log("Nytt automatisk tema:", themeToApply);
+      needsSave = true; // Marker at nytt tema og dato må lagres
     } else {
-      console.log("Fortsatt samme uke. Beholder tema. Sist byttet:", lastChangedStr);
-      // Ikke behov for å lagre på nytt med mindre default ble brukt initielt
+      console.log("Samme uke. Bruker lagret/manuelt tema:", themeToApply, "Sist lagret:", lastChangedStr);
+      // Ikke behov for å lagre på nytt hvis temaet er det samme som lagret
     }
   } else {
-    // Hvis ingen dato er lagret (f.eks. første besøk)
-    console.log("Ingen sist byttet dato funnet. Setter og lagrer default tema:", themeToApply);
-    needsSave = true; // Marker at vi må lagre default tema og dato
+    console.log("Ingen sist byttet dato. Setter og lagrer default tema:", themeToApply);
+    needsSave = true;
   }
 
-  // Bruk det bestemte temaet (enten gammelt eller nytt)
-  applyTheme(themeToApply);
+  applyTheme(themeToApply); // Bruk det bestemte temaet
 
-  // Lagre tema og dato hvis en endring skjedde eller ved første besøk
   if (needsSave) {
-    saveThemeAndDate(themeToApply);
+    saveThemeAndDate(themeToApply); // Lagre hvis det var første gang eller automatisk bytte
   }
 }
 
 // --- Kjør logikken når siden er klar ---
-// Bruker DOMContentLoaded for å sikre at document.documentElement er tilgjengelig
-document.addEventListener('DOMContentLoaded', loadCheckAndApplyTheme);
+document.addEventListener('DOMContentLoaded', () => {
+  // 1. Sjekk og bruk tema (automatisk bytte eller lagret)
+  loadCheckAndApplyTheme();
 
-// MERK: Eventuelle lyttere for manuelle temaknapper er fjernet.
-// Hvis du VIL ha manuelle knapper i tillegg, må de legges til
-// og kalle applyTheme() og saveThemeAndDate() ved klikk.
+  // 2. Legg til lyttere for MANUELLE temaknapper
+  const addThemeButtonListener = (buttonId) => {
+      const button = document.getElementById(buttonId);
+      if (button) {
+          const themeName = buttonId.replace('theme-btn-', '');
+          if (themes[themeName]) {
+              button.addEventListener('click', () => {
+                  console.log(`Manuell valg: ${themeName}`);
+                  applyTheme(themeName);       // Bruk temaet umiddelbart
+                  saveThemeAndDate(themeName); // Lagre manuelt valg OG dagens dato
+              });
+          } else {
+               console.warn(`Knapp ${buttonId} funnet, men temaet ${themeName} finnes ikke.`);
+          }
+      } else {
+          // console.warn(`Temaknapp med ID ${buttonId} ble ikke funnet.`);
+      }
+  };
+
+  // Legg til lyttere for alle definerte temaknapper
+  addThemeButtonListener('theme-btn-dark-purple');
+  addThemeButtonListener('theme-btn-light-blue');
+  addThemeButtonListener('theme-btn-forest-green');
+  // Legg til flere her hvis du lager flere temaer/knapper
+});
