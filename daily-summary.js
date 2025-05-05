@@ -1,5 +1,5 @@
 // Google Script URL - *** VIKTIG: MÅ VÆRE SAMME SOM I script.js ***
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyTjDaVk2yPEIKTH8p8wsAq92cLuErBSR06FkiCu_wHiiXFn76sZwDoExJt7cQ_4eu/exec'; // <-- ERSTATT MED DIN FAKTISKE URL HVIS DENNE ER FEIL
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmCUCFoYzj9e4ys_lslz_bHRCWnzxwTwCzTRQeXH0qtsn4nVtfC_ZBHGh7YZs-6oY-/exec'; // <-- ERSTATT MED DIN FAKTISKE URL HVIS DENNE ER FEIL
 
 // --- NY KONSTANT for overtidsterskel ---
 const WEEKDAY_OVERTIME_THRESHOLD = 8; // Timer før overtid starter på hverdager
