@@ -17,6 +17,9 @@
       <button class="nav-btn" onclick="window.location.href='index.html'">
         Tilbake til Timeregistrering
       </button>
+       <button class="nav-btn" onclick="window.location.href='tasks.html'"> <!-- Ekstra knapp til Oppgaver -->
+        Vis Oppgaver
+      </button>
       <button id="refresh-button" class="refresh-btn" onclick="loadDailySummary()">
         Oppdater data
       </button>
@@ -30,21 +33,33 @@
   </div>
 
   <div class="summary-container">
+    <!-- === START NY SEKSJON FOR TOTALER === -->
+    <div class="overall-summary">
+      <div class="card allocated-card"> <!-- Endret klasse for spesifikk stil -->
+        <h3>Totalt Tildelt (Solgt)</h3>
+        <div id="month-allocated-total" class="card-value">Laster...</div>
+      </div>
+      <div class="card remaining-card"> <!-- Endret klasse for spesifikk stil -->
+        <h3>Totalt Gjenstående</h3>
+        <div id="month-remaining-total" class="card-value">Laster...</div>
+      </div>
+    </div>
+    <!-- === SLUTT NY SEKSJON === -->
+
     <div class="summary-header">
+      <!-- Eksisterende kort (Totalt Logget, Gj.snitt, Overtid) -->
       <div class="card total-card">
-        <h3>Totalt denne måneden</h3>
+        <h3>Totalt Logget Denne Måneden</h3> <!-- Tydeliggjort tittel -->
         <div id="month-total" class="card-value">0.00 timer</div>
       </div>
       <div class="card average-card">
         <h3>Gjennomsnitt per arbeidsdag</h3>
         <div id="day-average" class="card-value">0.00 timer</div>
       </div>
-      <!-- === START NYTT KORT FOR OVERTID === -->
       <div class="card overtime-card">
-        <h3>Overtid denne måneden</h3>
+        <h3>Logget Overtid denne måneden</h3> <!-- Tydeliggjort tittel -->
         <div id="month-overtime" class="card-value">0.00 timer</div>
       </div>
-      <!-- === SLUTT NYTT KORT === -->
     </div>
 
     <div class="summary-table-container">
@@ -54,14 +69,14 @@
             <th>Dato</th>
             <th>Ukedag</th>
             <th>Totale timer</th>
-            <!-- Valgfri Overtid-kolonne, lagt til via JS hvis ønskelig -->
+            <!-- Overtid-kolonne legges til av JS -->
             <th>Antall kunder</th>
             <th>Detaljer</th>
           </tr>
         </thead>
         <tbody id="summary-table-body">
           <!-- Rader fylles inn av JavaScript -->
-          <tr><td colspan="5" style="text-align: center; padding: 20px;">Laster data...</td></tr>
+          <tr><td colspan="6" style="text-align: center; padding: 20px;">Laster data...</td></tr> <!-- Nå colspan 6 -->
         </tbody>
       </table>
     </div>
@@ -75,8 +90,6 @@
       <h2>Timedetaljer for <span id="detail-date">dato</span></h2>
       <div id="detail-summary" class="detail-summary-text">
         Total: <span id="detail-total-hours">0</span> timer fordelt på <span id="detail-customer-count">0</span> kunder.
-        <!-- Valgfritt: Kan også legge til dagens overtid her -->
-        <!-- Overtid i dag: <span id="detail-overtime">0</span> timer. -->
       </div>
 
       <table id="detail-table" class="detail-table">
