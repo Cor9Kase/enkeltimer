@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function addGlobalEventListeners() {
   console.log("Legger til globale event listeners");
 
-  document.getElementById('submit-comment-btn')?.addEventListener('click', debouncedSubmitTime);
+  document.getElementById('submit-comment-btn')?.addEventListener('click', debounced);
   document.getElementById('create-customer-btn')?.addEventListener('click', createNewCustomer);
   document.getElementById('update-customer-btn')?.addEventListener('click', updateCustomer);
   document.getElementById('confirm-delete-btn')?.addEventListener('click', deleteCustomer);
@@ -702,7 +702,6 @@ function calculateHoursFromMs(ms) {
 }
 
 // Sender inn logget tid for en eksisterende kunde
-// --- START OPPDATERT submitTime ---
 function submitTime() {
   console.log("Forsøker å sende inn tid...");
   if (isSubmitting) {
@@ -717,7 +716,7 @@ function submitTime() {
   if (currentCustomerId === null || currentCustomerId === undefined) {
        console.error("FEIL: Kunne ikke finne kunde-ID for innsending fra modal.");
        alert("Kritisk feil: Kunne ikke identifisere kunden for tidsregistrering.");
-       closeModal('commentModal');
+       closeModal('commentModal'); // Lukk modalen selv om det feilet
        isSubmitting = false;
        return;
   }
@@ -726,7 +725,7 @@ function submitTime() {
   if (!timerData) {
        console.error(`FEIL: Ingen timerdata funnet for kunde ID ${currentCustomerId} ved innsending.`);
        alert("Kritisk feil: Mangler data for tidsregistrering. Prøv igjen.");
-       closeModal('commentModal');
+       closeModal('commentModal'); // Lukk modalen selv om det feilet
        isSubmitting = false;
        return;
   }
@@ -734,7 +733,7 @@ function submitTime() {
   const comment = document.getElementById('comment-text')?.value.trim() || "";
   const customerName = timerData.customerName;
   const timeSpentMs = timerData.timeSpentMs;
-  const decimalHours = calculateHoursFromMs(timeSpentMs);
+  const decimalHours = calculateHoursFromMs(timeSpentMs); // Bruker avrundet tid
 
   console.log(`Sender tid for: ${customerName}, Timer: ${decimalHours}, Kommentar: "${comment}"`);
 
@@ -744,82 +743,86 @@ function submitTime() {
     submitButton.textContent = 'Sender...';
   }
 
-  // Finn kunden i den globale listen for å sende med riktig data
-  const customerIndex = customers.findIndex(c => c.name === customerName);
-  let originalAvailableHours = 0; // Default hvis ikke funnet
-  if(customerIndex !== -1) {
-      originalAvailableHours = customers[customerIndex].availableHours;
-  } else {
-       console.warn(`Fant ikke kunden ${customerName} i listen for å hente originalt timeantall.`);
-       // Bør vi stoppe her? La oss fortsette, men det kan føre til feil balanse hvis kunden ble slettet/endret.
-  }
-  // Beregn gjenstående timer basert på *denne økten* og det vi *tror* er nåværende balanse
-  const estimatedRemainingHours = originalAvailableHours - decimalHours;
-
-
+  // Data som sendes til backend (forenklet, siden backend kun logger)
   const dataToSend = {
     action: "logTime",
     customerName: customerName,
-    timeSpent: decimalHours, // Send avrundet desimaltid
-    // Ikke lenger nødvendig å sende original/remaining, backend håndterer dette
-    // originalHours: originalAvailableHours,
-    // remainingHours: estimatedRemainingHours,
+    timeSpent: decimalHours,
     comment: comment,
     date: new Date().toISOString().split('T')[0]
   };
 
-console.log("--- DEBUG submitTime ---");
-console.log("Customer ID (fra modal):", currentCustomerId);
-console.log("Timer Data:", timerData); // Se hele timerData-objektet
-console.log("Data som sendes:", dataToSend); // Se nøyaktig hva som sendes
-console.log("-----------------------");
+  // Debugging log (kan fjernes senere)
+  console.log("--- DEBUG submitTime --- Data som sendes:", dataToSend);
 
+  // Kall backend (bruk din send-funksjon, f.eks. sendDataToGoogleScript)
   sendDataToGoogleScript(dataToSend, `Tid (${decimalHours}t) registrert for ${customerName}`)
     .then(response => {
-      // VIKTIG: Backend returnerer ikke lenger spesifikke timer, så vi oppdaterer ikke UI direkte her.
-      // UI vil oppdateres ved neste automatiske eller manuelle refresh.
-      console.log("Tidsregistrering (kun Tidslogg) vellykket:", response); // Logg responsen fra backend
+      console.log("Tidsregistrering (Backend):", response); // Logg svaret fra backend
 
-      // Fjernet kode for å oppdatere bar og lokal data:
-      /*
-      const actualRemainingHours = response.updatedAvailableHours;
-      if (customerIndex !== -1 && actualRemainingHours !== undefined) {
-          console.log(`Oppdaterer UI for kunde ${customerIndex} til ${actualRemainingHours} timer.`);
-          updateCustomerBar(customerIndex, actualRemainingHours);
-          customers[customerIndex].availableHours = actualRemainingHours;
-      } else if (customerIndex === -1) {
-           console.warn("Kunne ikke oppdatere UI lokalt da kundeindeks ikke ble funnet.");
+      if (response.success) { // Sjekk om backend bekreftet suksess
+          try {
+              // === KALL FUNKSJONEN FRA gamification.js ===
+              // Sjekk om funksjonen finnes globalt før kall
+              if (typeof updateStreakAndRank === 'function') {
+                  updateStreakAndRank(); // Oppdater streak og rank
+              } else {
+                   console.error("updateStreakAndRank function not found (expected in gamification.js)");
+              }
+              // ===========================================
+          } catch (e) {
+              // Fang opp eventuelle feil under streak/rank oppdatering,
+              // men ikke la det stoppe resten av flyten.
+              console.error("Feil under oppdatering av streak/rank:", e);
+          }
+          // Hent ferske kundedata for å oppdatere UI (timebarer etc.)
+          // Siden forenklet handleLogTime ikke endrer Kunder-arket,
+          // er dette strengt tatt ikke nødvendig for timebalanse,
+          // men kan være greit for generell synkronisering.
+          console.log("Henter ferske kundedata etter tidslogging...");
+          fetchCustomerData();
+
       } else {
-           // Denne meldingen vil ikke lenger vises, da vi ikke forventer updatedAvailableHours
-           // console.warn("Backend returnerte ikke 'updatedAvailableHours', UI oppdateres kanskje ikke korrekt før neste refresh.");
+           // Hvis backend rapporterer en feil (response.success er false)
+           console.warn("Backend rapporterte feil, oppdaterer ikke streak/rank eller henter data.");
+           // Vis feilmeldingen fra backend til brukeren
+           alert(`Lagring feilet hos backend: ${response.message || 'Ukjent feil'}`);
       }
-      */
 
-      closeModal('commentModal'); // Lukk modalen
-      // Optional: Vis en enkel bekreftelse hvis ønskelig
-      // alert(`Tid lagret i Tidslogg for ${customerName}!`);
+      // Lukk modalen KUN hvis kallet til backend var vellykket
+      // (eller hvis backend returnerte success: false men vi håndterte det)
+      // Hvis kallet kastet en feil (i .catch), forblir modalen åpen.
+      closeModal('commentModal');
 
     })
-    
     .catch(error => {
-      console.error('Feil ved logging av tid:', error);
+      // Håndterer nettverksfeil eller andre feil under fetch/backend-kallet
+      console.error('Feil ved logging av tid (nettverk/backend):', error);
       alert('Kunne ikke lagre tid: ' + error.message + "\n\nPrøv igjen senere.");
+      // Ikke lukk modalen her, slik at brukeren ser feilen og kan prøve igjen.
     })
     .finally(() => {
-      isSubmitting = false;
-      // Slett timer data uansett utfall
-       if (timers[currentCustomerId]) {
-           delete timers[currentCustomerId];
-           console.log(`Slettet midlertidig timerdata for kunde ID ${currentCustomerId} etter innsendingsforsøk.`);
-       }
+      // Denne koden kjøres ALLTID etter .then() eller .catch()
+
+      isSubmitting = false; // Tillat nye innsendinger
+
+      // Rydd opp midlertidig timerdata for den aktuelle kunden uansett utfall,
+      // siden timeren er stoppet og økten er over.
+      if (timers[currentCustomerId]) {
+          delete timers[currentCustomerId];
+          console.log(`Slettet midlertidig timerdata for kunde ID ${currentCustomerId} etter submit forsøk.`);
+      }
+
+      // Tilbakestill knappen
       if (submitButton) {
         submitButton.disabled = false;
         submitButton.textContent = 'Lagre og avslutt';
       }
-       activeBox = null; // Sikre at ingen boks er aktiv
+
+      activeBox = null; // Ingen kundeboks er aktiv lenger
     });
 }
-// --- SLUTT OPPDATERT submitTime ---
+// --- SLUTT submitTime ---
 
 // Viser modal for å redigere kunde
 function showEditCustomer(customerId) {
