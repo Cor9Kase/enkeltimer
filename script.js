@@ -1,6 +1,6 @@
 // script.js (Starten av filen - Korrigert)
 
-// Debounce-funksjon for å unngå doble innsendinger
+/ Debounce-funksjon for å unngå doble innsendinger
 function debounce(func, wait) {
   let timeout;
   return function(...args) {
@@ -21,30 +21,9 @@ let newCustomerTimer = null;
 let isAutoRefreshPaused = false;
 let isSubmitting = false; // Forhindre doble innsendinger
 
-// === FLYTTET OG KORRIGERT DEFINISJON AV DEBOUNCED SUBMIT ===
-// VIKTIG: Funksjonen 'submitTime' må være definert et sted globalt i denne filen
-// for at dette skal fungere. Vi definerer variabelen her oppe.
-let debouncedSubmitTime; // Deklarer variabelen her
-
-// Merk: Selve tilordningen `debouncedSubmitTime = debounce(submitTime, 500);`
-// bør skje etter at BÅDE `debounce` og `submitTime` er definert.
-// Den enkleste løsningen er ofte å definere den rett før den brukes
-// første gang, eller inne i DOMContentLoaded etter at alle funksjoner er parset.
-// Vi gjør det i DOMContentLoaded for sikkerhets skyld her.
-// ========================================================
-
-
-// === DEFINISJON AV RANKS (Flyttet hit for å samle globale) ===
-const ranks = [
-    { name: "Nybegynner", minDays: 0, minStreak: 0 },
-    { name: "Lærling", minDays: 7, minStreak: 3 },
-    { name: "Svenn", minDays: 14, minStreak: 5 },
-    { name: "Erfaren", minDays: 30, minStreak: 7 },
-    { name: "Mester", minDays: 60, minStreak: 10 },
-    { name: "Guru", minDays: 90, minStreak: 14 },
-];
-// ========================================================
-
+// === Variabel for debounced funksjon (deklareres globalt) ===
+let debouncedSubmitTime;
+// ============================================================
 
 // Initialisering når siden er lastet
 document.addEventListener('DOMContentLoaded', function() {
@@ -53,13 +32,20 @@ document.addEventListener('DOMContentLoaded', function() {
   // === TILORDNE debouncedSubmitTime ETTER AT submitTime ER DEFINERT ===
   // Denne linjen forutsetter at funksjonen `submitTime` er definert globalt
   // lenger nede i denne filen.
-  debouncedSubmitTime = debounce(submitTime, 500);
+  if (typeof submitTime === 'function' && typeof debounce === 'function') {
+       debouncedSubmitTime = debounce(submitTime, 500);
+       console.log("debouncedSubmitTime definert.");
+  } else {
+       console.error("FEIL: Kunne ikke definere debouncedSubmitTime. Mangler submitTime eller debounce?");
+       // Fallback: sett den til å kalle submitTime direkte uten debounce?
+       debouncedSubmitTime = submitTime;
+  }
   // ================================================================
 
   updateCurrentDate();
   loadCustomers();
   startAutoRefresh();
-  addGlobalEventListeners(); // Nå skal debouncedSubmitTime være definert
+  addGlobalEventListeners(); // Kall addGlobalEventListeners ETTER at debouncedSubmitTime er definert
 
   // Sjekk om URL er satt
    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'DIN_NETTAPP_URL_HER' || GOOGLE_SCRIPT_URL.includes('SETT_INN_DIN_URL')) {
@@ -68,13 +54,16 @@ document.addEventListener('DOMContentLoaded', function() {
        if(statusElement) statusElement.textContent = 'Konfigurasjonsfeil!';
    }
 
-   // Kall displayStreakAndRank ved sidelasting (funksjonen ligger i theme.js)
-  if (typeof displayStreakAndRank === 'function') {
-       console.log("DOMContentLoaded: Kaller displayStreakAndRank");
-       displayStreakAndRank();
-  } else {
-       console.warn("DOMContentLoaded: displayStreakAndRank function not found (expected in theme.js, ensures initial display)");
-  }
+   // === KALLET TIL displayStreakAndRank ER NÅ FLYTTET TIL theme.js ===
+   /*
+   if (typeof displayStreakAndRank === 'function') {
+        console.log("DOMContentLoaded: Kaller displayStreakAndRank");
+        displayStreakAndRank();
+   } else {
+        console.warn("DOMContentLoaded: displayStreakAndRank function not found (expected in theme.js)");
+   }
+   */
+   // ================================================================
 });
 
 // Legg til globale event listeners
@@ -82,13 +71,13 @@ function addGlobalEventListeners() {
   console.log("Legger til globale event listeners");
 
   // === KORRIGERT BRUK AV debouncedSubmitTime ===
-  // Sjekk at variabelen faktisk ble definert i DOMContentLoaded
+  // Bruk variabelen som ble definert i DOMContentLoaded
   if (typeof debouncedSubmitTime === 'function') {
       document.getElementById('submit-comment-btn')?.addEventListener('click', debouncedSubmitTime);
   } else {
-      console.error("FEIL: debouncedSubmitTime er ikke definert når addGlobalEventListeners kjører!");
-      // Fallback til vanlig submit hvis debounce feilet?
-      // document.getElementById('submit-comment-btn')?.addEventListener('click', submitTime);
+      // Dette bør ikke skje nå, men som en fallback
+      console.error("FEIL i addGlobalEventListeners: debouncedSubmitTime er ikke en funksjon!");
+      document.getElementById('submit-comment-btn')?.addEventListener('click', submitTime); // Bruk vanlig submit
   }
   // ============================================
 
