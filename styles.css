@@ -139,6 +139,7 @@ button {
     box-shadow: none;
     transform: none;
     border: 1px solid var(--inactive);
+    color: var(--text-secondary) !important;
 }
 .delete-btn {
   background-color: var(--bar-red);
@@ -158,7 +159,17 @@ button {
     cursor: not-allowed;
     transform: none;
     border: 1px solid var(--inactive);
+    color: var(--text-secondary) !important;
 }
+.cancel-btn {
+  background-color: var(--bg-card);
+  color: var(--text-primary); /* Endret fra text-secondary */
+  border: 1px solid var(--border-inactive);
+}
+.cancel-btn:hover {
+  border-color: var(--text-secondary); /* Litt dusere hover */
+}
+
 
 /* === Container for Kundekort (index.html) === */
 .container {
@@ -184,7 +195,7 @@ button {
   border: 1px solid var(--border-inactive);
   display: flex;
   flex-direction: column;
-  width: 250px; /* Tilbake til fast bredde */
+  width: 250px; /* Fast bredde */
   min-height: 160px;
 }
 
@@ -358,7 +369,7 @@ button {
 
 .modal-content {
   background-color: var(--bg-modal);
-  margin: 10% auto; /* Litt lavere enn 15% */
+  margin: 10% auto;
   padding: 25px 30px;
   border-radius: 15px;
   width: 90%;
@@ -368,7 +379,7 @@ button {
   box-shadow: var(--shadow);
   border: 1px solid var(--accent-secondary);
   position: relative;
-  animation: slideIn 0.3s ease-out; /* Legger til slide-in */
+  animation: slideIn 0.3s ease-out;
 }
 
 .close {
@@ -390,13 +401,13 @@ button {
 textarea,
 input[type="text"],
 input[type="number"],
-input[type="date"], /* Stil for datoinput også */
-select /* Stil for select også */
+input[type="date"],
+select
 {
   width: 100%;
   box-sizing: border-box;
   padding: 12px;
-  margin: 10px 0; /* Litt mer konsekvent margin */
+  margin: 10px 0;
   border-radius: 8px;
   background-color: var(--bg-dark);
   border: 1px solid var(--border-inactive);
@@ -416,7 +427,7 @@ select:focus
   box-shadow: 0 0 8px rgba(157, 78, 221, 0.3);
 }
 textarea {
-  min-height: 100px; /* Litt høyere standard */
+  min-height: 100px;
   resize: vertical;
 }
 
@@ -463,8 +474,6 @@ textarea {
   padding-top: 15px;
   border-top: 1px solid var(--border-inactive);
 }
-/* Bruk felles knappestiler definert tidligere */
-
 
 /* Confirmation modal */
 #confirmDeleteModal .modal-content {
@@ -472,19 +481,20 @@ textarea {
   max-width: 400px;
   text-align: center;
 }
-/* Sentrer knappene spesifikt for confirmation modal */
 #confirmDeleteModal .modal-buttons {
-    justify-content: center;
+    justify-content: center; /* Sentrer knapper for bekreftelse */
 }
 
-/* Styling for temavelger (nå absolutt posisjonert) */
+
+/* Styling for temavelger (Absolutt posisjonert i header) */
 .theme-switcher {
   position: absolute;
-  top: 10px;        /* Juster etter behov */
-  right: 15px;       /* Juster etter behov */
+  top: 10px;        /* Juster avstand fra topp */
+  right: 15px;       /* Juster avstand fra høyre */
   display: flex;
   align-items: center;
   gap: 8px;
+  z-index: 10; /* Sørg for at den er over annen header-tekst */
 }
 .theme-btn {
   width: 24px;
@@ -537,31 +547,31 @@ textarea {
 /* === Responsivitet === */
 @media (max-width: 768px) {
   body {
-      padding: 15px; /* Mindre padding på sidene */
+      padding: 15px;
   }
   .header h1 {
       font-size: 2rem;
   }
   .header-actions, .nav-buttons {
-      /* Lar dem wrappe og sentreres */
       gap: 10px;
   }
    .theme-switcher {
     top: 5px;
     right: 10px;
+    gap: 5px;
   }
   .theme-btn {
     width: 20px;
     height: 20px;
   }
   .container {
-    padding: 15px 0; /* Mindre sidepadding på container */
+    padding: 15px 0;
     gap: 15px;
   }
-  .customer-box, .add-customer {
-    width: calc(50% - 10px); /* To kort pr rad */
-    min-width: 0; /* Tillat smalere */
-  }
+   .customer-box, .add-customer {
+       width: calc(50% - 10px);
+       min-width: 0;
+   }
   .modal-content {
     width: 95%;
     margin: 10% auto;
@@ -571,21 +581,27 @@ textarea {
 
 @media (max-width: 480px) {
    body {
-       padding: 10px; /* Enda mindre padding */
+       padding: 10px;
    }
    .header {
-       margin-bottom: 20px; /* Mindre luft under header */
-       padding-left: 50px; /* Plass til tema-knapper til høyre */
-       padding-right: 50px;
+       margin-bottom: 20px;
+       padding-left: 10px; /* Juster padding for å unngå overlapp med knapper */
+       padding-right: 55px; /* Gi plass til theme-switcher */
+       text-align: left; /* Venstrejuster tittel på mobil? */
    }
+    .header h1 {
+        font-size: 1.8rem;
+    }
    .header-actions, .nav-buttons {
-      flex-direction: column; /* Stack knapper */
-      align-items: center;
+      flex-direction: column;
+      align-items: center; /* Sentrer knapper */
       gap: 8px;
+      margin-top: 15px; /* Mer luft under tekst */
    }
    .header-actions button, .nav-buttons button {
        width: 90%;
-       max-width: 280px; /* Litt smalere maksbredde */
+       max-width: 280px;
+       justify-content: center;
    }
    .theme-switcher {
        top: 8px;
@@ -607,10 +623,10 @@ textarea {
   .timer { font-size: 20px; }
   .customer-name { font-size: 16px; }
   .modal-content {
-      margin: 5% auto; /* Nærmere toppen */
+      margin: 5% auto;
   }
   .modal-buttons {
-      flex-direction: column; /* Stack modal-knapper */
+      flex-direction: column;
       align-items: stretch;
   }
 }
