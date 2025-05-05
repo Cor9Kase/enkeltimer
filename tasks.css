@@ -1,8 +1,34 @@
 /* tasks.css - Stilsetting for oppgavesiden */
 
 /* Bruker variabler fra :root definert i styles.css */
+:root {
+  --bg-dark: #121212;
+  --bg-card: #1e1e1e;
+  --bg-modal: #242424;
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
+  --accent-primary: #9d4edd;
+  --accent-secondary: #7b2cbf;
+  --accent-gradient: linear-gradient(135deg, #9d4edd, #7b2cbf);
+  --inactive: #4f4f4f;
+  --active: #9d4edd;
+  --border-inactive: #383838;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --transition: all 0.3s ease;
 
-/* --- Kontroller og filtere --- */
+  /* Bar Colors (brukes for prioritet/frist) */
+  --bar-green: #4CAF50;
+  --bar-yellow: #ffc107;
+  --bar-red: #e53935;
+  --bar-background: #333;
+}
+
+/* --- Generelt --- */
+body {
+    padding-top: 20px; /* Juster etter header hvis nødvendig */
+}
+
+/* --- Kontroller, Filtere og Visningsbytte --- */
 .task-controls {
     display: flex;
     flex-wrap: wrap;
@@ -14,6 +40,7 @@
     background-color: var(--bg-card);
     border-radius: 8px;
     border: 1px solid var(--border-inactive);
+    gap: 15px; /* Gap mellom filter-seksjon, view-switcher, og add-button */
 }
 
 .task-filters {
@@ -21,6 +48,7 @@
     flex-wrap: wrap;
     gap: 20px;
     align-items: center;
+    flex-grow: 1; /* La filtre ta tilgjengelig plass */
 }
 
 .filter-group {
@@ -55,6 +83,7 @@
 .status-filter-buttons {
     display: flex;
     gap: 5px;
+    flex-wrap: wrap; /* Tillat wrapping av statusknapper */
 }
 
 .status-filter-btn {
@@ -80,10 +109,38 @@
     font-weight: bold;
 }
 
+/* Visningsbytte */
+.view-switcher {
+    display: flex;
+    gap: 5px;
+    /* Plassering styres av flexbox i .task-controls */
+}
+.view-btn {
+    background-color: var(--bg-dark);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-inactive);
+    padding: 6px 15px;
+    font-size: 13px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.view-btn:hover {
+    border-color: var(--accent-secondary);
+    color: var(--text-primary);
+}
+.view-btn.active {
+    background-color: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+    font-weight: bold;
+}
+
+/* Legg til Oppgave-knapp */
 #add-task-btn {
     padding: 8px 18px;
     font-size: 14px;
-    margin-left: auto;
+    /* Plassering styres av flexbox i .task-controls */
 }
 
 
@@ -92,35 +149,27 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 15px;
+    display: block; /* Standardvisning, endres av JS */
 }
-
-/* Styling for lasteindikator */
-#task-board-container.loading .task-placeholder {
-    display: block; /* Sørg for at den vises */
-}
-#task-board-container:not(.loading) .task-placeholder:not(:only-child) { /* Skjul hvis ikke loading OG det er andre kort */
-   /* display: none; */ /* Kan skjules, men er kanskje greit å beholde for tomme filtre */
-}
-
 
 .kanban-board {
     display: flex;
     gap: 15px;
-    overflow-x: auto;
+    overflow-x: auto; /* Horisontal scroll hvis nødvendig */
     padding-bottom: 15px;
-    min-height: 400px;
+    min-height: 400px; /* Sørg for at kolonner har høyde */
 }
 
 .kanban-column {
     background-color: var(--bg-card);
     border-radius: 8px;
     padding: 10px 15px;
-    min-width: 280px;
+    min-width: 280px; /* Bredde på kolonner */
     max-width: 300px;
-    flex: 1 0 auto;
+    flex: 1 0 auto; /* Tillat vekst, men ikke krymp for mye */
     border: 1px solid var(--border-inactive);
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* Stable tittel og liste vertikalt */
 }
 
 .kanban-column h3 {
@@ -136,21 +185,22 @@
     gap: 8px;
 }
 
+/* Status-prikker */
 .status-dot {
     display: inline-block; width: 10px; height: 10px;
     border-radius: 50%; flex-shrink: 0;
 }
-.status-ny { background-color: #64b5f6; }
-.status-pågår { background-color: var(--bar-yellow); }
-.status-venter { background-color: #ff9800; }
-.status-ferdig { background-color: var(--bar-green); }
+.status-ny { background-color: #64b5f6; } /* Blå */
+.status-pågår { background-color: var(--bar-yellow); } /* Gul */
+.status-venter { background-color: #ff9800; } /* Oransje */
+.status-ferdig { background-color: var(--bar-green); } /* Grønn */
 
 
 .task-list {
-    flex-grow: 1;
-    min-height: 100px;
+    flex-grow: 1; /* Ta resten av høyden i kolonnen */
+    min-height: 100px; /* Minimumshøyde for dropzone */
     list-style: none;
-    padding: 5px 0; /* Litt padding topp/bunn for dropzone */
+    padding: 5px 0; /* Litt padding for dropzone effekt */
     margin: 0;
     transition: background-color 0.2s ease;
 }
@@ -168,10 +218,11 @@
     border: 1px solid var(--border-inactive);
     border-radius: 6px;
     padding: 12px;
-    margin-bottom: 10px; /* Kun margin bunn */
-    cursor: grab;
+    padding-left: 10px; /* Plass til venstre indikator */
+    margin-bottom: 10px;
+    cursor: grab; /* Indikerer at det kan dras */
     transition: box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
-    position: relative;
+    position: relative; /* Nødvendig for ::before */
     overflow: hidden;
 }
 .task-card:hover {
@@ -184,7 +235,7 @@
     font-weight: 600;
     margin: 0 0 8px 0;
     color: var(--text-primary);
-    word-break: break-word;
+    word-break: break-word; /* Bryt lange ord i tittel */
 }
 
 .task-meta {
@@ -192,7 +243,7 @@
     color: var(--text-secondary);
     display: flex;
     flex-wrap: wrap;
-    gap: 5px 10px; /* Rad-gap, kolonne-gap */
+    gap: 5px 10px; /* Rad-gap, Kolonne-gap */
     margin-top: 8px;
     align-items: center;
 }
@@ -200,7 +251,7 @@
 .task-meta span {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 4px; /* Mellomrom mellom ikon og tekst */
 }
 
 .task-customer {
@@ -208,41 +259,139 @@
     color: var(--accent-primary);
 }
 
-/* Prioritetsindikator */
+/* Prioritetsindikator (venstre kant) */
 .task-card::before {
-    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
-    background-color: transparent; transition: background-color 0.3s ease;
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 5px; /* Bredde på indikatoren */
+    background-color: transparent; /* Standard ingen farge */
+    transition: background-color 0.3s ease;
+    border-top-left-radius: 6px; /* Matcher kortets radius */
+    border-bottom-left-radius: 6px;
 }
 .task-card.priority-høy::before { background-color: var(--bar-red); }
 .task-card.priority-medium::before { background-color: var(--bar-yellow); }
-.task-card.priority-lav::before { background-color: #42a5f5; } /* Lys blå */
+.task-card.priority-lav::before { background-color: #42a5f5; } /* Lys blå for lav */
 
+/* Fristindikator (bruker ::before KUN hvis ingen prioritet er satt) */
+.task-card.due-near:not(.priority-høy):not(.priority-medium):not(.priority-lav)::before {
+    background-color: var(--bar-yellow);
+    opacity: 0.7; /* Gjør den litt dusere enn prioritet */
+}
+.task-card.due-soon:not(.priority-høy):not(.priority-medium):not(.priority-lav)::before {
+    background-color: var(--bar-red);
+    opacity: 0.7; /* Gjør den litt dusere enn prioritet */
+}
+.task-card.due-overdue:not(.priority-høy):not(.priority-medium):not(.priority-lav)::before {
+    background-color: var(--bar-red); /* Sterkere farge for overskredet */
+}
 
-/* --- Styling for Due Date Markering --- */
-.task-card.due-near { border-left-color: var(--bar-yellow); border-left-width: 5px; border-left-style: solid; }
-.task-card.due-soon { border-left-color: var(--bar-red); border-left-width: 5px; border-left-style: solid; }
-.task-card.due-overdue { border: 1px solid var(--bar-red); border-left-width: 5px; border-left-style: solid; border-left-color: var(--bar-red); opacity: 0.8; }
-.task-due-date.overdue { color: var(--bar-red); font-weight: bold; }
+/* Ekstra stil for overskredet frist */
+.task-card.due-overdue {
+    opacity: 0.9; /* Gjør hele kortet litt dusere? */
+}
+.task-due-date.overdue {
+    color: var(--bar-red);
+    font-weight: bold;
+}
 
+/* Stil for Nødknapp */
+.emergency-help-btn {
+    background-color: transparent;
+    color: var(--bar-red);
+    border: none;
+    padding: 2px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px; /* Størrelse på emoji */
+    margin-left: auto; /* Skyv til høyre */
+    transition: transform 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1; /* Unngå ekstra høyde */
+}
+.emergency-help-btn:hover {
+    background-color: rgba(229, 57, 53, 0.1); /* Lett rød bakgrunn */
+    transform: scale(1.15); /* Forstørr litt */
+}
 
 /* --- Drag and Drop Styling --- */
 .task-card.dragging {
-    opacity: 0.4;
-    cursor: grabbing;
-    transform: rotate(2deg) scale(1.02);
+    opacity: 0.4; /* Gjør kortet gjennomsiktig under drag */
+    cursor: grabbing; /* Endre musepeker */
+    transform: rotate(2deg) scale(1.02); /* Lett rotasjon/zoom */
     box-shadow: 0 4px 15px rgba(0,0,0, 0.5);
 }
 
 .kanban-column .task-list.drag-over {
-    background-color: rgba(157, 78, 221, 0.1);
+    background-color: rgba(157, 78, 221, 0.1); /* Lilla highlight over kolonne */
     outline: 2px dashed var(--accent-primary);
-    outline-offset: -2px; /* Innover i padding */
+    outline-offset: -2px; /* Stiplelinje innover */
     border-radius: 5px;
 }
 
 
+/* --- Kalender Container & Styling --- */
+#calendar-view-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 15px;
+    background-color: var(--bg-card);
+    border-radius: 8px;
+    border: 1px solid var(--border-inactive);
+    /* display: none; -- styres av JS */
+}
+
+/* FullCalendar spesifikk styling */
+#calendar {
+    /* Variabler for FullCalendar farger */
+    --fc-border-color: var(--border-inactive);
+    --fc-page-bg-color: var(--bg-card); /* Bakgrunn for kalender */
+    --fc-neutral-bg-color: rgba(255, 255, 255, 0.05); /* Bakgrunn for dager */
+    --fc-list-event-hover-bg-color: rgba(157, 78, 221, 0.1); /* Hover i listevisning */
+    --fc-today-bg-color: rgba(157, 78, 221, 0.15); /* Highlight dagens dato */
+}
+#calendar a {
+    color: inherit; /* Unngå standard blå lenkefarge */
+    text-decoration: none;
+}
+.fc-event { /* Stil på hendelsene/oppgavene */
+   border: 1px solid var(--accent-secondary) !important;
+   background-color: rgba(123, 44, 191, 0.7) !important; /* Semi-transparent lilla */
+   color: white !important;
+   padding: 2px 4px;
+   font-size: 12px;
+   cursor: pointer;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+.fc-event:hover {
+    background-color: rgba(123, 44, 191, 0.9) !important; /* Mørkere på hover */
+}
+.fc-daygrid-event-dot { /* De små prikkene ved mange hendelser */
+    border-color: var(--accent-primary) !important;
+}
+.fc-toolbar-title { color: var(--text-primary); } /* Tittel (Måned/Uke) */
+.fc-button { /* Knapper (prev, next, today, view) */
+    background-color: var(--accent-primary) !important;
+    border: none !important;
+    opacity: 0.9;
+}
+.fc-button:hover {
+    background-color: var(--accent-secondary) !important;
+    opacity: 1;
+}
+.fc-button-primary:disabled { background-color: var(--inactive) !important; } /* Deaktiverte knapper */
+.fc-col-header-cell-cushion { color: var(--text-secondary); } /* Ukedager (Man, Tir...) */
+.fc-daygrid-day-number { color: var(--text-primary); } /* Dato tall */
+
+
 /* --- Oppgave Modal --- */
-.task-modal-content {
+/* Bruker .modal og .modal-content fra styles.css */
+.task-modal-content { /* Kan justere bredde spesifikt for oppgavemodal */
   max-width: 600px;
 }
 
@@ -252,7 +401,8 @@
     gap: 15px;
 }
 .form-row .form-group {
-    flex: 1 1 150px;
+    flex: 1 1 150px; /* Fleksibel base, minimumsbredde før wrap */
+    min-width: 150px; /* Sikrer minimum bredde */
     margin-bottom: 10px;
 }
 .form-row .form-group label {
@@ -262,14 +412,39 @@
 
 /* --- Responsivitet --- */
 @media (max-width: 900px) {
-    .task-controls { flex-direction: column; align-items: stretch; gap: 15px; }
-    #add-task-btn { margin-left: 0; align-self: flex-end; }
+    .task-controls {
+        flex-direction: column;
+        align-items: stretch; /* Strekk elementer til full bredde */
+        gap: 15px;
+    }
+    .task-filters {
+        order: 1; /* Filtre først */
+    }
+    .view-switcher {
+        order: 2; /* Visningsbytte etter filtre */
+        align-self: center; /* Sentrer knappene */
+        margin-bottom: 10px; /* Litt luft ned til add-knapp */
+    }
+    #add-task-btn {
+        order: 3; /* Legg til-knapp sist */
+        align-self: stretch; /* Ta full bredde */
+    }
 }
 
 @media (max-width: 600px) {
-    .kanban-column { min-width: 250px; }
-    .filter-group { flex-direction: column; align-items: flex-start; }
-    .status-filter-buttons { flex-wrap: wrap; }
-    #add-task-btn { width: 100%; }
-    .form-row .form-group { flex-basis: 100%; }
+    .kanban-column { min-width: 250px; } /* Litt smalere kolonner */
+    .filter-group {
+        flex-direction: column; /* Stack label og input */
+        align-items: flex-start; /* Venstrejuster */
+    }
+    .status-filter-buttons {
+        justify-content: flex-start; /* Start fra venstre */
+    }
+    .form-row {
+        flex-direction: column; /* Stack felter i modal */
+    }
+    .form-row .form-group {
+        flex-basis: auto; /* La dem ta nødvendig bredde */
+        min-width: 0;
+    }
 }
