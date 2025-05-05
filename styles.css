@@ -1,539 +1,332 @@
+/* styles.css - Globale stiler for Cornys Timetracker */
+
+/* --- CSS Variabler (Definerer standardtema - 'dark-purple') --- */
 :root {
+  /* Farger vil bli overstyrt av theme.js basert på valgt tema */
   --bg-dark: #121212;
   --bg-card: #1e1e1e;
   --bg-modal: #242424;
   --text-primary: #ffffff;
   --text-secondary: #b0b0b0;
-  --accent-primary: #9d4edd;
-  --accent-secondary: #7b2cbf;
+  --accent-primary: #9d4edd; /* Lilla */
+  --accent-secondary: #7b2cbf; /* Mørkere lilla */
   --accent-gradient: linear-gradient(135deg, #9d4edd, #7b2cbf);
   --inactive: #4f4f4f;
-  --active: #9d4edd;
+  --active: var(--accent-primary); /* Bruk hovedaksentfarge */
   --border-inactive: #383838;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   --transition: all 0.3s ease;
 
-  /* Bar Colors */
+  /* Bar/Status Colors */
   --bar-green: #4CAF50;
   --bar-yellow: #ffc107;
   --bar-red: #e53935;
-  --bar-background: #333;
+  --bar-background: #333; /* Bakgrunn for timebar f.eks. */
 }
 
+/* --- Grunnleggende HTML-elementer --- */
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   margin: 0;
-  padding: 20px;
+  padding: 0; /* Fjerner default padding */
+  padding-bottom: 50px; /* Litt luft nederst */
   background-color: var(--bg-dark);
   color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh; /* Sørg for at body tar minst hele høyden */
 }
 
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  margin-top: 0; /* Fjerner default top margin */
+}
+
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+a:hover {
+  color: var(--accent-secondary);
+  text-decoration: underline;
+}
+
+/* --- Header Styling (Felles for alle sider) --- */
 .header {
+  background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary)); /* Bruker gradient */
+  color: white;
+  padding: 15px 25px;
   text-align: center;
-  margin-bottom: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  position: relative; /* For status etc. */
 }
 
 .header h1 {
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-size: 2.5rem;
-  letter-spacing: 1px;
-  margin-bottom: 10px;
+  margin: 0 0 5px 0;
+  font-size: 24px;
+  color: white; /* Sørg for at H1 er hvit */
 }
 
 .current-date {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--accent-primary);
-  margin-top: 5px;
-  margin-bottom: 10px;
+  font-size: 13px;
+  opacity: 0.8;
+  margin-bottom: 5px;
 }
 
 .update-status {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 5px;
+  font-size: 11px;
+  opacity: 0.7;
   margin-bottom: 15px;
 }
 
-.header-actions {
+/* Holder for knapper i header */
+.header-actions, .nav-buttons {
   display: flex;
-  gap: 15px;
+  flex-wrap: wrap; /* Tillat wrapping på små skjermer */
   justify-content: center;
-  margin-top: 10px;
+  align-items: center;
+  gap: 10px 15px; /* Mellomrom mellom knapper */
 }
 
-.refresh-btn,
-.daily-summary-btn,
-.nav-btn /* Også fra daily-summary.css, men greit å ha her */
-{
-  background: var(--bg-card);
-  color: var(--text-primary);
-  border: 1px solid var(--border-inactive);
-  padding: 8px 18px;
-  border-radius: 8px;
+/* --- Felles Knappe-stiler --- */
+button {
   cursor: pointer;
+  font-family: inherit; /* Bruk samme font som resten av siden */
+  transition: var(--transition);
+  border-radius: 6px; /* Myke kanter */
+  padding: 8px 16px; /* Standard padding */
   font-size: 14px;
-  font-weight: bold;
-  transition: var(--transition);
+  font-weight: 500;
 }
 
-.refresh-btn:hover,
-.daily-summary-btn:hover,
-.nav-btn:hover
-{
-  transform: translateY(-2px);
-  border-color: var(--accent-primary);
-  box-shadow: 0 5px 15px rgba(157, 78, 221, 0.2);
-}
-
-/* Gjør Oppdater-knappen litt mer fremtredende */
-.refresh-btn {
-  background: var(--accent-gradient);
+/* Standard knapp (for submit etc.) */
+.submit-btn, .btn {
+  background-color: var(--accent-primary);
   color: white;
-  border: none;
-}
-.refresh-btn:hover {
-   box-shadow: 0 5px 15px rgba(157, 78, 221, 0.4);
-   border-color: transparent; /* Unngå dobbel border */
-}
-
-
-.container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: flex-start; /* Standard, endre til center hvis ønskelig */
-  padding-bottom: 50px; /* Litt luft nederst */
-}
-
-.customer-box {
-  width: 250px; /* Fast bredde, juster etter ønske */
-  min-height: 160px; /* Minimumshøyde for konsistens */
-  background-color: var(--bg-card);
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-  padding: 15px;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  transition: var(--transition);
-  border: 1px solid var(--border-inactive);
-  display: flex;
-  flex-direction: column; /* Organiser innhold vertikalt */
-}
-
-.customer-box:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(157, 78, 221, 0.2);
-  border-color: var(--accent-primary);
-}
-
-.customer-box.active {
-  box-shadow: 0 8px 25px rgba(157, 78, 221, 0.4);
   border: 1px solid var(--accent-primary);
-  background: linear-gradient(to bottom, var(--bg-card), rgba(123, 44, 191, 0.1));
+}
+.submit-btn:hover, .btn:hover {
+  background-color: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.submit-btn:disabled {
+    background-color: var(--inactive);
+    border-color: var(--inactive);
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 
-.customer-actions {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  gap: 8px; /* Litt mindre gap */
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 10;
-}
-
-.customer-box:hover .customer-actions {
-  opacity: 1;
-}
-
-.customer-action-btn {
-  background: rgba(157, 78, 221, 0.2);
-  border: none;
+/* Navigasjonsknapper (i header/andre steder) */
+.nav-btn, .refresh-btn, .daily-summary-btn, .tasks-btn {
+  background-color: rgba(255, 255, 255, 0.1); /* Gjennomsiktig hvit */
   color: white;
-  cursor: pointer;
-  font-size: 14px; /* Litt mindre ikon */
-  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 6px 14px; /* Litt mindre padding */
+  font-size: 13px;
+}
+.nav-btn:hover, .refresh-btn:hover, .daily-summary-btn:hover, .tasks-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Avbryt/Slett-knapper */
+.cancel-btn {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-inactive);
+}
+.cancel-btn:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: var(--text-secondary);
+}
+
+.delete-btn {
+    background-color: var(--bar-red);
+    color: white;
+    border: 1px solid var(--bar-red);
+}
+.delete-btn:hover {
+    background-color: #c62828; /* Mørkere rød */
+    border-color: #c62828;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.delete-btn:disabled {
+    background-color: var(--inactive);
+    border-color: var(--inactive);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* --- Tema-velger knapper --- */
+.theme-switcher {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 26px; /* Litt mindre knapp */
-  height: 26px;
+  gap: 8px;
+  margin-left: 20px; /* Litt avstand fra andre knapper */
+  /* Plassering kan justeres basert på flex-rekkefølge i HTML på mindre skjermer */
+}
+
+.theme-btn {
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  transition: var(--transition);
+  border: 2px solid var(--border-inactive); /* Bruk variabel for kant */
+  cursor: pointer;
+  padding: 0; /* Ingen intern padding */
+  transition: transform 0.2s ease, border-color 0.2s ease;
+  flex-shrink: 0; /* Forhindre krymping */
 }
 
-.customer-action-btn:hover {
-  background: rgba(157, 78, 221, 0.5);
+.theme-btn:hover {
   transform: scale(1.1);
+  border-color: var(--text-primary); /* Lysere kant på hover */
 }
 
-.customer-name {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 5px;
-  color: var(--text-primary);
-  word-break: break-word; /* Bryt lange navn */
-}
-
-/* Valgfritt: Skjul den gamle available-hours */
-.available-hours {
-  /* display: none; */ /* Fjern kommentaren for å skjule */
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-}
-
-.timer {
-  font-size: 24px;
-  font-weight: bold;
-  margin-top: auto; /* Skyver timer og status ned */
-  margin-bottom: 5px;
-  color: var(--accent-primary);
-  line-height: 1.1;
-}
-
-.status {
-  /* position: absolute; */ /* Ikke lenger absolutt */
-  /* bottom: 15px; */
-  /* left: 15px; */
-  font-size: 14px;
-  color: var(--inactive);
-  align-self: flex-start; /* Juster til venstre */
-}
-
-.active .status {
-  color: var(--active);
-  font-weight: bold;
-}
-
-/* Styles for Customer Hours Bar */
-.hours-indicator {
-    display: flex;
-    align-items: center;
-    gap: 8px; /* Mellomrom mellom bar og tekst */
-    margin-top: 8px; /* Plass over baren */
-    margin-bottom: 10px; /* Plass under baren */
-}
-
-.hours-bar-container {
-    flex-grow: 1; /* Lar baren ta opp tilgjengelig plass */
-    background-color: var(--bar-background);
-    border-radius: 5px;
-    height: 10px; /* Høyde på baren */
-    overflow: hidden; /* Sørger for at fyllet holder seg innenfor */
-    border: 1px solid var(--border-inactive);
-}
-
-.hours-bar-fill {
-    height: 100%;
-    border-radius: 4px; /* Litt mindre enn container for fin kant */
-    transition: width 0.4s ease-in-out, background-color 0.4s ease; /* Animer endringer */
-    width: 0%; /* Starter tom */
-    background-color: var(--inactive); /* Grå som default */
-}
-
-/* Fargeklasser for bar-fyllet */
-.hours-bar-fill.bar-green {
-    background-color: var(--bar-green);
-}
-
-.hours-bar-fill.bar-yellow {
-    background-color: var(--bar-yellow);
-}
-
-.hours-bar-fill.bar-red {
-    background-color: var(--bar-red);
-}
-
-.hours-remaining-text {
-    font-size: 11px;
-    font-weight: 600; /* Litt fet skrift */
-    color: var(--text-secondary);
-    white-space: nowrap; /* Forhindrer at teksten brytes */
-    flex-shrink: 0; /* Forhindrer at teksten krymper */
-}
-/* --- Slutt på Bar Styles --- */
+/* Definer fargene for knappene - disse endres IKKE med temaet */
+.theme-btn.theme-dark-purple { background: linear-gradient(135deg, #9d4edd, #7b2cbf); }
+.theme-btn.theme-light-blue { background: linear-gradient(135deg, #3498db, #2980b9); }
+.theme-btn.theme-forest-green { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+/* Legg til flere tema-knapp-farger her hvis du lager flere temaer */
 
 
+/* --- Felles Modal Styling --- */
 .modal {
-  display: none;
-  position: fixed;
-  z-index: 1001; /* Sikre at den er over test-knappen */
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
+  display: none; /* Skjult som standard */
+  position: fixed; /* Bli på skjermen */
+  z-index: 1000; /* Legg over annet innhold */
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  overflow: auto; /* Scroll hvis innholdet er for langt */
+  background-color: rgba(0, 0, 0, 0.7); /* Mørk, semi-transparent bakgrunn */
+  backdrop-filter: blur(3px); /* Uklar bakgrunn (moderne nettlesere) */
+  animation: fadeIn 0.3s ease; /* Fade inn animasjon */
 }
 
 .modal-content {
   background-color: var(--bg-modal);
-  margin: 15% auto;
-  padding: 25px;
-  border-radius: 15px;
-  width: 90%; /* Bedre default for mobil */
-  max-width: 500px;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--accent-secondary);
-  position: relative; /* For lukkeknapp-posisjonering */
-}
-
-.close {
-  color: var(--text-secondary);
-  position: absolute; /* Plasser ift modal-content */
-  top: 10px;
-  right: 15px;
-  font-size: 28px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: var(--transition);
-  line-height: 1;
-}
-
-.close:hover {
-  color: var(--accent-primary);
-}
-
-textarea,
-input[type="text"],
-input[type="number"] /* Gjelder modal-input */
-{
-  width: 100%; /* Ta full bredde */
-  box-sizing: border-box; /* Inkluder padding/border i bredden */
-  padding: 12px;
-  margin: 10px 0;
-  border-radius: 8px;
-  background-color: var(--bg-dark);
+  margin: 10% auto; /* Sentrer vertikalt (ca.) og horisontalt */
+  padding: 25px 30px;
   border: 1px solid var(--border-inactive);
-  color: var(--text-primary);
-  font-family: inherit;
-  font-size: 1rem; /* Sørg for lik størrelse */
-  transition: var(--transition);
-}
-
-textarea:focus,
-input[type="text"]:focus,
-input[type="number"]:focus
-{
-  outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 8px rgba(157, 78, 221, 0.3);
-}
-
-textarea {
-  height: 100px;
-  resize: vertical; /* Tillat vertikal endring */
-}
-
-
-.submit-btn,
-.delete-btn,
-.cancel-btn
-{
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  transition: var(--transition);
-  display: inline-flex; /* For bedre alignment hvis ikon legges til */
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.submit-btn {
-   background: var(--accent-gradient);
-}
-.submit-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(157, 78, 221, 0.4);
-}
-.submit-btn:disabled {
-    background: var(--inactive);
-    cursor: not-allowed;
-    box-shadow: none;
-    transform: none;
-}
-
-
-.add-customer {
-  width: 250px;
-  height: 160px; /* Match min-height for customer-box */
-  background: linear-gradient(to bottom, var(--bg-card), rgba(123, 44, 191, 0.05));
-  border: 2px dashed var(--border-inactive); /* Tykkere dash */
   border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  order: -1; /* Vises først */
-  transition: var(--transition);
-  text-align: center;
-  padding: 15px;
-  box-sizing: border-box;
+  width: 90%; /* Bredde på mobil */
+  max-width: 500px; /* Maks bredde på desktop */
+  box-shadow: var(--shadow);
+  position: relative; /* For lukkeknapp */
+  animation: slideIn 0.4s ease forwards; /* Slide inn animasjon */
 }
 
-.add-customer:hover {
-  border-color: var(--accent-primary);
-  box-shadow: 0 5px 15px rgba(157, 78, 221, 0.2);
-  transform: translateY(-5px);
-}
-
-.add-customer.active {
-  border: 2px solid var(--accent-primary);
-  background: linear-gradient(to bottom, var(--bg-card), rgba(123, 44, 191, 0.2));
-}
-
-.add-customer-icon {
-  font-size: 40px;
-  color: var(--inactive);
-  transition: var(--transition);
-  line-height: 1;
-}
-
-.add-customer:hover .add-customer-icon {
-  color: var(--accent-primary);
-}
-
-.add-customer.active .add-customer-icon {
-  color: var(--accent-primary);
-}
-
-.add-customer-timer {
-  font-size: 24px;
-  font-weight: bold;
-  margin-top: 10px;
-  color: var(--accent-primary);
-}
-
-.new-customer-modal .modal-content,
-#editCustomerModal .modal-content
-{
-  width: 90%; /* Bedre mobilvisning */
-  max-width: 450px; /* Litt smalere */
-  max-height: 80vh;
-  overflow-y: auto;
-  margin: 10% auto;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: bold;
-  color: var(--text-primary);
-}
-
-
-/* Styling for modal titles */
 .modal-content h2 {
-  color: var(--text-primary);
   margin-top: 0;
   margin-bottom: 20px;
-  font-size: 1.6rem;
+  color: var(--accent-primary);
   border-bottom: 1px solid var(--border-inactive);
   padding-bottom: 10px;
 }
 
-/* Styling for customer info in modal */
-#modal-customer-name, #new-customer-time-spent {
-  color: var(--accent-primary);
-  font-weight: 500;
-  font-size: 1.1rem;
+.modal .close {
+  color: var(--text-secondary);
+  position: absolute;
+  top: 10px; right: 20px;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.modal .close:hover,
+.modal .close:focus {
+  color: var(--text-primary);
+  text-decoration: none;
 }
 
-#modal-time-spent {
+/* Knapper i modal */
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end; /* Knapper til høyre */
+    gap: 10px;
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-inactive);
+}
+
+/* --- Skjemaelementer (felles for modaler) --- */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block; /* Label over input */
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
-
-/* Confirmation modal */
-#confirmDeleteModal .modal-content {
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-}
-
-.modal-buttons {
-  display: flex;
-  gap: 15px; /* Mer luft */
-  justify-content: center;
-  margin-top: 25px; /* Mer luft */
-}
-
-.cancel-btn {
-  background: var(--bg-card);
-  color: var(--text-primary);
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="date"],
+.form-group select,
+.form-group textarea {
+  width: 100%; /* Ta full bredde */
+  padding: 10px 12px;
+  background-color: var(--bg-dark);
   border: 1px solid var(--border-inactive);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 14px;
+  box-sizing: border-box; /* Inkluder padding/border i bredden */
+  transition: border-color 0.2s ease;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(157, 78, 221, 0.2); /* Lett highlight */
 }
 
-.cancel-btn:hover {
-  background: var(--bg-modal);
-  border-color: var(--text-secondary);
-  transform: translateY(-2px); /* Liten hover-effekt */
+.form-group textarea {
+    min-height: 80px; /* Minimum høyde for tekstområde */
+    resize: vertical; /* Tillat kun vertikal endring av størrelse */
 }
 
-.delete-btn {
-  background: var(--bar-red); /* Bruk samme rødfarge */
-}
+/* --- Animasjoner --- */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-.delete-btn:hover {
-  background: #c62828; /* Mørkere rød */
-  transform: translateY(-2px);
-}
-.delete-btn:disabled {
-    background: var(--inactive);
-    cursor: not-allowed;
-    transform: none;
-}
-
-
-/* Responsive adjustments */
-@media (max-width: 600px) { /* Justert breakpoint */
-  .container {
-      justify-content: center; /* Sentrer bokser på små skjermer */
+/* --- Responsivitet (Globale justeringer) --- */
+@media (max-width: 768px) {
+  .header { padding: 15px; }
+  .header h1 { font-size: 20px; }
+  .modal-content { margin: 15% auto; padding: 20px; }
+  /* Justering for tema-knapper i header */
+  .theme-switcher {
+    margin-left: 0;
+    margin-top: 10px; /* Legg til litt luft over hvis den wrapper */
+    width: 100%; /* Ta full bredde ved wrap */
+    justify-content: center; /* Sentrer knappene */
   }
-
-  .customer-box, .add-customer {
-    width: 90%; /* Ta mer bredde */
-    max-width: 350px; /* Men ikke bli for brede */
-  }
-
-  .header h1 {
-      font-size: 2rem; /* Mindre tittel */
-  }
-
-  .modal-content {
-    margin: 10% auto; /* Mindre margin */
-  }
+   .nav-buttons {
+      /* Sørg for at theme-switcher kan legge seg under */
+      flex-wrap: wrap;
+   }
 }
 
-/* Nødtest-knapp styling */
-#test-connection-button {
-  position: fixed;
-  bottom: 10px;
-  right: 10px;
-  background-color: #ff5555;
-  color: white;
-  padding: 8px 15px;
-  border-radius: 5px;
-  border: none;
-  cursor: pointer;
-  z-index: 1000;
-  font-size: 12px;
+@media (max-width: 480px) {
+    button, .submit-btn, .nav-btn, .refresh-btn {
+        padding: 10px 14px; /* Litt større touch-targets */
+        font-size: 15px;
+    }
+     .header-actions, .nav-buttons {
+         flex-direction: column; /* Stack knapper vertikalt */
+         align-items: stretch; /* Strekk knapper */
+     }
+     .theme-switcher {
+         margin-top: 15px;
+     }
+    .modal-content { margin: 20% auto; width: 95%; }
+    .modal-buttons { justify-content: center; } /* Sentrer knapper */
 }
