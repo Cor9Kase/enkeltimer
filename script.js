@@ -402,6 +402,16 @@ function updateCustomerBar(customerId, availableHours) {
 }
 // ------- SLUTT NY HJELPEFUNKSJON updateCustomerBar -------
 
+// Legg denne et sted i script.js (f.eks. nær andre hjelpefunksjoner)
+function isWeekend(date) {
+    const day = date.getDay(); // 0 = Søndag, 6 = Lørdag
+    return day === 0 || day === 6;
+}
+
+// Ny hjelpefunksjon for å få datoen i YYYY-MM-DD format
+function getISODateString(date) {
+    return date.toISOString().split('T')[0];
+}
 
 // Veksler timer for en gitt kundeboks
 function toggleTimer(box) {
