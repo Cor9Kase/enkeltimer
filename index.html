@@ -1,3 +1,5 @@
+--- START OF FILE index.html ---
+
 <!DOCTYPE html>
 <html lang="no">
 <head>
@@ -37,49 +39,71 @@
       <div style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">Ny kunde</div>
     </div>
 
+    <!-- Lasteindikator (håndteres av script.js) -->
+    <!-- Fjernet denne helt for å unngå timing-problemer -->
+    <!-- <div style="width: 100%; text-align: center; padding: 30px; color: var(--text-secondary);" id="loading-indicator">Laster kunder...</div> -->
+
     <!-- Kundebokser lastes inn her av script.js -->
-    <!-- Lasteindikator er fjernet -->
 
   </div>
 
   <!-- Modal for å legge til kommentar etter timerstopp -->
   <div id="commentModal" class="modal">
-    <div class="modal-content"> <!-- Starten på modal-innholdet -->
-      <span class="close" title="Lukk">×</span> <!-- Lukkeknapp inne -->
+    <div class="modal-content">
+      <!-- onclick fjernet -->
+      <span class="close" title="Lukk">×</span>
       <h2>Legg til kommentar</h2>
       <p id="modal-customer-name">Kunde AS</p>
       <p id="modal-time-spent">Tid brukt: 00:00:00</p>
 
-      <!-- Oppgavevalg er fjernet -->
-
+-     <!-- Oppgavevalg -->
+-     <div class="form-group task-link-group" style="display: none; margin-bottom: 15px;">
+-       <label style="font-size: 14px; margin-bottom: 8px; display: block;">Knytt til oppgave(r) (valgfri):</label>
+-       <div id="task-checkbox-list" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--border-inactive); padding: 10px; border-radius: 6px; background-color: var(--bg-dark);">
+-         <span style="color: var(--text-secondary); font-style: italic;">Laster oppgaver...</span>
+-       </div>
+-       <div id="task-status-update-options" style="margin-top: 10px; display: none;">
+-          <label style="font-size: 13px; margin-right: 10px;">Sett status for valgte oppgaver til:</label>
+-          <select id="update-task-status-select" style="padding: 5px; font-size: 13px; background-color: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-inactive); border-radius: 6px;">
+-              <option value="">-- Ikke endre status --</option>
+-              <option value="Pågår">Pågår</option>
+-              <option value="Ferdig">Ferdig</option>
+-          </select>
+-       </div>
+-     </div>
+-
       <div class="form-group">
         <label for="comment-text" style="display: block; margin-bottom: 5px;">Kommentar:</label>
         <textarea id="comment-text" placeholder="Skriv en kommentar om arbeidet..."></textarea>
       </div>
 
       <button class="submit-btn" id="submit-comment-btn">Lagre og avslutt</button>
-
-    </div> <!-- === SLUTT PÅ .modal-content === -->
-  </div> <!-- Slutt på #commentModal -->
+    </div>
+  </div>
 
   <!-- Modal for å legge til ny kunde -->
   <div id="newCustomerModal" class="modal new-customer-modal">
     <div class="modal-content">
+      <!-- onclick beholdes her, kaller spesifikk funksjon -->
       <span class="close" onclick="cancelNewCustomer()" title="Lukk">×</span>
       <h2>Legg til ny kunde</h2>
       <p id="new-customer-time-spent">Tid brukt: 00:00:00</p>
+
       <div class="form-group">
         <label for="new-customer-name">Kundenavn:</label>
         <input type="text" id="new-customer-name" placeholder="Skriv inn kundenavn" required>
       </div>
+
       <div class="form-group">
         <label for="new-customer-hours">Timer Tildelt (denne måneden):</label>
         <input type="number" id="new-customer-hours" placeholder="Antall timer" required>
       </div>
+
       <div class="form-group">
         <label for="new-customer-comment">Kommentar (knyttes til første tidslogg, valgfri):</label>
         <textarea id="new-customer-comment" placeholder="Skriv en kommentar om arbeidet..."></textarea>
       </div>
+
       <button class="submit-btn" id="create-customer-btn">Lagre kunde for denne måneden</button>
     </div>
   </div>
@@ -87,17 +111,21 @@
   <!-- Modal for å redigere kunde -->
   <div id="editCustomerModal" class="modal">
     <div class="modal-content">
+       <!-- onclick fjernet -->
       <span class="close" title="Lukk">×</span>
       <h2>Rediger kunde (denne måneden)</h2>
+
       <div class="form-group">
         <label for="edit-customer-name">Kundenavn:</label>
         <input type="text" id="edit-customer-name" required>
       </div>
+
       <div class="form-group">
         <label for="edit-customer-hours">Timer Gjenstående (nåværende):</label>
         <input type="number" id="edit-customer-hours" required>
         <small style="color: var(--text-secondary); display: block; margin-top: 4px;">Endring her justerer kun saldoen. For å endre tildelte timer, gjør det i regnearket.</small>
       </div>
+
       <input type="hidden" id="edit-customer-id">
       <button class="submit-btn" id="update-customer-btn">Lagre endringer</button>
     </div>
@@ -106,13 +134,16 @@
   <!-- Bekreftelsesmodal for sletting -->
   <div id="confirmDeleteModal" class="modal">
     <div class="modal-content">
+       <!-- onclick fjernet -->
       <span class="close" title="Lukk">×</span>
       <h2>Bekreft sletting</h2>
       <p>Er du sikker på at du vil slette oppføringen for kunden <strong id="delete-customer-name" style="color: var(--accent-primary);"></strong> for **denne måneden**?</p>
       <p>Dette sletter raden fra 'Kunder'-arket for inneværende måned. Logget tid i 'Tidslogg' blir værende.</p>
       <p>Handlingen kan ikke angres.</p>
+
       <input type="hidden" id="delete-customer-id">
       <div class="modal-buttons">
+        <!-- onclick beholdes på Avbryt-knappen -->
         <button class="cancel-btn" onclick="closeModal('confirmDeleteModal')">Avbryt</button>
         <button class="delete-btn" id="confirm-delete-btn">Slett for denne måneden</button>
       </div>
