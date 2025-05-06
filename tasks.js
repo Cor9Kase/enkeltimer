@@ -1,6 +1,6 @@
 // --- Konfigurasjon ---
 // Google Script URL - *** VIKTIG: MÅ VÆRE SAMME SOM I ANDRE JS-FILER ***
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx2ukbDWH_fwz3S1Y4WfYbiL4D1lSQoUdQflmOvxWM4yoMOADF9Lh92lZzirerjC3Ew/exec'; // <-- ERSTATT MED DIN FAKTISKE URL HVIS DENNE ER FEIL
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzO1onz7k_XVDGSzSuYYI9ymsXDRrE1bsUbTywtud2PRjhmdSZB9ltx3UwGQwkY5fzG/exec'; // <-- ERSTATT MED DIN FAKTISKE URL HVIS DENNE ER FEIL
 
 // --- Globale variabler ---
 let allTasks = []; // Holder alle hentede oppgaver
@@ -258,33 +258,25 @@ function renderTaskBoard() {
     });
 }
 
-// Lager HTML for et enkelt oppgavekort
 function createTaskCardElement(task) {
     const card = document.createElement('div');
     card.className = 'task-card';
-    card.setAttribute('draggable', true); // For drag-and-drop
-    card.setAttribute('data-task-id', task.id); // Lagre ID for referanse
-
-    // Legg til klasse for prioritet (for CSS ::before styling)
+    card.setAttribute('draggable', true);
+    card.setAttribute('data-task-id', task.id);
     if (task.priority) card.classList.add(`priority-${task.priority.toLowerCase()}`);
 
-    // Sjekk frist og legg til klasser + HTML for visning
-    let dueDateHtml = '';
-    let isOverdue = false;
+    // Frist (som før)
+    let dueDateHtml = ''; let isOverdue = false;
     if (task.dueDate) {
-        const dueDate = new Date(task.dueDate);
-        const today = new Date();
-        dueDate.setHours(0, 0, 0, 0);
-        today.setHours(0, 0, 0, 0);
+        const dueDate = new Date(task.dueDate); const today = new Date();
+        dueDate.setHours(0, 0, 0, 0); today.setHours(0, 0, 0, 0);
         const timeDiff = dueDate.getTime() - today.getTime();
         const daysUntilDue = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
         isOverdue = daysUntilDue < 0;
-
-        card.classList.remove('due-near', 'due-soon', 'due-overdue'); // Nullstill
+        card.classList.remove('due-near', 'due-soon', 'due-overdue');
         if (isOverdue) card.classList.add('due-overdue');
         else if (daysUntilDue <= 3) card.classList.add('due-soon');
         else if (daysUntilDue <= 7) card.classList.add('due-near');
-
         dueDateHtml = `
             <span class="task-due-date ${isOverdue ? 'overdue' : ''}" title="Frist">
                 📅 ${new Date(task.dueDate).toLocaleDateString('no-NO', { day: 'numeric', month: 'short' })}
@@ -292,21 +284,34 @@ function createTaskCardElement(task) {
             </span>`;
     }
 
-    // Bygg kortets innhold
+    // === START ENDRING: Vis Estimert Tid ===
+    let estimatedTimeHtml = '';
+    // Bruk 'estimatedTime' feltet som hentes fra backend
+    // Sjekker for både null og undefined, og at verdien er > 0
+    if (task.estimatedTime !== null && task.estimatedTime !== undefined && task.estimatedTime > 0) {
+         estimatedTimeHtml = `
+            <span class="task-estimated" title="Estimert tid">
+                ⏱️ ${parseFloat(task.estimatedTime).toFixed(1)} t
+            </span>`; // Vis med én desimal
+    }
+    // === SLUTT ENDRING ===
+
+    // Bygg kortets innhold (inkluderer nå estimatedTimeHtml)
     card.innerHTML = `
         <h4>${task.name || 'Ukjent oppgave'}</h4>
         <div class="task-meta">
             <span class="task-customer" title="Kunde">👤 ${task.customer || 'Ingen'}</span>
             ${dueDateHtml}
+            ${estimatedTimeHtml} <!-- <<< Endring her -->
             ${task.priority ? `<span title="Prioritet">${getPriorityIcon(task.priority)} ${task.priority}</span>` : ''}
-            <!-- Nødknapp er fjernet -->
+            <!-- Ingen nødknapp -->
         </div>
     `;
 
-    // Legg til lyttefunksjoner ETTER at innerHTML er satt
+    // Listeners (som før)
     card.addEventListener('dragstart', handleDragStart);
     card.addEventListener('dragend', handleDragEnd);
-    card.addEventListener('click', () => openEditTaskModal(task.id)); // Klikk på kortet åpner redigering
+    card.addEventListener('click', () => openEditTaskModal(task.id));
 
     return card;
 }
@@ -377,7 +382,7 @@ function openEditTaskModal(taskId) {
         return;
     }
 
-    clearTaskModal();
+    clearTaskModal(); // Nullstiller og setter default estimert tid først
     document.getElementById('task-modal-title').textContent = 'Rediger oppgave';
     populateCustomerDropdown_Modal(); // Fyll kundeliste
 
@@ -388,11 +393,30 @@ function openEditTaskModal(taskId) {
     document.getElementById('task-description').value = task.description || '';
     document.getElementById('task-status').value = task.status;
     document.getElementById('task-priority').value = task.priority || '';
-    document.getElementById('task-due-date').value = task.dueDate || ''; // Frist
+    document.getElementById('task-due-date').value = task.dueDate || '';
+
+    // === START ENDRING: Fyll inn lagret estimert tid ===
+    // Henter 'estimatedTime' fra task-objektet
+    document.getElementById('task-estimated-time').value = (task.estimatedTime !== null && task.estimatedTime !== undefined) ? task.estimatedTime : '1.5'; // Bruk lagret verdi eller default
+    // === SLUTT ENDRING ===
 
     document.getElementById('taskModal').style.display = 'block';
 }
 
+    // Nullstiller feltene i modalen
+function clearTaskModal() {
+    document.getElementById('task-id').value = '';
+    document.getElementById('task-customer').value = '';
+    document.getElementById('task-name').value = '';
+    document.getElementById('task-description').value = '';
+    document.getElementById('task-status').value = 'Ny'; // Standard status
+    document.getElementById('task-priority').value = '';
+    document.getElementById('task-due-date').value = '';
+    // === START ENDRING: Sett default estimert tid ===
+    document.getElementById('task-estimated-time').value = '1.5';
+    // === SLUTT ENDRING ===
+}
+    
 // Nullstiller feltene i modalen
 function clearTaskModal() {
     document.getElementById('task-id').value = '';
@@ -422,10 +446,15 @@ function populateCustomerDropdown_Modal() {
 }
 
 // Håndterer lagring (både ny og rediger)
+// Håndterer lagring (både ny og rediger)
 function handleSaveTask() {
     if (isSubmitting) return; // Unngå doble innsendinger
 
     const taskId = document.getElementById('task-id').value;
+    // === START ENDRING: Les estimert tid ===
+    const estimatedTimeValue = document.getElementById('task-estimated-time').value;
+    // === SLUTT ENDRING ===
+
     const taskData = {
         id: taskId || undefined, // Send kun med ID hvis den finnes (for update)
         customer: document.getElementById('task-customer').value,
@@ -434,11 +463,23 @@ function handleSaveTask() {
         status: document.getElementById('task-status').value,
         priority: document.getElementById('task-priority').value || null, // Send null hvis tom
         dueDate: document.getElementById('task-due-date').value || null, // Send null hvis tom
+        // === START ENDRING: Legg til estimert tid i data som sendes ===
+        estimatedTime: estimatedTimeValue !== '' ? estimatedTimeValue : null, // Send som streng eller null
+        // === SLUTT ENDRING ===
     };
 
     // Validering
     if (!taskData.customer) { alert("Velg en kunde."); return; }
     if (!taskData.name) { alert("Skriv inn et oppgavenavn."); return; }
+
+    // === START ENDRING: Valider estimert tid ===
+    const estTimeFloat = parseFloat(estimatedTimeValue);
+    if (estimatedTimeValue !== '' && (isNaN(estTimeFloat) || estTimeFloat < 0)) {
+         alert("Estimert tid må være et positivt tall (f.eks. 1.5) eller stå tomt.");
+         return; // Avbryt hvis ugyldig
+    }
+    // === SLUTT ENDRING ===
+
 
     isSubmitting = true;
     console.log("Lagrer oppgave:", taskData);
@@ -449,7 +490,7 @@ function handleSaveTask() {
     saveButton.disabled = true; saveButton.textContent = 'Lagrer...';
 
     // Bruk POST-funksjonen til å sende data
-    postDataToScript_Tasks(taskData)
+    postDataToScript_Tasks(taskData) // Sender nå med estimatedTime
         .then(response => {
             if (response.success) {
                 console.log("Lagring vellykket:", response);
