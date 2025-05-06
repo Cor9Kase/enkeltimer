@@ -20,13 +20,15 @@
     </div>
     <!-- === SLUTT GAMIFICATION DISPLAY === -->
 
-   <div class="header-main-actions">
+    <!-- Hovedknapper UTEN refresh -->
+    <div class="header-main-actions">
       <!-- Refresh-knappen er FLYTTET herfra -->
-      <button class="nav-btn active" onclick="window.location.href='index.html'">Timeregistrering</button>
+      <!-- FJERN 'active' fra denne knappen -->
+      <button class="nav-btn" onclick="window.location.href='index.html'">Timeregistrering</button>
       <button class="nav-btn" onclick="window.location.href='daily-summary.html'">Dagsoversikt</button>
       <button class="nav-btn" onclick="window.location.href='tasks.html'">Oppgaver</button>
     </div>
-
+    
     <!-- Container for temaknapper (posisjoneres av CSS) -->
     <div class="theme-switcher">
       <button id="theme-btn-dark-purple" title="Mørk Lilla Tema" class="theme-btn theme-dark-purple"></button>
