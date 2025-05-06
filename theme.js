@@ -1,8 +1,8 @@
-// theme.js - Håndtering av fargetemaer OG visning av gamification
+// theme.js - Håndtering av fargetemaer, visning av gamification, og aktiv nav-knapp
 
 // Definer de ulike temaene med sine fargeverdier
 const themes = {
-  'dark-purple': { // Samsvarer med din opprinnelige stil (ca.)
+  'dark-purple': {
     '--bg-dark': '#121212',
     '--bg-card': '#1e1e1e',
     '--bg-modal': '#242424',
@@ -17,7 +17,7 @@ const themes = {
     '--bar-red': '#e53935',
     '--bar-background': '#333'
   },
-  'light-blue': { // Eksempel på et lyst tema
+  'light-blue': {
     '--bg-dark': '#f4f7f9',
     '--bg-card': '#ffffff',
     '--bg-modal': '#ffffff',
@@ -32,7 +32,7 @@ const themes = {
     '--bar-red': '#e74c3c',
     '--bar-background': '#ecf0f1'
   },
-  'forest-green': { // Eksempel på et annet mørkt tema
+  'forest-green': {
     '--bg-dark': '#1a2a27',
     '--bg-card': '#243d38',
     '--bg-modal': '#2a4a43',
@@ -47,7 +47,7 @@ const themes = {
     '--bar-red': '#e53935',
     '--bar-background': '#44645d'
   },
-  'ocean-breeze': { // Nytt lyst tema med blå/turkis
+  'ocean-breeze': {
     '--bg-dark': '#e0f7fa',
     '--bg-card': '#ffffff',
     '--bg-modal': '#ffffff',
@@ -62,7 +62,7 @@ const themes = {
     '--bar-red': '#ef9a9a',
     '--bar-background': '#cfd8dc'
   },
-  'sunset-glow': { // Nytt varmt, mørkt tema
+  'sunset-glow': {
     '--bg-dark': '#212121',
     '--bg-card': '#313131',
     '--bg-modal': '#3a3a3a',
@@ -77,7 +77,7 @@ const themes = {
     '--bar-red': '#ef9a9a',
     '--bar-background': '#454545'
   },
-   'monochrome-mint': { // Nytt dus, mørkt tema
+   'monochrome-mint': {
     '--bg-dark': '#263238',
     '--bg-card': '#37474f',
     '--bg-modal': '#455a64',
@@ -131,7 +131,7 @@ function applyTheme(themeName) {
        document.documentElement.style.setProperty(variable, theme[variable]);
     }
   }
-  // Fjern gamle tema-klasser og legg til den nye på body
+  // Oppdater body-klasse for evt. tema-spesifikk CSS
   const bodyClasses = document.body.className.split(' ').filter(cls => !cls.startsWith('theme-'));
   document.body.className = [...bodyClasses, `theme-${themeName}`].join(' ');
 }
@@ -192,78 +192,86 @@ function loadCheckAndApplyTheme() {
   }
 }
 
-// --- Gamification Display (MED EKSTRA LOGGING) ---
+// --- Gamification Display ---
 
 /**
- * Leser streak og rank fra localStorage og oppdaterer HTML-elementene.
+ * Leser poeng, streak og rank fra localStorage og oppdaterer HTML-elementene.
  */
-function displayStreakAndRank() {
-    console.log("--- Kjører displayStreakAndRank (i theme.js) ---"); // Logg start
+function displayGamificationStatus() {
+    console.log("--- Kjører displayGamificationStatus (i theme.js) ---");
 
-    // Les verdier fra localStorage
+    const totalPointsStr = localStorage.getItem('user_totalPoints');
     const streakCountStr = localStorage.getItem('streak_count');
     const rankStr = localStorage.getItem('user_rank');
-    console.log(`Lest fra localStorage: streak_count='${streakCountStr}', user_rank='${rankStr}'`);
+    console.log(`Lest fra localStorage: points='${totalPointsStr}', streak='${streakCountStr}', rank='${rankStr}'`);
 
-    // Konverter streak til tall, default til 0
+    const totalPoints = parseInt(totalPointsStr || '0');
     const streakCount = parseInt(streakCountStr || '0');
-    // Bruk rank direkte, default til "Nybegynner"
     const rank = rankStr || "Nybegynner";
 
-    // Finn HTML-elementene
+    const pointsElement = document.getElementById('points-display');
     const streakElement = document.getElementById('streak-display');
     const rankElement = document.getElementById('rank-display');
 
-    // Sjekk om elementene ble funnet
-    if (!streakElement) {
-        console.warn("#streak-display elementet ble IKKE funnet i HTML!");
-    }
-    if (!rankElement) {
-        console.warn("#rank-display elementet ble IKKE funnet i HTML!");
+    if (!pointsElement) console.warn("#points-display elementet ble IKKE funnet i HTML!");
+    if (!streakElement) console.warn("#streak-display elementet ble IKKE funnet i HTML!");
+    if (!rankElement) console.warn("#rank-display elementet ble IKKE funnet i HTML!");
+
+    if (pointsElement) {
+        pointsElement.innerHTML = `✨ ${totalPoints} Poeng`;
+        pointsElement.style.display = 'inline-block';
+        console.log("Oppdaterte #points-display.");
     }
 
-    // Oppdater streak-visning
     if (streakElement) {
         if (streakCount > 0) {
             streakElement.innerHTML = `🔥 ${streakCount} dager på rad!`;
-            streakElement.style.display = 'inline-block'; // Vis
+            streakElement.style.display = 'inline-block';
             console.log("Oppdaterte #streak-display.");
         } else {
-            streakElement.style.display = 'none'; // Skjul
+            streakElement.style.display = 'none';
             console.log("Skjulte #streak-display (streak = 0).");
         }
     }
 
-    // Oppdater rank-visning
     if (rankElement) {
         rankElement.innerHTML = `🏆 Rank: ${rank}`;
-         rankElement.style.display = 'inline-block'; // Vis
+         rankElement.style.display = 'inline-block';
          console.log("Oppdaterte #rank-display.");
     }
 
-    console.log("--- Ferdig med displayStreakAndRank ---"); // Logg slutt
+    console.log("--- Ferdig med displayGamificationStatus ---");
 }
 
 // === NY FUNKSJON for å markere aktiv navigeringsknapp ===
 function highlightActiveNavButton() {
-    const currentPath = window.location.pathname.split("/").pop(); // Får filnavnet (f.eks. "index.html")
-    const navButtons = document.querySelectorAll('.header-main-actions .nav-btn, .nav-buttons .nav-btn'); // Finn alle nav-knapper i headeren
+    // window.location.pathname gir hele stien, f.eks. "/mappe/index.html"
+    // Vi henter bare filnavnet for enkel sammenligning
+    const currentPath = window.location.pathname.split("/").pop();
+    // Finn knapper innenfor BEGGE mulige header-strukturer
+    const navButtons = document.querySelectorAll('.header-main-actions .nav-btn, .nav-buttons .nav-btn');
 
     console.log("HighlightNav: Current path:", currentPath);
 
     navButtons.forEach(button => {
         button.classList.remove('active'); // Fjern 'active' fra alle først
-        const buttonHref = button.getAttribute('onclick')?.match(/'([^']+)'/); // Prøv å hente URL fra onclick
 
-        if (buttonHref && buttonHref[1]) {
-            const buttonPath = buttonHref[1].split("/").pop(); // Få filnavnet fra knappens href
-             console.log("HighlightNav: Checking button:", buttonPath);
+        // Trekk ut filnavnet fra knappens onclick-attributt
+        const onclickAttr = button.getAttribute('onclick');
+        // Bruker regulært uttrykk for å finne strengen mellom enkle anførselstegn
+        const match = onclickAttr?.match(/'([^']+)'/);
+
+        if (match && match[1]) {
+            const buttonPath = match[1].split("/").pop(); // Hent filnavnet fra href
+            console.log("HighlightNav: Checking button:", buttonPath);
             // Marker som aktiv hvis knappens sti matcher nåværende sti
-            // Eller hvis nåværende sti er tom ("/") og knappen er index.html
+            // Spesialhåndtering for rot ("/" eller tom streng) som skal matche index.html
             if (buttonPath === currentPath || (currentPath === '' && buttonPath === 'index.html')) {
                 console.log("HighlightNav: Setting active:", buttonPath);
                 button.classList.add('active');
             }
+        } else {
+             console.warn("HighlightNav: Kunne ikke finne URL i onclick for knappen:", button);
         }
     });
 }
@@ -273,19 +281,32 @@ function highlightActiveNavButton() {
 // --- Kjør logikken når siden er klar ---
 document.addEventListener('DOMContentLoaded', () => {
   console.log("theme.js DOMContentLoaded kjører.");
-  // 1. Sjekk og bruk tema
+  // 1. Sjekk og bruk tema (automatisk bytte eller lagret)
   loadCheckAndApplyTheme();
-  // 2. Vis lagret streak og rank
+
+  // 2. Vis lagret gamification-status
   displayGamificationStatus();
+
   // === NYTT: Marker aktiv nav-knapp ===
   highlightActiveNavButton();
   // ====================================
+
   // 4. Legg til lyttere for MANUELLE temaknapper
-  const addThemeButtonListener = (buttonId) => { /* ... som før ... */ };
-  addThemeButtonListener('theme-btn-dark-purple');
-  // ... (alle andre tema-knapper) ...
-  addThemeButtonListener('theme-btn-monochrome-mint');
-});
+  const addThemeButtonListener = (buttonId) => {
+      const button = document.getElementById(buttonId);
+      if (button) {
+          const themeName = buttonId.replace('theme-btn-', '');
+          if (themes[themeName]) {
+              button.addEventListener('click', () => {
+                  console.log(`Manuell valg: ${themeName}`);
+                  applyTheme(themeName);       // Bruk temaet umiddelbart
+                  saveThemeAndDate(themeName); // Lagre manuelt valg OG dagens dato
+              });
+          } else {
+               console.warn(`Knapp ${buttonId} funnet, men temaet ${themeName} finnes ikke.`);
+          }
+      }
+  };
 
   // Legg til lyttere for alle definerte temaknapper
   addThemeButtonListener('theme-btn-dark-purple');
@@ -296,4 +317,4 @@ document.addEventListener('DOMContentLoaded', () => {
   addThemeButtonListener('theme-btn-monochrome-mint');
 });
 
-console.log("theme.js lastet og klar."); // Bekreftelse
+console.log("theme.js lastet og klar (med poeng-visning og aktiv nav-knapp)."); // Bekreftelse
