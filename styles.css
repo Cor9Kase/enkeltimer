@@ -2,17 +2,17 @@
 
 /* === 1. Globale Variabler (Styres av theme.js) === */
 :root {
-  /* Default: Dark Purple (overskrives av theme.js) */
+  /* Default tema (Dark Purple) - vil bli overskrevet av theme.js */
   --bg-dark: #121212;
   --bg-card: #1e1e1e;
   --bg-modal: #242424;
   --text-primary: #ffffff;
   --text-secondary: #b0b0b0;
-  --accent-primary: #9d4edd;
-  --accent-secondary: #7b2cbf;
+  --accent-primary: #9d4edd; /* Lilla hovedfarge */
+  --accent-secondary: #7b2cbf; /* Mørkere lilla */
   --accent-gradient: linear-gradient(135deg, #9d4edd, #7b2cbf);
   --inactive: #4f4f4f;
-  --active: var(--accent-primary);
+  --active: var(--accent-primary); /* Bruker hovedfargen for aktiv */
   --border-inactive: #383838;
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.4); /* Litt dusere skygge */
   --transition: all 0.25s ease-in-out; /* Litt raskere transition */
@@ -37,7 +37,7 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   padding: 20px; /* Generell luft rundt innholdet */
-  /* Ingen padding-top nødvendig siden header scroller */
+  padding-bottom: 80px; /* EKSTRA PADDING NEDE for å unngå overlapp med fast refresh-knapp */
 }
 
 /* === 3. Header (Ikke Fixed) === */
@@ -45,7 +45,7 @@ body {
   text-align: center;
   margin-bottom: 30px;
   position: relative; /* For theme-switcher posisjonering */
-  padding: 10px 0; /* Litt vertikal padding i header */
+  padding: 10px 0;
 }
 
 .header h1 {
@@ -54,7 +54,7 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-fill-color: transparent;
-  font-size: 2.2rem; /* Litt justert størrelse */
+  font-size: 2.2rem;
   letter-spacing: 0.5px;
   margin-bottom: 8px;
   font-weight: 700;
@@ -71,46 +71,48 @@ body {
   font-size: 0.75rem;
   color: var(--text-secondary);
   margin-bottom: 10px;
-  min-height: 1.2em; /* Unngå hopping når teksten endres */
+  min-height: 1.2em;
 }
 
 /* Hovedknapper i header (sentrert) */
-.header-actions, .nav-buttons {
+/* Navn endret til header-main-actions i HTML */
+.header-main-actions {
   display: flex;
-  gap: 12px; /* Litt mer luft */
+  gap: 12px;
   justify-content: center;
-  margin-top: 15px; /* Mer luft under gamification */
+  margin-top: 15px;
   flex-wrap: wrap;
 }
 
 /* === 4. Gamification Display (i Header) === */
 .gamification-display {
-  margin-top: 10px;
+  margin-top: 8px;
+  margin-bottom: 10px;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 20px; /* God avstand */
+  gap: 20px;
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-secondary);
   flex-wrap: wrap;
-  min-height: 1.5em; /* Unngå hopping */
+  min-height: 1.5em;
 }
 
-#streak-display {
-  color: #ff9800; /* Oransje */
-}
-
-#rank-display {
-  color: var(--accent-primary);
-}
+#streak-display { color: #ff9800; }
+#rank-display { color: var(--accent-primary); }
+#points-display { color: var(--bar-yellow); } /* Farge for poeng */
 
 #streak-display::before,
-#rank-display::before {
-  margin-right: 4px; /* Emoji-avstand */
-  font-size: 1.1em; /* Litt større emoji */
-  vertical-align: middle; /* Bedre alignment */
+#rank-display::before,
+#points-display::before {
+  margin-right: 4px;
+  font-size: 1.1em;
+  vertical-align: middle;
 }
+#points-display::before { content: "✨ "; } /* Emoji for poeng */
+#streak-display::before { content: "🔥 "; }
+#rank-display::before { content: "🏆 "; }
 
 /* === 5. Theme Switcher (i Header) === */
 .theme-switcher {
@@ -119,27 +121,23 @@ body {
   right: 15px;
   display: flex;
   align-items: center;
-  gap: 6px; /* Tettere knapper */
-  z-index: 5; /* Over annen header-tekst hvis overlapp */
+  gap: 6px;
+  z-index: 5;
 }
-
 .theme-btn {
-  width: 20px; /* Litt mindre */
+  width: 20px;
   height: 20px;
   border-radius: 50%;
   border: 2px solid var(--border-inactive);
   cursor: pointer;
   padding: 0;
   transition: var(--transition);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3); /* Liten skygge */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
-
 .theme-btn:hover {
-  transform: scale(1.15); /* Mer tydelig hover */
+  transform: scale(1.15);
   border-color: var(--text-primary);
 }
-
-/* Knappe-farger (forblir statiske) */
 .theme-btn.theme-dark-purple { background: linear-gradient(135deg, #9d4edd, #7b2cbf); }
 .theme-btn.theme-light-blue { background: linear-gradient(135deg, #3498db, #2980b9); }
 .theme-btn.theme-forest-green { background: linear-gradient(135deg, #2ecc71, #27ae60); }
@@ -157,7 +155,7 @@ button {
   border: none;
   transition: var(--transition);
   font-weight: 500;
-  line-height: 1.4; /* God linjehøyde */
+  line-height: 1.4;
 }
 
 /* Standard navigasjon/info-knapp */
@@ -166,34 +164,62 @@ button {
   color: var(--text-primary);
   border: 1px solid var(--border-inactive);
   padding: 8px 18px;
+  border-radius: 8px;
+  font-weight: bold;
 }
 .nav-btn:hover, .daily-summary-btn:hover, .tasks-btn:hover, .cancel-btn:hover {
   transform: translateY(-2px);
   border-color: var(--accent-primary);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  color: var(--text-primary); /* Sørg for at teksten ikke blir påvirket for mye */
+  color: var(--text-primary);
 }
 .cancel-btn:hover {
    border-color: var(--text-secondary);
 }
-
-
-/* Fremhevede knapper (Refresh, Submit) */
-.refresh-btn, .submit-btn {
+/* Aktiv nav-knapp */
+.nav-btn.active {
   background: var(--accent-gradient);
   color: white;
-  border: none;
-  padding: 8px 18px; /* Samme som nav */
+  border-color: transparent;
   font-weight: bold;
+  cursor: default;
+  pointer-events: none;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  transform: none !important;
 }
+
+/* Ikonknapp (for refresh nå) */
+.icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  padding: 5px;
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease;
+  line-height: 1;
+  border-radius: 50%;
+}
+.icon-btn:hover {
+  color: var(--accent-primary);
+  transform: scale(1.1);
+}
+
+
+/* Fremhevede knapper (Submit) */
 .submit-btn {
-   padding: 10px 22px; /* Litt større padding for hovedhandling */
+   background: var(--accent-gradient);
+   color: white;
+   border: none;
+   padding: 10px 22px;
+   border-radius: 8px;
+   font-weight: bold;
    font-size: 15px;
 }
-.refresh-btn:hover, .submit-btn:hover {
-   box-shadow: 0 5px 15px rgba(157, 78, 221, 0.3);
-   transform: translateY(-2px);
-   filter: brightness(1.1); /* Lysner litt */
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(157, 78, 221, 0.3);
+  filter: brightness(1.1);
 }
 .submit-btn:disabled {
     background: var(--inactive);
@@ -208,8 +234,8 @@ button {
 .delete-btn {
   background-color: var(--bar-red);
   color: white;
-  border: none;
-  padding: 10px 22px; /* Samme som submit */
+  border: none; /* Fjernet border */
+  padding: 10px 22px;
   border-radius: 8px;
   font-weight: bold;
 }
@@ -226,6 +252,7 @@ button {
     color: var(--text-secondary) !important;
 }
 
+
 /* === 7. Container & Kundekort (index.html) === */
 .container {
   display: flex;
@@ -234,37 +261,34 @@ button {
   justify-content: center;
   padding-bottom: 50px;
   max-width: 1200px;
-  margin: 20px auto 0 auto; /* Litt margin over */
+  margin: 20px auto 0 auto;
 }
 
 .customer-box, .add-customer {
   background-color: var(--bg-card);
-  border-radius: 10px; /* Litt mykere kanter */
+  border-radius: 10px;
   box-shadow: var(--shadow);
-  padding: 15px 18px; /* Litt mer sidepadding */
+  padding: 15px 18px;
   position: relative;
   overflow: hidden;
   cursor: pointer;
   transition: var(--transition);
-  border: 1px solid transparent; /* Start med transparent kant */
+  border: 1px solid transparent;
   display: flex;
   flex-direction: column;
-  width: 260px; /* Litt bredere kort */
-  min-height: 170px; /* Litt høyere */
+  width: 260px;
+  min-height: 170px;
 }
-
 .customer-box:hover, .add-customer:hover {
   transform: translateY(-4px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); /* Tydeligere skygge */
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
   border-color: var(--accent-primary);
 }
-
 .customer-box.active {
   border-color: var(--active);
   box-shadow: 0 0 15px rgba(157, 78, 221, 0.4);
 }
 
-/* "Legg til kunde"-kort */
 .add-customer {
   border: 2px dashed var(--border-inactive);
   justify-content: center;
@@ -272,263 +296,103 @@ button {
   order: -1;
   text-align: center;
 }
-.add-customer:hover {
-  border-color: var(--accent-primary);
-  border-style: solid; /* Endre til solid på hover */
-}
-.add-customer.active {
-  border: 2px solid var(--accent-primary);
-}
-.add-customer-icon {
-  font-size: 40px;
-  color: var(--inactive);
-  transition: var(--transition);
-  line-height: 1;
-}
-.add-customer:hover .add-customer-icon { color: var(--accent-primary); }
-.add-customer.active .add-customer-icon { color: var(--accent-primary); }
+.add-customer:hover { border-color: var(--accent-primary); border-style: solid; }
+.add-customer.active { border: 2px solid var(--accent-primary); }
+.add-customer-icon { font-size: 40px; color: var(--inactive); transition: var(--transition); line-height: 1; }
+.add-customer:hover .add-customer-icon, .add-customer.active .add-customer-icon { color: var(--accent-primary); }
+.add-customer-timer { font-size: 22px; font-weight: bold; margin-top: 10px; color: var(--accent-primary); }
 
-.add-customer-timer {
-  font-size: 22px; /* Litt mindre */
-  font-weight: bold;
-  margin-top: 10px;
-  color: var(--accent-primary);
-}
-
-/* Innhold i kundekort */
-.customer-name {
-  font-size: 17px; /* Litt nedjustert */
-  font-weight: 600; /* Tykkere */
-  margin-bottom: 8px;
-  color: var(--text-primary);
-  word-break: break-word;
-}
-
-.timer {
-  font-size: 22px; /* Litt mindre */
-  font-weight: 700; /* Tykkere */
-  margin-top: auto;
-  margin-bottom: 5px;
-  color: var(--accent-primary);
-  line-height: 1.1;
-  text-align: left;
-}
+.customer-name { font-size: 17px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); word-break: break-word; }
+.timer { font-size: 22px; font-weight: 700; margin-top: auto; margin-bottom: 5px; color: var(--accent-primary); line-height: 1.1; text-align: left; }
 .customer-box.active .timer { color: var(--active); }
-
-.status {
-  font-size: 13px;
-  color: var(--inactive);
-  align-self: flex-start;
-  font-weight: 500; /* Litt tykkere */
-}
+.status { font-size: 13px; color: var(--inactive); align-self: flex-start; font-weight: 500; }
 .customer-box.active .status { color: var(--active); font-weight: bold; }
 
-/* --- Time-bar --- */
-.hours-indicator {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
-    margin-bottom: 10px;
-}
-.hours-bar-container {
-    flex-grow: 1;
-    background-color: var(--bar-background);
-    border-radius: 5px;
-    height: 10px;
-    overflow: hidden;
-    border: 1px solid rgba(0,0,0,0.2); /* Mørk kant for dybde */
-}
-.hours-bar-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.4s ease-in-out, background-color 0.4s ease;
-    width: 0%;
-    background-color: var(--inactive);
-}
+.hours-indicator { display: flex; align-items: center; gap: 8px; margin-top: 8px; margin-bottom: 10px; }
+.hours-bar-container { flex-grow: 1; background-color: var(--bar-background); border-radius: 5px; height: 10px; overflow: hidden; border: 1px solid rgba(0,0,0,0.2); }
+.hours-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease-in-out, background-color 0.4s ease; width: 0%; background-color: var(--inactive); }
 .hours-bar-fill.bar-green { background-color: var(--bar-green); }
 .hours-bar-fill.bar-yellow { background-color: var(--bar-yellow); }
 .hours-bar-fill.bar-red { background-color: var(--bar-red); }
-.hours-remaining-text {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    white-space: nowrap;
-    flex-shrink: 0;
-}
+.hours-remaining-text { font-size: 11px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; flex-shrink: 0; }
 
-/* --- Rediger/Slett knapper på kort --- */
-.customer-actions {
-  position: absolute;
-  top: 8px; right: 8px;
-  display: flex;
-  gap: 6px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 10;
-}
+.customer-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; opacity: 0; transition: opacity 0.3s ease; z-index: 10; }
 .customer-box:hover .customer-actions { opacity: 1; }
+.customer-action-btn { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-inactive); color: var(--text-secondary); cursor: pointer; font-size: 14px; padding: 0; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; transition: var(--transition); }
+.customer-action-btn:hover { background: rgba(0, 0, 0, 0.6); color: var(--text-primary); transform: scale(1.05); border-color: var(--text-secondary); }
+.customer-action-btn.delete-btn:hover { background-color: var(--bar-red); color: white; border-color: var(--bar-red); }
 
-.customer-action-btn {
-  background: rgba(0, 0, 0, 0.4); /* Mørkere base */
-  border: 1px solid var(--border-inactive);
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 14px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px; /* Litt større */
-  height: 28px;
-  border-radius: 6px; /* Firkantet med runde hjørner */
-  transition: var(--transition);
-}
-.customer-action-btn:hover {
-  background: rgba(0, 0, 0, 0.6);
-  color: var(--text-primary);
-  transform: scale(1.05);
-  border-color: var(--text-secondary);
-}
-.customer-action-btn.delete-btn:hover {
-    background-color: var(--bar-red);
-    color: white;
-    border-color: var(--bar-red);
-}
 
 /* === 8. Modal Styling === */
 .modal {
-  display: none;
-  position: fixed;
-  z-index: 1001;
-  left: 0; top: 0; width: 100%; height: 100%;
-  background-color: rgba(0, 0, 0, 0.75); /* Litt mørkere overlay */
-  backdrop-filter: blur(5px);
-  animation: fadeIn 0.3s ease-out;
-  overflow-y: auto; /* Tillat scroll for hele viewporten hvis modal er høy */
-  padding: 5vh 15px; /* Luft på topp/bunn og sider */
+  display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%;
+  background-color: rgba(0, 0, 0, 0.75); backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease-out; overflow-y: auto; padding: 5vh 15px;
 }
-
 .modal-content {
-  background-color: var(--bg-modal);
-  margin: 0 auto; /* Sentrer horisontalt, toppjustert med padding */
-  padding: 30px 35px; /* Mer padding */
-  border-radius: 10px;
-  width: 100%; /* Full bredde innenfor padding */
-  max-width: 550px; /* Litt bredere modal */
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border-inactive);
-  position: relative;
-  animation: slideIn 0.3s ease-out;
+  background-color: var(--bg-modal); margin: 0 auto; padding: 30px 35px;
+  border-radius: 10px; width: 100%; max-width: 550px; box-shadow: var(--shadow);
+  border: 1px solid var(--border-inactive); position: relative; animation: slideIn 0.3s ease-out;
 }
-
 .close {
-  color: var(--text-secondary);
-  position: absolute;
-  top: 12px; right: 18px;
-  font-size: 32px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: color 0.2s ease;
-  line-height: 0.8; /* Juster for 'x' */
+  color: var(--text-secondary); position: absolute; top: 12px; right: 18px;
+  font-size: 32px; font-weight: bold; cursor: pointer; transition: color 0.2s ease; line-height: 0.8;
 }
 .close:hover { color: var(--accent-primary); }
 
-/* Input/Textarea i modal */
-textarea,
-input[type="text"], input[type="number"],
-input[type="date"], select {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 12px 15px; /* Mer padding */
-  margin-bottom: 15px; /* Bruk margin her */
-  margin-top: 5px; /* Litt luft etter label */
-  border-radius: 8px;
-  background-color: var(--bg-dark);
-  border: 1px solid var(--border-inactive);
-  color: var(--text-primary);
-  font-family: inherit;
-  font-size: 0.95rem; /* Litt mindre enn 1rem */
-  transition: var(--transition);
+textarea, input[type="text"], input[type="number"], input[type="date"], select {
+  width: 100%; box-sizing: border-box; padding: 12px 15px; margin-bottom: 15px; margin-top: 5px;
+  border-radius: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-inactive);
+  color: var(--text-primary); font-family: inherit; font-size: 0.95rem; transition: var(--transition);
 }
-textarea:focus, input:focus, select:focus { /* Gjelder alle input-typer */
-  outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 8px rgba(157, 78, 221, 0.3);
+textarea:focus, input:focus, select:focus {
+  outline: none; border-color: var(--accent-primary); box-shadow: 0 0 8px rgba(157, 78, 221, 0.3);
 }
 textarea { min-height: 100px; resize: vertical; }
 
-/* Modal Titler og Tekst */
-.modal-content h2 {
-  color: var(--text-primary);
-  margin-top: 0;
-  margin-bottom: 20px;
-  font-size: 1.5rem; /* Litt mindre */
-  border-bottom: 1px solid var(--border-inactive);
-  padding-bottom: 15px;
-  font-weight: 600;
-}
-.modal-content p {
-    margin-bottom: 15px;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-}
-#modal-customer-name, #new-customer-time-spent {
-  color: var(--accent-primary);
-  font-weight: 600; /* Tykkere */
-  font-size: 1rem;
-}
+.modal-content h2 { color: var(--text-primary); margin-top: 0; margin-bottom: 20px; font-size: 1.5rem; border-bottom: 1px solid var(--border-inactive); padding-bottom: 15px; font-weight: 600; }
+.modal-content p { margin-bottom: 15px; color: var(--text-secondary); font-size: 0.9rem; }
+#modal-customer-name, #new-customer-time-spent { color: var(--accent-primary); font-weight: 600; font-size: 1rem; }
 #modal-time-spent { color: var(--text-secondary); }
 
-/* Skjemagrupper */
-.form-group { margin-bottom: 18px; } /* Litt mer luft */
-.form-group label {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 500; /* Mindre tykk enn bold */
-    color: var(--text-secondary); /* Litt dusere label */
-    font-size: 0.85rem;
-}
+.form-group { margin-bottom: 18px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 500; color: var(--text-secondary); font-size: 0.85rem; }
 
-/* Modal Knapper */
-.modal-buttons {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 25px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border-inactive);
-}
+.modal-buttons { display: flex; gap: 12px; justify-content: flex-end; margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border-inactive); }
 
-/* Confirmation modal */
-#confirmDeleteModal .modal-content {
-  max-width: 420px; /* Litt bredere */
-  text-align: center;
-}
+#confirmDeleteModal .modal-content { max-width: 420px; text-align: center; }
 #confirmDeleteModal .modal-content p { font-size: 0.95rem; }
 #confirmDeleteModal .modal-buttons { justify-content: center; }
 
 
-/* === 9. Nødtest-knapp === */
-#test-connection-button {
+/* === 9. Fast Oppdateringsknapp === */
+.refresh-btn-fixed {
   position: fixed;
-  bottom: 15px; /* Litt høyere */
-  right: 15px;  /* Litt mer inn */
-  background-color: #e53935; /* Samme som bar-red */
-  color: white;
-  padding: 8px 15px;
-  border-radius: 20px; /* Rundere */
-  border: none;
-  cursor: pointer;
+  bottom: 15px;
+  right: 15px;
   z-index: 1000;
-  font-size: 13px;
-  font-weight: 500;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.4);
-  transition: transform 0.2s ease;
+  background: var(--bg-card);
+  color: var(--accent-primary);
+  border: 1px solid var(--border-inactive);
+  font-size: 1.6rem;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: var(--transition);
+  line-height: 1;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.3);
 }
-#test-connection-button:hover {
-    transform: scale(1.05);
-    background-color: #c62828;
+.refresh-btn-fixed:hover {
+  background-color: var(--accent-primary);
+  color: white;
+  border-color: var(--accent-primary);
+  transform: scale(1.08) rotate(90deg);
+  box-shadow: 0 5px 15px rgba(157, 78, 221, 0.3);
 }
 
 
@@ -538,41 +402,40 @@ textarea { min-height: 100px; resize: vertical; }
 
 /* === 11. Responsivitet === */
 @media (max-width: 900px) {
-  .container {
-      justify-content: space-around; /* Prøv annen justering */
-  }
+    .container { justify-content: space-around; }
 }
-
 @media (max-width: 768px) {
-  body { padding: 15px; }
+  body { padding: 15px; padding-bottom: 70px; /* Mer bunn-padding for fast knapp */ }
   .header h1 { font-size: 1.8rem; }
-  .header-actions, .nav-buttons { gap: 10px; }
+  .header-main-actions { gap: 10px; } /* Bruker dette navnet nå */
    .theme-switcher { top: 8px; right: 10px; gap: 5px; }
    .theme-btn { width: 18px; height: 18px; border-width: 1px; }
   .container { padding: 15px 0; gap: 15px; }
    .customer-box, .add-customer { width: calc(50% - 10px); min-width: 0; }
   .modal-content { width: 95%; margin: 8% auto; padding: 20px 25px; }
   .gamification-display { font-size: 0.8rem; }
+  .refresh-btn-fixed { width: 40px; height: 40px; font-size: 1.4rem; bottom: 10px; right: 10px; }
 }
 
 @media (max-width: 480px) {
-   body { padding: 10px; }
+   body { padding: 10px; padding-bottom: 70px; }
    .header {
        margin-bottom: 20px;
        padding-left: 10px;
-       padding-right: 50px; /* Plass til knapper */
-       text-align: center; /* Tilbake til sentrert? */
+       padding-right: 55px; /* Plass til tema */
+       text-align: center; /* Tilbake til sentrert */
    }
     .header h1 { font-size: 1.6rem; }
-   .header-actions, .nav-buttons { flex-direction: column; align-items: center; gap: 8px; margin-top: 15px; }
-   .header-actions button, .nav-buttons button { width: 90%; max-width: 280px; justify-content: center; }
+   .header-main-actions { flex-direction: column; align-items: center; gap: 8px; margin-top: 15px; }
+   .header-main-actions button { width: 90%; max-width: 280px; justify-content: center; }
    .theme-switcher { top: 6px; right: 6px; gap: 4px; }
-   .theme-btn { width: 16px; height: 16px; border-width: 1px; }
+   .theme-btn { width: 16px; height: 16px; }
    .container { gap: 10px; }
    .customer-box, .add-customer { width: 100%; }
   .timer { font-size: 1.3rem; }
   .customer-name { font-size: 1rem; }
   .modal-content { margin: 5% auto; padding: 15px 20px; }
   .modal-buttons { flex-direction: column; align-items: stretch; }
-  .gamification-display { font-size: 0.75rem; flex-direction: column; align-items: center; margin-bottom: 15px; }
+  .gamification-display { font-size: 0.75rem; flex-direction: column; align-items: center; margin-bottom: 15px; gap: 8px; }
+  .refresh-btn-fixed { width: 38px; height: 38px; font-size: 1.3rem; }
 }
