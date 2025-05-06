@@ -91,7 +91,22 @@ const themes = {
     '--bar-yellow': '#fff59d',
     '--bar-red': '#ef9a9a',
     '--bar-background': '#546e7a'
-  }
+  }, 
+  'minimalist-orange': {
+  '--bg-dark': '#ffffff',               // Hvit bakgrunn
+  '--bg-card': '#fdf6f0',               // Svak kremhvit til kort
+  '--bg-modal': '#fbeee6',              // Litt mørkere krem for modaler
+  '--text-primary': '#1a1a1a',          // Mørk grå tekst for god kontrast
+  '--text-secondary': '#7a7a7a',        // Lysere grå for sekundær tekst
+  '--accent-primary': '#ff6f00',        // Sterk oransje aksent
+  '--accent-secondary': '#ffb74d',      // Lysere oransje som sekundær aksent
+  '--accent-gradient': 'linear-gradient(135deg, #ffe0b2, #ff6f00)', // Oransje gradient
+  '--border-inactive': '#e0e0e0',       // Lys grå for inaktive elementer
+  '--bar-green': '#c8e6c9',             // Nøytral grønn til fremdriftsindikator
+  '--bar-yellow': '#fff9c4',            // Myk gul
+  '--bar-red': '#ffcdd2',               // Mild rød
+  '--bar-background': '#f0f0f0'         // Nøytral lys bakgrunn for bars
+}
 };
 
 // --- Hjelpefunksjoner ---
