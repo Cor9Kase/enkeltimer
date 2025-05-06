@@ -244,43 +244,6 @@ function displayStreakAndRank() {
     console.log("--- Ferdig med displayStreakAndRank ---"); // Logg slutt
 }
 
-
-// --- Kjør logikken når siden er klar ---
-document.addEventListener('DOMContentLoaded', () => {
-  console.log("theme.js DOMContentLoaded kjører."); // Bekreft at denne kjører
-  // 1. Sjekk og bruk tema (automatisk bytte eller lagret)
-  loadCheckAndApplyTheme();
-
-  // 2. Vis lagret streak og rank
-  console.log("theme.js DOMContentLoaded: Kaller displayStreakAndRank.");
-  displayStreakAndRank(); // Denne viser initial status fra localStorage
-
-  // 3. Legg til lyttere for MANUELLE temaknapper
-  const addThemeButtonListener = (buttonId) => {
-      const button = document.getElementById(buttonId);
-      if (button) {
-          const themeName = buttonId.replace('theme-btn-', '');
-          if (themes[themeName]) {
-              button.addEventListener('click', () => {
-                  console.log(`Manuell valg: ${themeName}`);
-                  applyTheme(themeName);       // Bruk temaet umiddelbart
-                  saveThemeAndDate(themeName); // Lagre manuelt valg OG dagens dato
-              });
-          } else {
-               console.warn(`Knapp ${buttonId} funnet, men temaet ${themeName} finnes ikke.`);
-          }
-      }
-  };
-
-  // Legg til lyttere for alle definerte temaknapper
-  addThemeButtonListener('theme-btn-dark-purple');
-  addThemeButtonListener('theme-btn-light-blue');
-  addThemeButtonListener('theme-btn-forest-green');
-  addThemeButtonListener('theme-btn-ocean-breeze');
-  addThemeButtonListener('theme-btn-sunset-glow');
-  addThemeButtonListener('theme-btn-monochrome-mint');
-});
-
 // === NY FUNKSJON for å markere aktiv navigeringsknapp ===
 function highlightActiveNavButton() {
     const currentPath = window.location.pathname.split("/").pop(); // Får filnavnet (f.eks. "index.html")
@@ -321,6 +284,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const addThemeButtonListener = (buttonId) => { /* ... som før ... */ };
   addThemeButtonListener('theme-btn-dark-purple');
   // ... (alle andre tema-knapper) ...
+  addThemeButtonListener('theme-btn-monochrome-mint');
+});
+
+  // Legg til lyttere for alle definerte temaknapper
+  addThemeButtonListener('theme-btn-dark-purple');
+  addThemeButtonListener('theme-btn-light-blue');
+  addThemeButtonListener('theme-btn-forest-green');
+  addThemeButtonListener('theme-btn-ocean-breeze');
+  addThemeButtonListener('theme-btn-sunset-glow');
   addThemeButtonListener('theme-btn-monochrome-mint');
 });
 
