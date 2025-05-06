@@ -22,17 +22,11 @@
     </div>
     <!-- === SLUTT GAMIFICATION DISPLAY === -->
 
-    <!-- Hoved-navigeringsknapper (sentrert under teksten) -->
-    <div class="nav-buttons">
-      <button class="nav-btn" onclick="window.location.href='index.html'">
-        Tilbake til Timeregistrering
-      </button>
-       <button class="nav-btn" onclick="window.location.href='tasks.html'">
-        Vis Oppgaver
-      </button>
-      <button id="refresh-button" class="refresh-btn" onclick="loadDailySummary()">
-        Oppdater data
-      </button>
+   <div class="header-main-actions">
+      <!-- Refresh-knappen er FLYTTET herfra -->
+      <button class="nav-btn active" onclick="window.location.href='index.html'">Timeregistrering</button>
+      <button class="nav-btn" onclick="window.location.href='daily-summary.html'">Dagsoversikt</button>
+      <button class="nav-btn" onclick="window.location.href='tasks.html'">Oppgaver</button>
     </div>
 
     <!-- Container for temaknapper (posisjoneres av CSS) -->
@@ -126,7 +120,9 @@
       </table>
     </div>
   </div>
-
+  
+<button id="refresh-button" class="icon-btn refresh-btn-fixed" title="Oppdater data">🔄</button>
+  
   <!-- Viktig: Sørg for at stien til JS-filen er korrekt -->
   <script src="daily-summary.js"></script>
  <script src="gamification.js"></script>
