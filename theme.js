@@ -281,4 +281,47 @@ document.addEventListener('DOMContentLoaded', () => {
   addThemeButtonListener('theme-btn-monochrome-mint');
 });
 
+// === NY FUNKSJON for å markere aktiv navigeringsknapp ===
+function highlightActiveNavButton() {
+    const currentPath = window.location.pathname.split("/").pop(); // Får filnavnet (f.eks. "index.html")
+    const navButtons = document.querySelectorAll('.header-main-actions .nav-btn, .nav-buttons .nav-btn'); // Finn alle nav-knapper i headeren
+
+    console.log("HighlightNav: Current path:", currentPath);
+
+    navButtons.forEach(button => {
+        button.classList.remove('active'); // Fjern 'active' fra alle først
+        const buttonHref = button.getAttribute('onclick')?.match(/'([^']+)'/); // Prøv å hente URL fra onclick
+
+        if (buttonHref && buttonHref[1]) {
+            const buttonPath = buttonHref[1].split("/").pop(); // Få filnavnet fra knappens href
+             console.log("HighlightNav: Checking button:", buttonPath);
+            // Marker som aktiv hvis knappens sti matcher nåværende sti
+            // Eller hvis nåværende sti er tom ("/") og knappen er index.html
+            if (buttonPath === currentPath || (currentPath === '' && buttonPath === 'index.html')) {
+                console.log("HighlightNav: Setting active:", buttonPath);
+                button.classList.add('active');
+            }
+        }
+    });
+}
+// === SLUTT NY FUNKSJON ===
+
+
+// --- Kjør logikken når siden er klar ---
+document.addEventListener('DOMContentLoaded', () => {
+  console.log("theme.js DOMContentLoaded kjører.");
+  // 1. Sjekk og bruk tema
+  loadCheckAndApplyTheme();
+  // 2. Vis lagret streak og rank
+  displayGamificationStatus();
+  // === NYTT: Marker aktiv nav-knapp ===
+  highlightActiveNavButton();
+  // ====================================
+  // 4. Legg til lyttere for MANUELLE temaknapper
+  const addThemeButtonListener = (buttonId) => { /* ... som før ... */ };
+  addThemeButtonListener('theme-btn-dark-purple');
+  // ... (alle andre tema-knapper) ...
+  addThemeButtonListener('theme-btn-monochrome-mint');
+});
+
 console.log("theme.js lastet og klar."); // Bekreftelse
