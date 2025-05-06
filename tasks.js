@@ -1,6 +1,6 @@
 // --- Konfigurasjon ---
 // Google Script URL - *** VIKTIG: MÅ VÆRE SAMME SOM I ANDRE JS-FILER ***
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQdmUIqVT3CM1mNvQM63_lK5byOcy6q6YHZnh5J93lr_WEX16qDnfnOXaSftdqsoKE/exec'; // <-- ERSTATT MED DIN FAKTISKE URL HVIS DENNE ER FEIL
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzgXPbWr2JlmHziSgUq6B3bDQO8LVgM3oJLCAHEaN1gQY02JlLb_ASHQTQQHFBF9YX2/exec'; // <-- ERSTATT MED DIN FAKTISKE URL HVIS DENNE ER FEIL
 
 // --- Globale variabler ---
 let allTasks = []; // Holder alle hentede oppgaver
