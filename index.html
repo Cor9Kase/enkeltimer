@@ -20,17 +20,11 @@
     </div>
     <!-- === SLUTT GAMIFICATION DISPLAY === -->
 
-    <!-- Hoved-handlingsknapper (sentrert under teksten) -->
-    <div class="header-actions">
-      <button id="refresh-button" class="refresh-btn">
-        Oppdater data
-      </button>
-      <button class="daily-summary-btn nav-btn" onclick="window.location.href='daily-summary.html'">
-        Vis dagsoversikt
-      </button>
-      <button class="tasks-btn nav-btn" onclick="window.location.href='tasks.html'">
-        Vis Oppgaver
-      </button>
+   <div class="header-main-actions">
+      <!-- Refresh-knappen er FLYTTET herfra -->
+      <button class="nav-btn active" onclick="window.location.href='index.html'">Timeregistrering</button>
+      <button class="nav-btn" onclick="window.location.href='daily-summary.html'">Dagsoversikt</button>
+      <button class="nav-btn" onclick="window.location.href='tasks.html'">Oppgaver</button>
     </div>
 
     <!-- Container for temaknapper (posisjoneres av CSS) -->
@@ -132,7 +126,7 @@
       </div>
     </div>
   </div>
-
+<button id="refresh-button" class="icon-btn refresh-btn-fixed" title="Oppdater data">🔄</button>
   <script src="script.js"></script>
   <script src="gamification.js"></script>
   <script src="theme.js"></script>
