@@ -1,7 +1,8 @@
-// theme.js - Håndtering av fargetemaer med automatisk ukentlig bytte OG manuell overstyring
+// theme.js - Håndtering av fargetemaer OG visning av gamification
 
+// Definer de ulike temaene med sine fargeverdier
 const themes = {
-  'dark-purple': { // Eksisterende
+  'dark-purple': { // Samsvarer med din opprinnelige stil (ca.)
     '--bg-dark': '#121212',
     '--bg-card': '#1e1e1e',
     '--bg-modal': '#242424',
@@ -9,14 +10,14 @@ const themes = {
     '--text-secondary': '#b0b0b0',
     '--accent-primary': '#9d4edd',
     '--accent-secondary': '#7b2cbf',
-    '--accent-gradient': 'linear-gradient(135deg, #9d4edd, #7b2cbf)', // Behold gradient for header
+    '--accent-gradient': 'linear-gradient(135deg, #9d4edd, #7b2cbf)',
     '--border-inactive': '#383838',
     '--bar-green': '#4CAF50',
     '--bar-yellow': '#ffc107',
     '--bar-red': '#e53935',
     '--bar-background': '#333'
   },
-  'light-blue': { // Eksisterende
+  'light-blue': { // Eksempel på et lyst tema
     '--bg-dark': '#f4f7f9',
     '--bg-card': '#ffffff',
     '--bg-modal': '#ffffff',
@@ -31,7 +32,7 @@ const themes = {
     '--bar-red': '#e74c3c',
     '--bar-background': '#ecf0f1'
   },
-  'forest-green': { // Eksisterende
+  'forest-green': { // Eksempel på et annet mørkt tema
     '--bg-dark': '#1a2a27',
     '--bg-card': '#243d38',
     '--bg-modal': '#2a4a43',
@@ -46,107 +47,129 @@ const themes = {
     '--bar-red': '#e53935',
     '--bar-background': '#44645d'
   },
-  // === NYE TEMAER ===
   'ocean-breeze': { // Nytt lyst tema med blå/turkis
-    '--bg-dark': '#e0f7fa', // Veldig lys cyan
+    '--bg-dark': '#e0f7fa',
     '--bg-card': '#ffffff',
     '--bg-modal': '#ffffff',
-    '--text-primary': '#004d40', // Mørk teal tekst
-    '--text-secondary': '#4db6ac', // Lysere teal
-    '--accent-primary': '#00acc1', // Cyan hovedfarge
-    '--accent-secondary': '#00838f', // Mørkere cyan
-    '--accent-gradient': 'linear-gradient(135deg, #4dd0e1, #00acc1)', // Lysere gradient
-    '--border-inactive': '#b2ebf2', // Veldig lys cyan kant
-    '--bar-green': '#81c784', // Dusere grønn
-    '--bar-yellow': '#ffd54f', // Dusere gul
-    '--bar-red': '#ef9a9a',   // Dusere rød
-    '--bar-background': '#cfd8dc' // Lys grå bakgrunn
+    '--text-primary': '#004d40',
+    '--text-secondary': '#4db6ac',
+    '--accent-primary': '#00acc1',
+    '--accent-secondary': '#00838f',
+    '--accent-gradient': 'linear-gradient(135deg, #4dd0e1, #00acc1)',
+    '--border-inactive': '#b2ebf2',
+    '--bar-green': '#81c784',
+    '--bar-yellow': '#ffd54f',
+    '--bar-red': '#ef9a9a',
+    '--bar-background': '#cfd8dc'
   },
   'sunset-glow': { // Nytt varmt, mørkt tema
-    '--bg-dark': '#212121', // Mørk grå base
-    '--bg-card': '#313131', // Litt lysere grå
+    '--bg-dark': '#212121',
+    '--bg-card': '#313131',
     '--bg-modal': '#3a3a3a',
-    '--text-primary': '#f5f5f5', // Off-white
-    '--text-secondary': '#bdbdbd', // Lys grå
-    '--accent-primary': '#ff8a65', // Varm oransje
-    '--accent-secondary': '#ff7043', // Litt sterkere oransje
-    '--accent-gradient': 'linear-gradient(135deg, #ffb74d, #ff8a65, #e57373)', // Oransje -> Rødlig gradient
-    '--border-inactive': '#424242', // Mørk grå kant
-    '--bar-green': '#a5d6a7', // Lys grønn
-    '--bar-yellow': '#fff176', // Lys gul
-    '--bar-red': '#ef9a9a',   // Lys rød
+    '--text-primary': '#f5f5f5',
+    '--text-secondary': '#bdbdbd',
+    '--accent-primary': '#ff8a65',
+    '--accent-secondary': '#ff7043',
+    '--accent-gradient': 'linear-gradient(135deg, #ffb74d, #ff8a65, #e57373)',
+    '--border-inactive': '#424242',
+    '--bar-green': '#a5d6a7',
+    '--bar-yellow': '#fff176',
+    '--bar-red': '#ef9a9a',
     '--bar-background': '#454545'
   },
    'monochrome-mint': { // Nytt dus, mørkt tema
-    '--bg-dark': '#263238', // Mørk blågrå
-    '--bg-card': '#37474f', // Litt lysere blågrå
+    '--bg-dark': '#263238',
+    '--bg-card': '#37474f',
     '--bg-modal': '#455a64',
-    '--text-primary': '#eceff1', // Lys gråblå
-    '--text-secondary': '#90a4ae', // Medium gråblå
-    '--accent-primary': '#80cbc4', // Dus mintgrønn
-    '--accent-secondary': '#4db6ac', // Litt mørkere mint
-    '--accent-gradient': 'linear-gradient(135deg, #a7ffeb, #80cbc4)', // Mint gradient
+    '--text-primary': '#eceff1',
+    '--text-secondary': '#90a4ae',
+    '--accent-primary': '#80cbc4',
+    '--accent-secondary': '#4db6ac',
+    '--accent-gradient': 'linear-gradient(135deg, #a7ffeb, #80cbc4)',
     '--border-inactive': '#546e7a',
     '--bar-green': '#a5d6a7',
     '--bar-yellow': '#fff59d',
     '--bar-red': '#ef9a9a',
-    '--bar-background': '#546e7a' // Samme som kant
+    '--bar-background': '#546e7a'
   }
-  // ==================
 };
 
-// --- Hjelpefunksjoner (uendret) ---
+// --- Hjelpefunksjoner ---
+
+/**
+ * Finner datoen for mandagen i den gitte datoens uke.
+ * @param {Date} [date=new Date()] Datoen å basere uken på (standard er i dag).
+ * @returns {Date} Et Date-objekt for mandagen kl 00:00:00.
+ */
 function getStartOfWeek(date = new Date()) {
-  // ... (som før) ...
   const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const day = d.getDay(); // 0 = Søndag, 1 = Mandag, ..., 6 = Lørdag
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Juster til mandag
   const monday = new Date(d.setDate(diff));
-  monday.setHours(0, 0, 0, 0);
+  monday.setHours(0, 0, 0, 0); // Sett tid til midnatt for pålitelig sammenligning
   return monday;
 }
 
-// --- Tema-logikk (uendret) ---
+// --- Tema-logikk ---
+
+/**
+ * Bruker et gitt tema ved å sette CSS-variabler på rot-elementet (<html>).
+ * Legger også til en klasse på body for spesifikk styling.
+ * @param {string} themeName Navnet på temaet som skal brukes.
+ */
 function applyTheme(themeName) {
-  // ... (som før) ...
   const theme = themes[themeName];
   if (!theme) {
-    console.warn(`Tema "${themeName}" ble ikke funnet.`);
+    console.warn(`Tema "${themeName}" ble ikke funnet. Bruker ingen endring.`);
     return;
   }
+
   console.log(`Bruker tema: ${themeName}`);
+  // Oppdater CSS-variablene
   for (const variable in theme) {
     if (Object.hasOwnProperty.call(theme, variable)) {
        document.documentElement.style.setProperty(variable, theme[variable]);
     }
   }
+  // Fjern gamle tema-klasser og legg til den nye på body
   const bodyClasses = document.body.className.split(' ').filter(cls => !cls.startsWith('theme-'));
   document.body.className = [...bodyClasses, `theme-${themeName}`].join(' ');
 }
 
+/**
+ * Lagrer det valgte temaet og dagens dato i localStorage.
+ * @param {string} themeName Navnet på temaet som skal lagres.
+ */
 function saveThemeAndDate(themeName) {
-  // ... (som før) ...
-   if (themes[themeName]) {
-    const today = new Date().toISOString().split('T')[0];
+  if (themes[themeName]) {
+    const today = new Date().toISOString().split('T')[0]; // Lagre dato som YYYY-MM-DD
     localStorage.setItem('selectedTheme', themeName);
-    localStorage.setItem('themeLastChanged', today);
+    localStorage.setItem('themeLastChanged', today); // Lagre datoen da valget ble gjort
     console.log(`Tema "${themeName}" lagret med dato ${today}.`);
   } else {
     console.warn(`Kan ikke lagre ukjent tema: ${themeName}`);
   }
 }
 
+/**
+ * Hovedfunksjon som kjøres ved sideinnlasting for tema:
+ * Sjekker om det er på tide å bytte tema automatisk,
+ * og bruker enten det lagrede eller det nye automatiske temaet.
+ */
 function loadCheckAndApplyTheme() {
-  // ... (som før) ...
-   const savedTheme = localStorage.getItem('selectedTheme');
+  const savedTheme = localStorage.getItem('selectedTheme');
   const lastChangedStr = localStorage.getItem('themeLastChanged');
   const themeKeys = Object.keys(themes);
+
   let themeToApply = savedTheme && themes[savedTheme] ? savedTheme : themeKeys[0];
   let needsSave = !savedTheme;
+
   const startOfThisWeek = getStartOfWeek();
+
   if (lastChangedStr) {
     const lastChangedDate = new Date(lastChangedStr);
     lastChangedDate.setHours(0, 0, 0, 0);
+
     if (lastChangedDate < startOfThisWeek) {
       console.log("Ny uke! Velger neste tema automatisk. Sist lagret:", lastChangedStr);
       const currentIndex = themeKeys.indexOf(themeToApply);
@@ -161,18 +184,78 @@ function loadCheckAndApplyTheme() {
     console.log("Ingen sist byttet dato. Setter og lagrer default tema:", themeToApply);
     needsSave = true;
   }
-  applyTheme(themeToApply);
+
+  applyTheme(themeToApply); // Bruk det bestemte temaet
+
   if (needsSave) {
-    saveThemeAndDate(themeToApply);
+    saveThemeAndDate(themeToApply); // Lagre hvis det var første gang eller automatisk bytte
   }
 }
 
+// --- Gamification Display (MED EKSTRA LOGGING) ---
+
+/**
+ * Leser streak og rank fra localStorage og oppdaterer HTML-elementene.
+ */
+function displayStreakAndRank() {
+    console.log("--- Kjører displayStreakAndRank (i theme.js) ---"); // Logg start
+
+    // Les verdier fra localStorage
+    const streakCountStr = localStorage.getItem('streak_count');
+    const rankStr = localStorage.getItem('user_rank');
+    console.log(`Lest fra localStorage: streak_count='${streakCountStr}', user_rank='${rankStr}'`);
+
+    // Konverter streak til tall, default til 0
+    const streakCount = parseInt(streakCountStr || '0');
+    // Bruk rank direkte, default til "Nybegynner"
+    const rank = rankStr || "Nybegynner";
+
+    // Finn HTML-elementene
+    const streakElement = document.getElementById('streak-display');
+    const rankElement = document.getElementById('rank-display');
+
+    // Sjekk om elementene ble funnet
+    if (!streakElement) {
+        console.warn("#streak-display elementet ble IKKE funnet i HTML!");
+    }
+    if (!rankElement) {
+        console.warn("#rank-display elementet ble IKKE funnet i HTML!");
+    }
+
+    // Oppdater streak-visning
+    if (streakElement) {
+        if (streakCount > 0) {
+            streakElement.innerHTML = `🔥 ${streakCount} dager på rad!`;
+            streakElement.style.display = 'inline-block'; // Vis
+            console.log("Oppdaterte #streak-display.");
+        } else {
+            streakElement.style.display = 'none'; // Skjul
+            console.log("Skjulte #streak-display (streak = 0).");
+        }
+    }
+
+    // Oppdater rank-visning
+    if (rankElement) {
+        rankElement.innerHTML = `🏆 Rank: ${rank}`;
+         rankElement.style.display = 'inline-block'; // Vis
+         console.log("Oppdaterte #rank-display.");
+    }
+
+    console.log("--- Ferdig med displayStreakAndRank ---"); // Logg slutt
+}
+
+
 // --- Kjør logikken når siden er klar ---
 document.addEventListener('DOMContentLoaded', () => {
+  console.log("theme.js DOMContentLoaded kjører."); // Bekreft at denne kjører
   // 1. Sjekk og bruk tema (automatisk bytte eller lagret)
   loadCheckAndApplyTheme();
 
-  // 2. Legg til lyttere for MANUELLE temaknapper
+  // 2. Vis lagret streak og rank
+  console.log("theme.js DOMContentLoaded: Kaller displayStreakAndRank.");
+  displayStreakAndRank(); // Denne viser initial status fra localStorage
+
+  // 3. Legg til lyttere for MANUELLE temaknapper
   const addThemeButtonListener = (buttonId) => {
       const button = document.getElementById(buttonId);
       if (button) {
@@ -180,8 +263,8 @@ document.addEventListener('DOMContentLoaded', () => {
           if (themes[themeName]) {
               button.addEventListener('click', () => {
                   console.log(`Manuell valg: ${themeName}`);
-                  applyTheme(themeName);
-                  saveThemeAndDate(themeName);
+                  applyTheme(themeName);       // Bruk temaet umiddelbart
+                  saveThemeAndDate(themeName); // Lagre manuelt valg OG dagens dato
               });
           } else {
                console.warn(`Knapp ${buttonId} funnet, men temaet ${themeName} finnes ikke.`);
@@ -189,11 +272,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
   };
 
-  // Legg til lyttere for ALLE definerte temaknapper
+  // Legg til lyttere for alle definerte temaknapper
   addThemeButtonListener('theme-btn-dark-purple');
   addThemeButtonListener('theme-btn-light-blue');
   addThemeButtonListener('theme-btn-forest-green');
-  addThemeButtonListener('theme-btn-ocean-breeze'); // <-- Ny
-  addThemeButtonListener('theme-btn-sunset-glow');  // <-- Ny
-  addThemeButtonListener('theme-btn-monochrome-mint'); // <-- Ny
+  addThemeButtonListener('theme-btn-ocean-breeze');
+  addThemeButtonListener('theme-btn-sunset-glow');
+  addThemeButtonListener('theme-btn-monochrome-mint');
 });
+
+console.log("theme.js lastet og klar."); // Bekreftelse
