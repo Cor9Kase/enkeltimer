@@ -255,6 +255,19 @@ body {
     gap: 4px; /* Mellomrom mellom ikon og tekst */
 }
 
+.task-estimated {
+  /* Ligner på .task-due-date */
+  font-style: italic;
+  /* Ingen spesiell farge nødvendigvis, arver fra .task-meta */
+}
+
+/* Valgfri: Legg til emoji via ::before hvis du vil */
+.task-estimated::before {
+    content: "⏱️ "; /* Klokke-emoji */
+    /* font-size: 1.1em; */ /* Juster størrelse om nødvendig */
+    margin-right: 2px; /* Litt luft */
+}
+
 .task-customer {
     font-weight: 500;
     color: var(--accent-primary);
