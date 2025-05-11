@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manager Dashboard - Skar Timetracker</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="manager-dashboard.css"> </head>
+<body>
+  <div class="header">
+    <h1>Skar Timetracker - Manager Dashboard</h1>
+    <div id="current-date" class="current-date">Laster dato...</div>
+    <div class="gamification-display">
+        <span id="streak-display" style="display: none;"></span>
+        <span id="rank-display" style="display: none;"></span>
+        <span id="points-display" style="display: none;"></span>
+    </div>
+    <div class="header-main-actions">
+      <button class="nav-btn" onclick="window.location.href='index.html'">Timeregistrering</button>
+      <button class="nav-btn" onclick="window.location.href='daily-summary.html'">Dagsoversikt</button>
+      <button class="nav-btn" onclick="window.location.href='tasks.html'">Oppgaver</button>
+      <button class="nav-btn active" onclick="window.location.href='manager-dashboard.html'">Manager Dashboard</button>
+    </div>
+
+    <div class="user-selection-actions">
+      <button class="user-switch-btn" id="user-btn-c">Cornelius Fokus</button>
+      <button class="user-switch-btn" id="user-btn-w">William Fokus</button>
+      <button class="user-switch-btn" id="user-btn-all">Begge (Standard)</button>
+    </div>
+
+    <div class="theme-switcher">
+      <button id="theme-btn-dark-purple" title="Mørk Lilla Tema" class="theme-btn theme-dark-purple"></button>
+      <button id="theme-btn-minimalist-orange" title="Oransje Tema" class="theme-btn theme-minimalist-orange"></button>
+    </div>
+  </div>
+
+  <div class="dashboard-container">
+    <section class="stats-section">
+      <h2>Nøkkeltall (Denne Måned)</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>Timer Cornelius</h3>
+          <p id="stats-hours-c" class="stat-value">Laster...</p>
+          <div class="progress-bar-container"><div id="progress-hours-c" class="progress-bar"></div></div>
+          <small>Av tildelt: <span id="allocated-hours-c">Laster...</span></small>
+        </div>
+        <div class="stat-card">
+          <h3>Timer William</h3>
+          <p id="stats-hours-w" class="stat-value">Laster...</p>
+          <div class="progress-bar-container"><div id="progress-hours-w" class="progress-bar"></div></div>
+          <small>Av tildelt: <span id="allocated-hours-w">Laster...</span></small>
+        </div>
+        <div class="stat-card">
+          <h3>Totalt Timer Logget</h3>
+          <p id="stats-hours-total" class="stat-value">Laster...</p>
+        </div>
+        <div class="stat-card">
+          <h3>Åpne Oppgaver C</h3>
+          <p id="stats-open-tasks-c" class="stat-value">Laster...</p>
+        </div>
+        <div class="stat-card">
+          <h3>Åpne Oppgaver W</h3>
+          <p id="stats-open-tasks-w" class="stat-value">Laster...</p>
+        </div>
+        <div class="stat-card">
+          <h3>Fullførte Oppgaver (Måned)</h3>
+          <p id="stats-completed-tasks-month" class="stat-value">Laster...</p>
+           <small>C: <span id="completed-tasks-c-month">0</span> / W: <span id="completed-tasks-w-month">0</span></small>
+        </div>
+      </div>
+    </section>
+
+    <div class="dashboard-columns">
+        <section class="task-management-section">
+          <h2>Oppgaveadministrasjon</h2>
+          <div class="create-task-form">
+            <h3>Opprett Ny Oppgave</h3>
+            <div class="form-group">
+              <label for="new-task-assignee">Tildel til:</label>
+              <select id="new-task-assignee">
+                <option value="C">Cornelius</option>
+                <option value="W">William</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="new-task-customer">Kunde:</label>
+              <select id="new-task-customer">
+                <option value="">-- Velg kunde --</option>
+                </select>
+            </div>
+            <div class="form-group">
+              <label for="new-task-name">Oppgavenavn:</label>
+              <input type="text" id="new-task-name" placeholder="Kort beskrivelse">
+            </div>
+            <div class="form-group">
+              <label for="new-task-estimated-time">Estimert Tid (timer):</label>
+              <input type="number" id="new-task-estimated-time" step="0.25" min="0" placeholder="f.eks. 1.5">
+            </div>
+            <div class="form-group">
+              <label for="new-task-due-date">Frist (valgfri):</label>
+              <input type="date" id="new-task-due-date">
+            </div>
+             <div class="form-group">
+              <label for="new-task-priority">Prioritet:</label>
+              <select id="new-task-priority">
+                <option value="">Ingen</option>
+                <option value="Lav">Lav</option>
+                <option value="Medium">Medium</option>
+                <option value="Høy">Høy</option>
+              </select>
+            </div>
+            <button id="submit-new-task-btn" class="submit-btn">Opprett Oppgave</button>
+            <p id="new-task-status" class="status-message"></p>
+          </div>
+        </section>
+
+        <section class="quick-task-overview-section">
+          <h2>Hurtigoversikt Oppgaver (<span id="task-overview-user">Begge</span>)</h2>
+           <div class="task-overview-filters">
+                <label for="task-overview-status-filter">Status:</label>
+                <select id="task-overview-status-filter">
+                    <option value="open">Åpne (Ny/Pågår)</option>
+                    <option value="Ny">Ny</option>
+                    <option value="Pågår">Pågår</option>
+                    <option value="Venter">Venter</option>
+                    <option value="Ferdig">Ferdig</option>
+                    <option value="all">Alle</option>
+                </select>
+            </div>
+          <div id="task-list-manager" class="task-list-manager">
+            <p>Laster oppgaver...</p>
+            </div>
+        </section>
+    </div>
+
+  </div> <button id="refresh-button" class="icon-btn refresh-btn-fixed" title="Oppdater data">🔄</button>
+
+  <script src="script.js"></script> <script src="theme.js"></script> <script src="gamification.js"></script> <script src="manager-dashboard.js"></script> </body>
+</html>
