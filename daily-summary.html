@@ -3,35 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daglig Timesoversikt - Cornys Timetracker</title>
-  <!-- Viktig: Sørg for at stiene til CSS-filene er korrekte -->
+  <title>Daglig Timesoversikt - Skar timetracker</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="daily-summary.css">
 </head>
 <body>
-  <div class="header"> <!-- Hovedheader-container -->
-    <h1>Cornys Timetracker - Daglig Oversikt</h1>
+  <div class="header"> <h1>Skar timetracker - Daglig Oversikt</h1>
     <div id="current-date" class="current-date"></div>
     <div class="update-status">Sist oppdatert: <span id="last-updated">Aldri</span></div>
     
-        <!-- === START GAMIFICATION DISPLAY === -->
-    <!-- Plassert her for å være synlig under dato/status -->
     <div class="gamification-display">
-        <span id="streak-display" style="display: none;"></span> <!-- Skjult som standard, vises av JS -->
-        <span id="rank-display" style="display: none;"></span>   <!-- Skjult som standard, vises av JS -->
+        <span id="streak-display" style="display: none;"></span>
+        <span id="rank-display" style="display: none;"></span>
     </div>
-    <!-- === SLUTT GAMIFICATION DISPLAY === -->
 
-       <!-- Hovedknapper UTEN refresh -->
     <div class="header-main-actions">
-      <!-- Refresh-knappen er FLYTTET herfra -->
-      <!-- FJERN 'active' fra denne knappen -->
       <button class="nav-btn" onclick="window.location.href='index.html'">Timeregistrering</button>
       <button class="nav-btn" onclick="window.location.href='daily-summary.html'">Dagsoversikt</button>
       <button class="nav-btn" onclick="window.location.href='tasks.html'">Oppgaver</button>
     </div>
 
-    <!-- Container for temaknapper (posisjoneres av CSS) -->
+    <div class="user-selection-actions">
+      <button class="user-switch-btn" id="user-btn-c">Vis Cornelius</button>
+      <button class="user-switch-btn" id="user-btn-w">Vis William</button>
+    </div>
     <div class="theme-switcher">
       <button id="theme-btn-dark-purple" title="Mørk Lilla Tema" class="theme-btn theme-dark-purple"></button>
       <button id="theme-btn-light-blue" title="Lys Blå Tema" class="theme-btn theme-light-blue"></button>
@@ -49,23 +44,20 @@
   </div>
 
   <div class="summary-container">
-    <!-- === START NY SEKSJON FOR TOTALER === -->
     <div class="overall-summary">
-      <div class="card allocated-card"> <!-- Endret klasse for spesifikk stil -->
+      <div class="card allocated-card">
         <h3>Totalt Tildelt (Solgt)</h3>
         <div id="month-allocated-total" class="card-value">Laster...</div>
       </div>
-      <div class="card remaining-card"> <!-- Endret klasse for spesifikk stil -->
+      <div class="card remaining-card">
         <h3>Totalt Gjenstående</h3>
         <div id="month-remaining-total" class="card-value">Laster...</div>
       </div>
     </div>
-    <!-- === SLUTT NY SEKSJON === -->
 
     <div class="summary-header">
-      <!-- Eksisterende kort (Totalt Logget, Gj.snitt, Overtid) -->
       <div class="card total-card">
-        <h3>Totalt Logget Denne Måneden</h3> <!-- Tydeliggjort tittel -->
+        <h3>Totalt Logget Denne Måneden</h3>
         <div id="month-total" class="card-value">0.00 timer</div>
       </div>
       <div class="card average-card">
@@ -73,7 +65,7 @@
         <div id="day-average" class="card-value">0.00 timer</div>
       </div>
       <div class="card overtime-card">
-        <h3>Logget Overtid denne måneden</h3> <!-- Tydeliggjort tittel -->
+        <h3>Logget Overtid denne måneden</h3>
         <div id="month-overtime" class="card-value">0.00 timer</div>
       </div>
     </div>
@@ -85,29 +77,24 @@
             <th>Dato</th>
             <th>Ukedag</th>
             <th>Totale timer</th>
-            <!-- Overtid-kolonne legges til av JS -->
             <th>Antall kunder</th>
             <th>Detaljer</th>
           </tr>
         </thead>
         <tbody id="summary-table-body">
-          <!-- Rader fylles inn av JavaScript -->
-          <tr><td colspan="6" style="text-align: center; padding: 20px;">Laster data...</td></tr> <!-- Nå colspan 6 -->
+          <tr><td colspan="6" style="text-align: center; padding: 20px;">Laster data...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- Modal for dag-detaljer -->
   <div id="dayDetailsModal" class="modal">
     <div class="modal-content daily-details-modal">
-      <!-- Bruker riktig funksjon for å lukke -->
       <span class="close" onclick="closeModal('dayDetailsModal')" title="Lukk">×</span>
       <h2>Timedetaljer for <span id="detail-date">dato</span></h2>
       <div id="detail-summary" class="detail-summary-text">
         Total: <span id="detail-total-hours">0</span> timer fordelt på <span id="detail-customer-count">0</span> kunder.
       </div>
-
       <table id="detail-table" class="detail-table">
         <thead>
           <tr>
@@ -117,17 +104,15 @@
           </tr>
         </thead>
         <tbody id="detail-table-body">
-          <!-- Detaljer fylles inn av JavaScript -->
         </tbody>
       </table>
     </div>
   </div>
   
-<button id="refresh-button" class="icon-btn refresh-btn-fixed" title="Oppdater data">🔄</button>
+  <button id="refresh-button" class="icon-btn refresh-btn-fixed" title="Oppdater data">🔄</button>
   
-  <!-- Viktig: Sørg for at stien til JS-filen er korrekt -->
   <script src="daily-summary.js"></script>
- <script src="gamification.js"></script>
+  <script src="gamification.js"></script>
   <script src="theme.js"></script>
 </body>
 </html>
