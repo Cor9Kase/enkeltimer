@@ -30,6 +30,10 @@
       <button class="user-switch-btn" id="user-btn-all" title="Vis data for begge">Begge (Standard)</button>
     </div>
 
+    <div class="quick-actions-bar">
+        <button id="open-create-task-modal-btn" class="submit-btn large-action-btn">+ Opprett Ny Oppgave</button>
+    </div>
+
     <div class="theme-switcher">
       <button id="theme-btn-dark-purple" title="Mørk Lilla Tema" class="theme-btn theme-dark-purple"></button>
       <button id="theme-btn-light-blue" title="Lys Blå Tema" class="theme-btn theme-light-blue"></button>
@@ -111,19 +115,11 @@
     </section>
 
     <div class="view-selector-manager">
-        <button id="show-task-admin-btn" class="view-btn active">Oppgaveadmin</button>
-        <button id="show-calendar-view-btn" class="view-btn">Kalendervisning</button>
+        <button id="show-task-admin-btn" class="view-btn active">Oppgaveliste</button> <button id="show-calendar-view-btn" class="view-btn">Kalendervisning</button>
     </div>
 
     <div id="task-admin-view">
-        <div class="dashboard-columns">
-            <section class="dashboard-section task-management-section">
-              <h2>Oppgaveadministrasjon</h2>
-              <button id="open-create-task-modal-btn" class="submit-btn" style="width: auto; margin-bottom: 20px;">+ Opprett Ny Oppgave</button>
-              <p>Bruk knappen over for å legge til en ny oppgave for Cornelius eller William.</p>
-            </section>
-
-            <section class="dashboard-section quick-task-overview-section">
+        <div class="dashboard-columns" style="grid-template-columns: 1fr;"> <section class="dashboard-section quick-task-overview-section">
               <h2 id="quick-task-overview-title">Hurtigoversikt Oppgaver (<span id="task-overview-user">Begge</span>)</h2>
                <div class="task-overview-filters">
                     <label for="task-overview-status-filter">Status:</label>
@@ -140,17 +136,22 @@
                 <p>Laster oppgaver...</p>
               </div>
             </section>
-        </div>
+            </div>
     </div>
 
     <div id="calendar-view-manager" class="dashboard-section" style="display: none;">
         <h2 id="calendar-view-title">Oppgavekalender - Begge</h2>
-        <div id="managerCalendar"></div> </div>
+        <div id="managerCalendar"></div>
+    </div>
 
-  </div> <div id="managerCreateTaskModal" class="modal">
-    <div class="modal-content task-modal-content"> <span class="close" onclick="closeModal('managerCreateTaskModal')" title="Lukk">×</span>
+  </div>
+
+  <div id="managerCreateTaskModal" class="modal">
+    <div class="modal-content task-modal-content">
+      <span class="close" onclick="closeModal('managerCreateTaskModal')" title="Lukk">×</span>
       <h2>Opprett Ny Oppgave</h2>
-      <div class="create-task-form"> <div class="form-group">
+      <div class="create-task-form">
+        <div class="form-group">
           <label for="new-task-assignee">Tildel til:</label>
           <select id="new-task-assignee">
             <option value="C">Cornelius</option>
@@ -161,7 +162,7 @@
           <label for="new-task-customer">Kunde:</label>
           <select id="new-task-customer">
             <option value="">-- Velg kunde --</option>
-            </select>
+          </select>
         </div>
         <div class="form-group">
           <label for="new-task-name">Oppgavenavn:</label>
@@ -192,7 +193,6 @@
       </div>
     </div>
   </div>
-
 
   <button id="refresh-button" class="icon-btn refresh-btn-fixed" title="Oppdater data">🔄</button>
 
