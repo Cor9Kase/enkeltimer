@@ -119,45 +119,8 @@
         <div class="dashboard-columns">
             <section class="dashboard-section task-management-section">
               <h2>Oppgaveadministrasjon</h2>
-              <div class="create-task-form">
-                <h3>Opprett Ny Oppgave</h3>
-                <div class="form-group">
-                  <label for="new-task-assignee">Tildel til:</label>
-                  <select id="new-task-assignee">
-                    <option value="C">Cornelius</option>
-                    <option value="W">William</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="new-task-customer">Kunde:</label>
-                  <select id="new-task-customer">
-                    <option value="">-- Velg kunde --</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="new-task-name">Oppgavenavn:</label>
-                  <input type="text" id="new-task-name" placeholder="Kort beskrivelse">
-                </div>
-                <div class="form-group">
-                  <label for="new-task-estimated-time">Estimert Tid (timer):</label>
-                  <input type="number" id="new-task-estimated-time" step="0.25" min="0" placeholder="f.eks. 1.5">
-                </div>
-                <div class="form-group">
-                  <label for="new-task-due-date">Frist (valgfri):</label>
-                  <input type="date" id="new-task-due-date">
-                </div>
-                 <div class="form-group">
-                  <label for="new-task-priority">Prioritet:</label>
-                  <select id="new-task-priority">
-                    <option value="">Ingen</option>
-                    <option value="Lav">Lav</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Høy">Høy</option>
-                  </select>
-                </div>
-                <button id="submit-new-task-btn" class="submit-btn">Opprett Oppgave</button>
-                <p id="new-task-status" class="status-message"></p>
-              </div>
+              <button id="open-create-task-modal-btn" class="submit-btn" style="width: auto; margin-bottom: 20px;">+ Opprett Ny Oppgave</button>
+              <p>Bruk knappen over for å legge til en ny oppgave for Cornelius eller William.</p>
             </section>
 
             <section class="dashboard-section quick-task-overview-section">
@@ -182,10 +145,54 @@
 
     <div id="calendar-view-manager" class="dashboard-section" style="display: none;">
         <h2 id="calendar-view-title">Oppgavekalender - Begge</h2>
-        <div id="managerCalendar"></div>
-    </div>
+        <div id="managerCalendar"></div> </div>
 
+  </div> <div id="managerCreateTaskModal" class="modal">
+    <div class="modal-content task-modal-content"> <span class="close" onclick="closeModal('managerCreateTaskModal')" title="Lukk">×</span>
+      <h2>Opprett Ny Oppgave</h2>
+      <div class="create-task-form"> <div class="form-group">
+          <label for="new-task-assignee">Tildel til:</label>
+          <select id="new-task-assignee">
+            <option value="C">Cornelius</option>
+            <option value="W">William</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="new-task-customer">Kunde:</label>
+          <select id="new-task-customer">
+            <option value="">-- Velg kunde --</option>
+            </select>
+        </div>
+        <div class="form-group">
+          <label for="new-task-name">Oppgavenavn:</label>
+          <input type="text" id="new-task-name" placeholder="Kort beskrivelse">
+        </div>
+        <div class="form-group">
+          <label for="new-task-estimated-time">Estimert Tid (timer):</label>
+          <input type="number" id="new-task-estimated-time" step="0.25" min="0" placeholder="f.eks. 1.5">
+        </div>
+        <div class="form-group">
+          <label for="new-task-due-date">Frist (valgfri):</label>
+          <input type="date" id="new-task-due-date">
+        </div>
+         <div class="form-group">
+          <label for="new-task-priority">Prioritet:</label>
+          <select id="new-task-priority">
+            <option value="">Ingen</option>
+            <option value="Lav">Lav</option>
+            <option value="Medium">Medium</option>
+            <option value="Høy">Høy</option>
+          </select>
+        </div>
+        <div class="modal-buttons">
+            <button class="cancel-btn" onclick="closeModal('managerCreateTaskModal')">Avbryt</button>
+            <button id="submit-new-task-btn" class="submit-btn">Opprett Oppgave</button>
+        </div>
+        <p id="new-task-status" class="status-message" style="text-align: left; margin-top:15px;"></p>
+      </div>
+    </div>
   </div>
+
 
   <button id="refresh-button" class="icon-btn refresh-btn-fixed" title="Oppdater data">🔄</button>
 
