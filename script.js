@@ -11,7 +11,7 @@ function debounce(func, wait) {
 }
 
 // Google Script URL
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmaYK_wr1ObTzqfqEAQSxcGlX_axiKJpLkcU-4CY89fe5Ahaxjz_UP8drygvOpqyvn/exec'; // <--- SJEKK DENNE!
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxuUyA2uTPHddmp16iiIE8wHeb1bYurSXI022-6e6xK0Bp1-72mc3qE94kqd1R2CnwF/exec'; // <--- SJEKK DENNE!
 
 // Globale variabler
 const timers = {};
