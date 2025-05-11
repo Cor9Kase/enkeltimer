@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("Manager Dashboard DOM lastet.");
 
     if (typeof currentUserSuffix === 'undefined') {
-        console.warn("currentUserSuffix ikke definert i manager-dashboard.js. Fallback til localStorage.");
+        console.warn("currentUserSuffix ikke definert. Fallback til localStorage.");
         // eslint-disable-next-line no-global-assign
         currentUserSuffix = localStorage.getItem('currentUserSuffix') || 'C';
     }
@@ -46,8 +46,13 @@ function setupManagerEventListeners() {
     document.getElementById('user-btn-c')?.addEventListener('click', () => setManagerFocus('C'));
     document.getElementById('user-btn-w')?.addEventListener('click', () => setManagerFocus('W'));
     document.getElementById('user-btn-all')?.addEventListener('click', () => setManagerFocus('all'));
+
+    // ENDRET: Lytter nå til den nye knappen som er flyttet ut
     document.getElementById('open-create-task-modal-btn')?.addEventListener('click', openManagerCreateTaskModal);
+
+    // Knappen inne i modalen har fortsatt samme ID og vil kalle handleSubmitNewTask
     document.getElementById('submit-new-task-btn')?.addEventListener('click', handleSubmitNewTask);
+    
     document.getElementById('new-task-assignee')?.addEventListener('change', populateManagerCustomerDropdown);
     document.getElementById('task-overview-status-filter')?.addEventListener('change', renderQuickTaskOverview);
     document.getElementById('refresh-button')?.addEventListener('click', fetchAllDataForDashboard);
@@ -69,12 +74,11 @@ function openManagerCreateTaskModal() {
         }
         const statusEl = document.getElementById('new-task-status');
         if(statusEl) statusEl.textContent = '';
-        // Tøm skjemafelter ved åpning
         document.getElementById('new-task-name').value = '';
         document.getElementById('new-task-estimated-time').value = '';
         document.getElementById('new-task-due-date').value = '';
         document.getElementById('new-task-priority').value = '';
-        // Behold kunde og tildelt som de er satt
+        // La kunde-dropdown være som den er, da den oppdateres av populateManagerCustomerDropdown
 
         modal.style.display = 'block';
         console.log("ManagerCreateTaskModal åpnet.");
@@ -83,8 +87,14 @@ function openManagerCreateTaskModal() {
     }
 }
 
+// ... (resten av JavaScript-funksjonene forblir som i forrige versjon)
+// setManagerFocus, fetchAllDataForDashboard, showLoadingState, fetchDataFromScript_Manager,
+// renderDashboard, updateSectionTitles, renderStats, updateProgressBar, renderDueTasksList,
+// renderQuickTaskOverview, populateManagerCustomerDropdown, handleSubmitNewTask,
+// renderCharts, renderLoggedHoursChart, renderTaskStatusChart, renderOpenTasksDistributionChart,
+// showViewManager, initializeManagerCalendar
+
 function setManagerFocus(focusUser, reloadData = true) {
-    // ... (som i forrige versjon)
     managerFocusUser = focusUser;
     localStorage.setItem('managerDashboardFocus', managerFocusUser);
     console.log(`Manager dashboard fokus satt til: ${managerFocusUser}`);
@@ -108,7 +118,6 @@ function setManagerFocus(focusUser, reloadData = true) {
 }
 
 async function fetchAllDataForDashboard() {
-    // ... (som i forrige versjon)
     console.log("Henter all data for manager dashboard...");
     showLoadingState(true);
     try {
@@ -148,7 +157,6 @@ async function fetchAllDataForDashboard() {
 }
 
 function showLoadingState(isLoading) {
-    // ... (som i forrige versjon)
     const elementsToUpdate = [
         'stats-hours-c', 'stats-hours-w', 'stats-hours-total',
         'stats-open-tasks-c', 'stats-open-tasks-w', 'stats-completed-tasks-month',
@@ -171,7 +179,6 @@ function showLoadingState(isLoading) {
 }
 
 function fetchDataFromScript_Manager(params) {
-    // ... (som i forrige versjon)
     const urlParams = new URLSearchParams(params);
     urlParams.append('nocache', Date.now());
     const url = `${GOOGLE_SCRIPT_URL}?${urlParams.toString()}`;
@@ -190,7 +197,6 @@ function fetchDataFromScript_Manager(params) {
 }
 
 function renderDashboard() {
-    // ... (som i forrige versjon)
     updateSectionTitles();
     renderStats();
     renderDueTasksList();
@@ -202,7 +208,6 @@ function renderDashboard() {
 }
 
 function updateSectionTitles() {
-    // ... (som i forrige versjon)
     const focusText = managerFocusUser === 'C' ? 'Cornelius' : managerFocusUser === 'W' ? 'William' : 'Begge';
     document.getElementById('stats-section-title').innerHTML = `Nøkkeltall (Denne Måned) - <span>${focusText}</span>`;
     document.getElementById('charts-section-title').innerHTML = `Visuell Oversikt - <span>${focusText}</span>`;
@@ -212,7 +217,6 @@ function updateSectionTitles() {
 }
 
 function renderStats() {
-    // ... (som i forrige versjon)
     console.log(`Rendrer statistikk for fokus: ${managerFocusUser}`);
     const updateStatCard = (id, value, subtext = null) => { 
         const el = document.getElementById(id);
@@ -280,7 +284,6 @@ function renderStats() {
 }
 
 function updateProgressBar(elementId, currentValue, maxValue) {
-    // ... (som i forrige versjon)
     const progressBar = document.getElementById(elementId);
     if (!progressBar) return;
     let percentage = 0;
@@ -303,7 +306,6 @@ function updateProgressBar(elementId, currentValue, maxValue) {
 }
 
 function renderDueTasksList() {
-    // ... (som i forrige versjon)
     const dueTasksListDiv = document.getElementById('due-tasks-list');
     if (!dueTasksListDiv) return;
     dueTasksListDiv.innerHTML = "";
@@ -362,7 +364,6 @@ function renderDueTasksList() {
 }
 
 function renderQuickTaskOverview() {
-    // ... (som i forrige versjon)
     const taskListDiv = document.getElementById('task-list-manager');
     if (!taskListDiv) return;
     taskListDiv.innerHTML = ""; 
@@ -438,7 +439,6 @@ function renderQuickTaskOverview() {
 }
 
 function populateManagerCustomerDropdown() {
-    // ... (som i forrige versjon)
     const assignee = document.getElementById('new-task-assignee').value;
     const customerDropdown = document.getElementById('new-task-customer');
     if (!customerDropdown) return;
@@ -463,7 +463,7 @@ async function handleSubmitNewTask() {
     const estimatedTime = document.getElementById('new-task-estimated-time').value;
     const dueDate = document.getElementById('new-task-due-date').value;
     const priority = document.getElementById('new-task-priority').value;
-    const statusEl = document.getElementById('new-task-status');
+    const statusEl = document.getElementById('new-task-status'); 
 
     if (!customer || !name) {
         statusEl.textContent = "Kunde og oppgavenavn må fylles ut.";
@@ -477,22 +477,17 @@ async function handleSubmitNewTask() {
     }
 
     const taskData = {
-        action: 'addTask',
-        user: assignee, // Hvem oppgaven er for
-        customer: customer,
-        name: name,
-        status: 'Ny',
-        priority: priority || null,
-        dueDate: dueDate || null,
+        action: 'addTask', user: assignee, customer: customer, name: name, status: 'Ny',
+        priority: priority || null, dueDate: dueDate || null,
         estimatedTime: estimatedTime !== '' ? parseFloat(estimatedTime) : null,
-        source: 'manager' // VIKTIG: Indikerer at oppgaven er opprettet av manager
+        source: 'manager' 
     };
 
     statusEl.textContent = "Oppretter oppgave..."; statusEl.className = 'status-message';
     document.getElementById('submit-new-task-btn').disabled = true;
 
     try {
-        const response = await sendDataToGoogleScript(taskData); // Bruker global sendDataToGoogleScript
+        const response = await sendDataToGoogleScript(taskData); 
         if (response.success) {
             statusEl.textContent = "Oppgave opprettet og varsel sendt!"; statusEl.className = 'status-message success';
             document.getElementById('new-task-name').value = '';
@@ -503,7 +498,7 @@ async function handleSubmitNewTask() {
             setTimeout(() => {
                 closeModal('managerCreateTaskModal');
                 statusEl.textContent = ''; 
-            }, 2000); // Litt lenger tid for å se meldingen
+            }, 2000); 
             
             fetchAllDataForDashboard(); 
         } else {
@@ -518,7 +513,6 @@ async function handleSubmitNewTask() {
 }
 
 function renderCharts() {
-    // ... (som i forrige versjon)
     console.log(`Rendrer diagrammer for fokus: ${managerFocusUser}`);
     let hoursC = 0; allManagerTimeLogsC.forEach(day => hoursC += day.totalHours);
     let hoursW = 0; allManagerTimeLogsW.forEach(day => hoursW += day.totalHours);
@@ -545,7 +539,6 @@ function renderCharts() {
 }
 
 function renderLoggedHoursChart(hoursC, hoursW) {
-    // ... (som i forrige versjon)
     const ctx = document.getElementById('loggedHoursChart')?.getContext('2d');
     const container = document.getElementById('chart-container-logged-hours');
     if (!ctx || !container) return;
@@ -586,7 +579,6 @@ function renderLoggedHoursChart(hoursC, hoursW) {
 }
 
 function renderTaskStatusChart(openTasksForFocus) {
-    // ... (som i forrige versjon)
     const ctx = document.getElementById('taskStatusChart')?.getContext('2d');
     const container = document.getElementById('chart-container-task-status');
     if (!ctx || !container) return;
@@ -625,7 +617,6 @@ function renderTaskStatusChart(openTasksForFocus) {
 }
 
 function renderOpenTasksDistributionChart(openC, openW) {
-    // ... (som i forrige versjon)
     const ctx = document.getElementById('openTasksDistributionChart')?.getContext('2d');
     const container = document.getElementById('chart-container-open-tasks-dist');
     if (!ctx || !container) return;
@@ -664,7 +655,6 @@ function renderOpenTasksDistributionChart(openC, openW) {
 }
 
 function showViewManager(viewName) {
-    // ... (som i forrige versjon)
     const taskAdminView = document.getElementById('task-admin-view');
     const calendarViewManager = document.getElementById('calendar-view-manager');
     const btnTaskAdmin = document.getElementById('show-task-admin-btn');
@@ -691,9 +681,31 @@ function showViewManager(viewName) {
 }
 
 function initializeManagerCalendar() {
-    // ... (som i forrige versjon)
     if (managerCalendarInstance) { 
-        managerCalendarInstance.refetchEvents(); 
+        // Kalenderen finnes, oppdater events
+        let tasksForCalendar = [];
+        if (managerFocusUser === 'C') tasksForCalendar = [...allManagerTasksC];
+        else if (managerFocusUser === 'W') tasksForCalendar = [...allManagerTasksW];
+        else tasksForCalendar = [...allManagerTasksC, ...allManagerTasksW];
+
+        const calendarEvents = tasksForCalendar.filter(task => task.dueDate).map(task => {
+            // ... (samme event-mapping som under)
+            let color = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim(); 
+            if (task.priority === 'Høy') color = getComputedStyle(document.documentElement).getPropertyValue('--bar-red').trim();
+            else if (task.priority === 'Medium') color = getComputedStyle(document.documentElement).getPropertyValue('--bar-yellow').trim();
+            else if (task.priority === 'Lav') color = '#64b5f6'; 
+            
+            let assigneePrefix = '';
+            if (managerFocusUser === 'all') { 
+                if (allManagerTasksC.some(t => t.id === task.id)) assigneePrefix = 'C: ';
+                else if (allManagerTasksW.some(t => t.id === task.id)) assigneePrefix = 'W: ';
+            }
+            return { id: task.id, title: `${assigneePrefix}${task.name} (${task.customer || 'N/A'})`, start: task.dueDate, allDay: true, extendedProps: task, backgroundColor: color, borderColor: color };
+        });
+        managerCalendarInstance.removeAllEvents();
+        managerCalendarInstance.addEventSource(calendarEvents);
+        managerCalendarInstance.render(); // Re-render for å vise endringer
+        console.log("Managerkalender oppdatert med nye events.");
         return;
     }
 
@@ -743,17 +755,18 @@ function initializeManagerCalendar() {
         editable: false, 
         eventClick: function(info) {
             console.log('Kalender Event Klikket:', info.event);
-            if (typeof openEditTaskModal_Tasks === 'function') { // Sjekk om tasks.js sin modal-funksjon er tilgjengelig
+            if (typeof openEditTaskModal_Tasks === 'function') {
                  openEditTaskModal_Tasks(info.event.id); 
             } else {
                 alert(`Oppgave: ${info.event.title}\nFrist: ${info.event.startStr}`);
             }
         },
-        height: 'auto', 
+        height: 650, // Satt en fast høyde for bedre visning
         eventDidMount: function(info) {
-            // Tooltip kan legges til her hvis ønskelig
+            // Kan legge til tooltips her
         }
     });
     managerCalendarInstance.render();
     console.log("Managerkalender initialisert/rendret.");
 }
+
