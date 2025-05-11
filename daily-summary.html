@@ -4,22 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Daglig Timesoversikt - Skar timetracker</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="daily-summary.css">
-</head>
+  <link rel="stylesheet" href="styles.css"> <link rel="stylesheet" href="daily-summary.css"> </head>
 <body>
   <div class="header"> <h1>Skar timetracker - Daglig Oversikt</h1>
     <div id="current-date" class="current-date"></div>
     <div class="update-status">Sist oppdatert: <span id="last-updated">Aldri</span></div>
     
-        <div class="gamification-display">
-        <span id="streak-display" style="display: none;"></span> <span id="rank-display" style="display: none;"></span>   </div>
+    <div class="gamification-display">
+        <span id="streak-display" style="display: none;"></span>
+        <span id="rank-display" style="display: none;"></span>
+        <span id="points-display" style="display: none;"></span> </div>
+
     <div class="header-main-actions">
       <button class="nav-btn" onclick="window.location.href='index.html'">Timeregistrering</button>
       <button class="nav-btn" onclick="window.location.href='daily-summary.html'">Dagsoversikt</button>
       <button class="nav-btn" onclick="window.location.href='tasks.html'">Oppgaver</button>
     </div>
 
+    <div class="user-selection-actions">
+      <button class="user-switch-btn" id="user-btn-c">Vis Cornelius</button>
+      <button class="user-switch-btn" id="user-btn-w">Vis William</button>
+    </div>
     <div class="theme-switcher">
       <button id="theme-btn-dark-purple" title="Mørk Lilla Tema" class="theme-btn theme-dark-purple"></button>
       <button id="theme-btn-light-blue" title="Lys Blå Tema" class="theme-btn theme-light-blue"></button>
@@ -27,6 +32,7 @@
       <button id="theme-btn-ocean-breeze" title="Havbris Tema" class="theme-btn theme-ocean-breeze"></button>
       <button id="theme-btn-sunset-glow" title="Solnedgang Tema" class="theme-btn theme-sunset-glow"></button>
       <button id="theme-btn-monochrome-mint" title="Mint Tema" class="theme-btn theme-monochrome-mint"></button>
+      <button id="theme-btn-minimalist-orange" title="Oransje Tema" class="theme-btn theme-minimalist-orange"></button>
     </div>
   </div>
 
@@ -38,23 +44,28 @@
 
   <div class="summary-container">
     <div class="overall-summary">
-      <div class="card allocated-card"> <h3>Totalt Tildelt (Solgt)</h3>
+      <div class="card allocated-card">
+        <h3>Totalt Tildelt (Solgt)</h3>
         <div id="month-allocated-total" class="card-value">Laster...</div>
       </div>
-      <div class="card remaining-card"> <h3>Totalt Gjenstående</h3>
+      <div class="card remaining-card">
+        <h3>Totalt Gjenstående</h3>
         <div id="month-remaining-total" class="card-value">Laster...</div>
       </div>
     </div>
+
     <div class="summary-header">
       <div class="card total-card">
-        <h3>Totalt Logget Denne Måneden</h3> <div id="month-total" class="card-value">0.00 timer</div>
+        <h3>Totalt Logget Denne Måneden</h3>
+        <div id="month-total" class="card-value">0.00 timer</div>
       </div>
       <div class="card average-card">
         <h3>Gjennomsnitt per arbeidsdag</h3>
         <div id="day-average" class="card-value">0.00 timer</div>
       </div>
       <div class="card overtime-card">
-        <h3>Logget Overtid denne måneden</h3> <div id="month-overtime" class="card-value">0.00 timer</div>
+        <h3>Logget Overtid denne måneden</h3>
+        <div id="month-overtime" class="card-value">0.00 timer</div>
       </div>
     </div>
 
@@ -70,7 +81,8 @@
           </tr>
         </thead>
         <tbody id="summary-table-body">
-          <tr><td colspan="6" style="text-align: center; padding: 20px;">Laster data...</td></tr> </tbody>
+          <tr><td colspan="6" style="text-align: center; padding: 20px;">Laster data...</td></tr>
+        </tbody>
       </table>
     </div>
   </div>
@@ -82,7 +94,6 @@
       <div id="detail-summary" class="detail-summary-text">
         Total: <span id="detail-total-hours">0</span> timer fordelt på <span id="detail-customer-count">0</span> kunder.
       </div>
-
       <table id="detail-table" class="detail-table">
         <thead>
           <tr>
@@ -97,10 +108,9 @@
     </div>
   </div>
   
-<button id="refresh-button" class="icon-btn refresh-btn-fixed" title="Oppdater data">🔄</button>
+  <button id="refresh-button" class="icon-btn refresh-btn-fixed" title="Oppdater data">🔄</button>
   
   <script src="daily-summary.js"></script>
- <script src="gamification.js"></script>
-  <script src="theme.js"></script>
-</body>
+  <script src="gamification.js"></script>
+  <script src="theme.js"></script> </body>
 </html>
