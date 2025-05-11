@@ -96,8 +96,7 @@
 
   <div id="taskModal" class="modal">
     <div class="modal-content task-modal-content">
-      <span class="close" onclick="closeModal('taskModal')" title="Lukk">×</span>
-      <h2 id="task-modal-title">Legg til ny oppgave</h2>
+      <span class="close" onclick="closeModal('taskModal')" title="Lukk">×</span> <h2 id="task-modal-title">Legg til ny oppgave</h2>
       <input type="hidden" id="task-id"> <div class="form-group">
         <label for="task-customer">Kunde:</label>
         <select id="task-customer">
@@ -141,7 +140,7 @@
           </div>
       </div>
       <div class="modal-buttons">
-        <button class="cancel-btn" onclick="closeModal('taskModal')">Avbryt</button>
+        <button class="cancel-btn" onclick="closeModal('taskModal')">Avbryt</button> 
         <button class="submit-btn" id="save-task-btn">Lagre Oppgave</button>
       </div>
     </div>
@@ -149,7 +148,8 @@
   
   <button id="refresh-button" class="icon-btn refresh-btn-fixed" title="Oppdater data">🔄</button>
   
-  <script src="tasks.js"></script>
+  <script src="script.js"></script> <script src="theme.js"></script> 
   <script src="gamification.js"></script>
-  <script src="theme.js"></script> </body>
+  <script src="tasks.js"></script> 
+</body>
 </html>
