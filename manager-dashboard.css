@@ -5,25 +5,23 @@ body {
     background-color: var(--bg-dark);
 }
 
-/* NYTT: Styling for handlingslinje med 'Opprett Ny Oppgave'-knapp */
 .quick-actions-bar {
     display: flex;
-    justify-content: center; /* Sentrerer knappen */
-    padding: 15px 0;      /* Litt luft over og under */
-    margin-bottom: 15px;  /* Avstand til neste seksjon */
-    border-bottom: 1px solid var(--border-inactive); /* En diskret skillelinje */
+    justify-content: center;
+    padding: 15px 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--border-inactive);
 }
 
-.large-action-btn { /* Kan brukes for å gjøre knappen litt større/mer fremtredende */
+.large-action-btn {
     padding: 10px 25px;
     font-size: 1.05rem;
     font-weight: 600;
 }
 
-
 .dashboard-container {
     max-width: 1600px;
-    margin: 0 auto; /* Fjerner top margin da quick-actions-bar har det */
+    margin: 0 auto;
     padding: 0 20px;
 }
 
@@ -103,70 +101,153 @@ body {
     padding-top: 5px;
 }
 
-.progress-bar-container { /* ... (uendret) ... */ }
-.progress-bar { /* ... (uendret) ... */ }
+.progress-bar-container {
+    width: 100%;
+    background-color: var(--bar-background);
+    border-radius: 4px;
+    height: 8px;
+    margin-bottom: 8px;
+    overflow: hidden;
+}
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background-color: var(--accent-primary);
+    border-radius: 4px;
+    transition: width 0.5s ease-in-out, background-color 0.5s ease;
+}
+.progress-bar.green { background-color: var(--bar-green); }
+.progress-bar.yellow { background-color: var(--bar-yellow); }
+.progress-bar.red { background-color: var(--bar-red); }
 
-.charts-grid { /* ... (uendret) ... */ }
-.chart-container { /* ... (uendret) ... */ }
-.chart-container.inactive-focus { /* ... (uendret) ... */ }
-.chart-container h3 { /* ... (uendret) ... */ }
-.chart-container canvas { /* ... (uendret) ... */ }
+/* === DIAGRAM SEKSJON - OPPDATERT LAYOUT === */
+.charts-section {
+    margin-bottom: 40px;
+}
 
-.due-tasks-section .task-item-manager.overdue { /* ... (uendret) ... */ }
-.due-tasks-section .task-item-manager.due-soon { /* ... (uendret) ... */ }
-.due-tasks-section .task-item-manager .due-date-text { /* ... (uendret) ... */ }
-.due-tasks-section .task-item-manager .due-date-text.overdue-text { /* ... (uendret) ... */ }
-.due-tasks-section .task-item-manager .due-date-text.due-soon-text { /* ... (uendret) ... */ }
+.charts-section h2 {
+    font-size: 1.6rem; /* Konsistent med andre seksjonstitler */
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-inactive);
+    padding-bottom: 10px;
+}
 
-.view-selector-manager { /* ... (uendret) ... */ }
-.view-selector-manager .view-btn { /* ... (uendret) ... */ }
-.view-selector-manager .view-btn:hover { /* ... (uendret) ... */ }
-.view-selector-manager .view-btn.active { /* ... (uendret) ... */ }
+.charts-grid {
+    display: grid;
+    /* Prøver å få plass til 3 diagrammer på en rad, faller tilbake til færre */
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Justert minmax for bedre kontroll */
+    gap: 25px;
+}
+
+.chart-container {
+    background-color: var(--bg-dark);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    border: 1px solid var(--border-inactive);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Sett en maksbredde for å forhindre at de blir for store på brede skjermer */
+    max-width: 500px; /* Juster etter behov */
+    margin-left: auto; /* For å sentrere hvis det bare er ett eller to diagrammer på en rad */
+    margin-right: auto;
+}
+
+.chart-container.inactive-focus {
+    opacity: 0.4;
+    transform: scale(0.98);
+}
+.chart-container h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1rem;
+    color: var(--text-secondary);
+    text-align: center;
+    font-weight: 500;
+}
+
+.chart-container canvas {
+    max-width: 100%; /* Canvas skal fylle containeren sin bredde */
+    height: 250px !important; /* Sett en fast høyde for diagrammene for konsistens */
+                               /* !important kan være nødvendig for å overstyre Chart.js' inline stiler */
+}
+
+
+/* Oppgaver Nær/Over Frist Seksjon */
+.due-tasks-section .task-item-manager.overdue {
+    border-left-color: var(--bar-red) !important;
+    background-color: rgba(229, 57, 53, 0.05);
+}
+.due-tasks-section .task-item-manager.due-soon {
+    border-left-color: var(--bar-yellow) !important;
+    background-color: rgba(255, 193, 7, 0.05);
+}
+.due-tasks-section .task-item-manager .due-date-text { font-weight: bold; }
+.due-tasks-section .task-item-manager .due-date-text.overdue-text { color: var(--bar-red); }
+.due-tasks-section .task-item-manager .due-date-text.due-soon-text { color: var(--bar-yellow); }
+
+.view-selector-manager {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.view-selector-manager .view-btn {
+    background-color: var(--bg-card);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-inactive);
+    padding: 8px 18px;
+    font-size: 0.9rem;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.view-selector-manager .view-btn:hover {
+    border-color: var(--accent-secondary);
+    color: var(--text-primary);
+}
+.view-selector-manager .view-btn.active {
+    background-color: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+    font-weight: bold;
+}
 
 .dashboard-columns {
     display: grid;
-    /* grid-template-columns: 1fr 1.2fr; Endret til 1fr for nå */
-    grid-template-columns: 1fr; /* Kun oppgavelisten vises her nå */
+    grid-template-columns: 1fr; /* Endret til 1 kolonne for Oppgaveliste */
     gap: 30px;
 }
 
 #calendar-view-manager { /* ... (uendret) ... */ }
 #managerCalendar .fc-event { /* ... (uendret) ... */ }
-#managerCalendar .fc-event.priority-Høy { /* ... (uendret) ... */ }
-#managerCalendar .fc-event.priority-Medium { /* ... (uendret) ... */ }
-#managerCalendar .fc-event.priority-Lav { /* ... (uendret) ... */ }
 
-/* Oppgaveadministrasjon seksjonen (nå uten skjemaet direkte) */
-.task-management-section {
+.task-management-section { /* Nå kun for melding, knappen er flyttet */
     background-color: var(--bg-dark);
     padding: 25px;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     border: 1px solid var(--border-inactive);
     min-width: 300px;
-    text-align: center; /* Sentrer innholdet hvis det bare er en melding */
+    text-align: center;
 }
 .task-management-section h2 {
     font-size: 1.3rem;
     color: var(--text-primary);
     margin-top: 0;
-    margin-bottom: 15px; /* Mindre margin hvis bare en melding */
+    margin-bottom: 15px;
     border-bottom: 1px solid var(--border-inactive);
     padding-bottom: 10px;
 }
-.task-management-section p { /* Styling for meldingen */
+.task-management-section p {
     color: var(--text-secondary);
     font-size: 0.9rem;
 }
 
-
 .quick-task-overview-section { /* ... (uendret) ... */ }
 .quick-task-overview-section h2 { /* ... (uendret) ... */ }
 .quick-task-overview-section h2 span { /* ... (uendret) ... */ }
-
-/* Styling for skjemaet inne i modalen (gjenbruker eksisterende klasser) */
-/* .create-task-form .form-group etc. er allerede stylet */
-/* .status-message etc. er allerede stylet */
 
 .task-overview-filters { /* ... (uendret) ... */ }
 .task-overview-filters label { /* ... (uendret) ... */ }
@@ -174,19 +255,14 @@ body {
 
 .task-list-manager { /* ... (uendret) ... */ }
 .task-item-manager { /* ... (uendret) ... */ }
-.task-item-manager:hover { /* ... (uendret) ... */ }
-.task-item-manager.priority-Høy { /* ... (uendret) ... */ }
-.task-item-manager.priority-Medium { /* ... (uendret) ... */ }
-.task-item-manager.priority-Lav { /* ... (uendret) ... */ }
-.task-item-manager strong { /* ... (uendret) ... */ }
-.task-item-manager span { /* ... (uendret) ... */ }
-.task-item-manager .assignee-C { /* ... (uendret) ... */ }
-.task-item-manager .assignee-W { /* ... (uendret) ... */ }
-.task-item-manager .status-ferdig { /* ... (uendret) ... */ }
 
 @media (max-width: 1200px) {
     .dashboard-columns {
         grid-template-columns: 1fr;
+    }
+    .charts-grid {
+        /* For to diagrammer på en rad på mellomstore skjermer */
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     }
 }
 @media (max-width: 768px) {
@@ -196,13 +272,22 @@ body {
     .stat-value { font-size: 1.6rem; }
     .dashboard-section h2 { font-size: 1.4rem; }
     .chart-container h3 { font-size: 0.9rem; }
-    .quick-actions-bar .large-action-btn { /* Gjør knappen mindre på små skjermer */
+    .quick-actions-bar .large-action-btn {
         padding: 8px 18px;
         font-size: 0.9rem;
     }
 }
+@media (max-width: 600px) { /* Justering for diagrammer på mindre skjermer */
+    .charts-grid {
+        grid-template-columns: 1fr; /* Ett diagram per rad */
+    }
+    .chart-container {
+        max-width: none; /* La den ta full bredde av grid-kolonnen */
+    }
+}
+
 @media (max-width: 480px) {
-    .stats-grid, .charts-grid {
+    .stats-grid { /* Beholdt 1fr for stats */
         grid-template-columns: 1fr;
     }
      .dashboard-container {
