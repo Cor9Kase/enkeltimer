@@ -16,18 +16,20 @@
     <div class="gamification-display">
         <span id="streak-display" style="display: none;"></span>
         <span id="rank-display" style="display: none;"></span>
-        <span id="points-display" style="display: none;"></span> </div>
+        <span id="points-display" style="display: none;"></span>
+    </div>
     <div class="header-main-actions">
       <button class="nav-btn" onclick="window.location.href='index.html'">Timeregistrering</button>
       <button class="nav-btn" onclick="window.location.href='daily-summary.html'">Dagsoversikt</button>
       <button class="nav-btn" onclick="window.location.href='tasks.html'">Oppgaver</button>
-      <button class="nav-btn" onclick="window.location.href='manager-dashboard.html'">Manager Dashboard</button> </div>
+      <button class="nav-btn" onclick="window.location.href='manager-dashboard.html'">Manager Dashboard</button>
     </div>
 
     <div class="user-selection-actions">
       <button class="user-switch-btn" id="user-btn-c">Vis Cornelius</button>
       <button class="user-switch-btn" id="user-btn-w">Vis William</button>
     </div>
+
     <div class="theme-switcher">
       <button id="theme-btn-dark-purple" title="Mørk Lilla Tema" class="theme-btn theme-dark-purple"></button>
       <button id="theme-btn-light-blue" title="Lys Blå Tema" class="theme-btn theme-light-blue"></button>
@@ -45,14 +47,15 @@
         <label for="customer-filter">Filtrer på kunde:</label>
         <select id="customer-filter">
           <option value="all">Alle kunder</option>
-          </select>
+        </select>
       </div>
       <div class="filter-group">
         <label>Filtrer på status:</label>
         <div class="status-filter-buttons">
-           <button class="status-filter-btn active" data-status="open">Åpne (Ny/Pågår)</button>
+           <button class="status-filter-btn active" data-status="open">Åpne (Ny/Pågår/Venter)</button>
            <button class="status-filter-btn" data-status="Ny">Ny</button>
            <button class="status-filter-btn" data-status="Pågår">Pågår</button>
+           <button class="status-filter-btn" data-status="Venter">Venter</button>
            <button class="status-filter-btn" data-status="Ferdig">Ferdig</button>
            <button class="status-filter-btn" data-status="all">Alle statuser</button>
         </div>
@@ -91,18 +94,18 @@
   </div>
 
   <div id="calendar-view-container" style="display: none;">
-    <div id="calendar">
-        </div>
+    <div id="calendar"></div>
   </div>
 
-  <div id="taskModal" class="modal">
-    <div class="modal-content task-modal-content">
-      <span class="close" onclick="closeModal('taskModal')" title="Lukk">×</span> <h2 id="task-modal-title">Legg til ny oppgave</h2>
-      <input type="hidden" id="task-id"> <div class="form-group">
+  <div id="taskModal" class="modal"> <div class="modal-content task-modal-content">
+      <span class="close" onclick="closeModal('taskModal')" title="Lukk">×</span>
+      <h2 id="task-modal-title">Legg til ny oppgave</h2>
+      <input type="hidden" id="task-id">
+      <div class="form-group">
         <label for="task-customer">Kunde:</label>
         <select id="task-customer">
           <option value="">-- Velg kunde --</option>
-          </select>
+        </select>
       </div>
       <div class="form-group">
         <label for="task-name">Oppgavenavn:</label>
@@ -132,7 +135,7 @@
             </select>
           </div>
            <div class="form-group">
-            <label for="task-due-date">Frist (valgfri):</label>
+            <label for="task-due-date">Frist (eller startdato for gjentakende):</label>
             <input type="date" id="task-due-date">
           </div>
           <div class="form-group">
@@ -140,8 +143,24 @@
             <input type="number" id="task-estimated-time" step="0.25" min="0" placeholder="f.eks. 1.5">
           </div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+            <label for="task-recurrence-rule">Gjenta Oppgave:</label>
+            <select id="task-recurrence-rule">
+                <option value="Aldri" selected>Aldri</option>
+                <option value="Daglig">Daglig</option>
+                <option value="Ukentlig">Ukentlig</option>
+                <option value="Månedlig">Månedlig</option>
+            </select>
+        </div>
+        <div class="form-group" id="task-recurrence-end-date-group" style="display: none;">
+            <label for="task-recurrence-end-date">Gjentakelse Slutter (valgfri):</label>
+            <input type="date" id="task-recurrence-end-date">
+        </div>
+      </div>
+
       <div class="modal-buttons">
-        <button class="cancel-btn" onclick="closeModal('taskModal')">Avbryt</button> 
+        <button class="cancel-btn" onclick="closeModal('taskModal')">Avbryt</button>
         <button class="submit-btn" id="save-task-btn">Lagre Oppgave</button>
       </div>
     </div>
@@ -149,7 +168,8 @@
   
   <button id="refresh-button" class="icon-btn refresh-btn-fixed" title="Oppdater data">🔄</button>
   
-  <script src="script.js"></script> <script src="theme.js"></script> 
+  <script src="script.js"></script>
+  <script src="theme.js"></script> 
   <script src="gamification.js"></script>
   <script src="tasks.js"></script> 
 </body>
