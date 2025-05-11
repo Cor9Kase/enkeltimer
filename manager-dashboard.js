@@ -1,9 +1,9 @@
 // manager-dashboard.js
 
-// currentUserSuffix er globalt definert i theme.js (brukes for default 'Tildel til')
+// currentUserSuffix er globalt definert i theme.js
 // GOOGLE_SCRIPT_URL er globalt definert i script.js
 
-let managerFocusUser = localStorage.getItem('managerDashboardFocus') || 'all'; // 'all', 'C', eller 'W'
+let managerFocusUser = localStorage.getItem('managerDashboardFocus') || 'all';
 let allManagerTasksC = [];
 let allManagerTasksW = [];
 let allManagerTimeLogsC = [];
@@ -14,7 +14,7 @@ let customersForUserW = [];
 let loggedHoursChartInstance = null;
 let taskStatusChartInstance = null;
 let openTasksDistributionChartInstance = null;
-let managerCalendarInstance = null; // For FullCalendar
+let managerCalendarInstance = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("Manager Dashboard DOM lastet.");
@@ -25,14 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
         currentUserSuffix = localStorage.getItem('currentUserSuffix') || 'C';
     }
     
-    // Sett default for "Tildel til" basert på appens aktive bruker
     const assigneeDropdown = document.getElementById('new-task-assignee');
     if (assigneeDropdown) {
         assigneeDropdown.value = currentUserSuffix;
     }
     
     setManagerFocus(managerFocusUser, false); 
-
     setupManagerEventListeners();
     fetchAllDataForDashboard(); 
 
@@ -48,46 +46,69 @@ function setupManagerEventListeners() {
     document.getElementById('user-btn-c')?.addEventListener('click', () => setManagerFocus('C'));
     document.getElementById('user-btn-w')?.addEventListener('click', () => setManagerFocus('W'));
     document.getElementById('user-btn-all')?.addEventListener('click', () => setManagerFocus('all'));
-
+    document.getElementById('open-create-task-modal-btn')?.addEventListener('click', openManagerCreateTaskModal);
     document.getElementById('submit-new-task-btn')?.addEventListener('click', handleSubmitNewTask);
     document.getElementById('new-task-assignee')?.addEventListener('change', populateManagerCustomerDropdown);
-
     document.getElementById('task-overview-status-filter')?.addEventListener('change', renderQuickTaskOverview);
     document.getElementById('refresh-button')?.addEventListener('click', fetchAllDataForDashboard);
-
-    // Knapper for å bytte mellom oppgaveadmin og kalender
     document.getElementById('show-task-admin-btn')?.addEventListener('click', () => showViewManager('task-admin'));
     document.getElementById('show-calendar-view-btn')?.addEventListener('click', () => showViewManager('calendar'));
 }
 
+function openManagerCreateTaskModal() {
+    const modal = document.getElementById('managerCreateTaskModal');
+    if (modal) {
+        const assigneeDropdown = document.getElementById('new-task-assignee');
+        if (assigneeDropdown) {
+            if (managerFocusUser === 'C' || managerFocusUser === 'W') {
+                assigneeDropdown.value = managerFocusUser;
+            } else {
+                assigneeDropdown.value = currentUserSuffix || 'C'; 
+            }
+            populateManagerCustomerDropdown(); 
+        }
+        const statusEl = document.getElementById('new-task-status');
+        if(statusEl) statusEl.textContent = '';
+        // Tøm skjemafelter ved åpning
+        document.getElementById('new-task-name').value = '';
+        document.getElementById('new-task-estimated-time').value = '';
+        document.getElementById('new-task-due-date').value = '';
+        document.getElementById('new-task-priority').value = '';
+        // Behold kunde og tildelt som de er satt
+
+        modal.style.display = 'block';
+        console.log("ManagerCreateTaskModal åpnet.");
+    } else {
+        console.error("Modal #managerCreateTaskModal ikke funnet.");
+    }
+}
+
 function setManagerFocus(focusUser, reloadData = true) {
+    // ... (som i forrige versjon)
     managerFocusUser = focusUser;
     localStorage.setItem('managerDashboardFocus', managerFocusUser);
     console.log(`Manager dashboard fokus satt til: ${managerFocusUser}`);
 
-    // Oppdater aktive knapper for fokusvalg
     document.querySelectorAll('.user-selection-actions .user-switch-btn').forEach(btn => btn.classList.remove('active'));
     if (focusUser === 'C') document.getElementById('user-btn-c')?.classList.add('active');
     else if (focusUser === 'W') document.getElementById('user-btn-w')?.classList.add('active');
     else document.getElementById('user-btn-all')?.classList.add('active');
     
-    // Oppdater "Tildel til" i skjema hvis fokus er C eller W
     const assigneeDropdown = document.getElementById('new-task-assignee');
     if (assigneeDropdown) {
         if (focusUser === 'C' || focusUser === 'W') {
             assigneeDropdown.value = focusUser;
         }
-        // Hvis 'all', behold det som var (eller default til appens currentUserSuffix)
-        // Dette kaller også populateManagerCustomerDropdown indirekte hvis det er en 'change' event listener.
-        populateManagerCustomerDropdown(); // Sørg for at kundelisten oppdateres for den valgte tildelte
+        populateManagerCustomerDropdown(); 
     }
     
     if (reloadData) {
-        renderDashboard(); // Re-render alle seksjoner med det nye fokuset
+        renderDashboard();
     }
 }
 
 async function fetchAllDataForDashboard() {
+    // ... (som i forrige versjon)
     console.log("Henter all data for manager dashboard...");
     showLoadingState(true);
     try {
@@ -116,18 +137,18 @@ async function fetchAllDataForDashboard() {
         customersForUserW = customersWRes.success ? customersWRes.customers : [];
 
         console.log("All data hentet.");
-        populateManagerCustomerDropdown(); // Populer dropdown basert på default/fokusert bruker
+        populateManagerCustomerDropdown(); 
         renderDashboard();
     } catch (error) {
         console.error("Feil ved henting av dashboard data:", error);
         document.getElementById('stats-hours-total').textContent = "Feil";
-        // TODO: Vis en mer brukervennlig feilmelding på siden
     } finally {
         showLoadingState(false);
     }
 }
 
 function showLoadingState(isLoading) {
+    // ... (som i forrige versjon)
     const elementsToUpdate = [
         'stats-hours-c', 'stats-hours-w', 'stats-hours-total',
         'stats-open-tasks-c', 'stats-open-tasks-w', 'stats-completed-tasks-month',
@@ -150,7 +171,7 @@ function showLoadingState(isLoading) {
 }
 
 function fetchDataFromScript_Manager(params) {
-    // ... (som før)
+    // ... (som i forrige versjon)
     const urlParams = new URLSearchParams(params);
     urlParams.append('nocache', Date.now());
     const url = `${GOOGLE_SCRIPT_URL}?${urlParams.toString()}`;
@@ -169,18 +190,19 @@ function fetchDataFromScript_Manager(params) {
 }
 
 function renderDashboard() {
+    // ... (som i forrige versjon)
     updateSectionTitles();
     renderStats();
     renderDueTasksList();
-    renderQuickTaskOverview(); // Hurtigoversikt oppgaver
+    renderQuickTaskOverview(); 
     renderCharts();
-    // Kalender rendres kun når den er aktiv
     if (document.getElementById('calendar-view-manager')?.style.display !== 'none') {
         initializeManagerCalendar();
     }
 }
 
 function updateSectionTitles() {
+    // ... (som i forrige versjon)
     const focusText = managerFocusUser === 'C' ? 'Cornelius' : managerFocusUser === 'W' ? 'William' : 'Begge';
     document.getElementById('stats-section-title').innerHTML = `Nøkkeltall (Denne Måned) - <span>${focusText}</span>`;
     document.getElementById('charts-section-title').innerHTML = `Visuell Oversikt - <span>${focusText}</span>`;
@@ -189,12 +211,10 @@ function updateSectionTitles() {
     document.getElementById('calendar-view-title').innerHTML = `Oppgavekalender - <span>${focusText}</span>`;
 }
 
-
 function renderStats() {
+    // ... (som i forrige versjon)
     console.log(`Rendrer statistikk for fokus: ${managerFocusUser}`);
-
-    // Hjelpefunksjon for å oppdatere et stat-kort
-    const updateStatCard = (id, value, subtext = null) => {
+    const updateStatCard = (id, value, subtext = null) => { 
         const el = document.getElementById(id);
         if (el) el.textContent = value;
         if (subtext !== null) {
@@ -202,26 +222,22 @@ function renderStats() {
             if (subEl) subEl.innerHTML = subtext;
         }
     };
-    // Hjelpefunksjon for å sette 'inactive-focus'
-    const setFocusClass = (cardId, isActive) => {
+    const setFocusClass = (cardId, isActive) => { 
         document.getElementById(cardId)?.classList.toggle('inactive-focus', !isActive);
     };
 
-    // Data for Cornelius
     let totalHoursC = 0; allManagerTimeLogsC.forEach(day => totalHoursC += day.totalHours);
     let allocatedC = 0; customersForUserC.forEach(cust => allocatedC += (cust.allocatedHours || 0));
     const openTasksC = allManagerTasksC.filter(t => t.status?.toLowerCase() !== 'ferdig');
     let estimatedHoursOpenC = 0; openTasksC.forEach(t => estimatedHoursOpenC += (t.estimatedTime || 0));
     const completedTasksCMonth = allManagerTasksC.filter(t => t.status?.toLowerCase() === 'ferdig' && new Date(t.completedDate).getMonth() === new Date().getMonth()).length;
 
-    // Data for William
     let totalHoursW = 0; allManagerTimeLogsW.forEach(day => totalHoursW += day.totalHours);
     let allocatedW = 0; customersForUserW.forEach(cust => allocatedW += (cust.allocatedHours || 0));
     const openTasksW = allManagerTasksW.filter(t => t.status?.toLowerCase() !== 'ferdig');
     let estimatedHoursOpenW = 0; openTasksW.forEach(t => estimatedHoursOpenW += (t.estimatedTime || 0));
     const completedTasksWMonth = allManagerTasksW.filter(t => t.status?.toLowerCase() === 'ferdig' && new Date(t.completedDate).getMonth() === new Date().getMonth()).length;
 
-    // Vis/skjul/oppdater basert på fokus
     const showC = managerFocusUser === 'C' || managerFocusUser === 'all';
     const showW = managerFocusUser === 'W' || managerFocusUser === 'all';
 
@@ -229,45 +245,42 @@ function renderStats() {
     if (showC) {
         updateStatCard('stats-hours-c', totalHoursC.toFixed(1) + " t", `Av tildelt: ${allocatedC.toFixed(1)} t`);
         updateProgressBar('progress-hours-c', totalHoursC, allocatedC);
-    }
-    setFocusClass('stat-card-open-tasks-c', showC);
-    if (showC) updateStatCard('stats-open-tasks-c', openTasksC.length);
-    setFocusClass('stat-card-estimated-c', showC);
-    if (showC) updateStatCard('stats-estimated-hours-c', estimatedHoursOpenC.toFixed(1) + " t");
+    } else { updateStatCard('stats-hours-c', "- t", `Av tildelt: - t`); updateProgressBar('progress-hours-c', 0,0); }
 
+    setFocusClass('stat-card-open-tasks-c', showC);
+    if (showC) updateStatCard('stats-open-tasks-c', openTasksC.length); else updateStatCard('stats-open-tasks-c', "-");
+    
+    setFocusClass('stat-card-estimated-c', showC);
+    if (showC) updateStatCard('stats-estimated-hours-c', estimatedHoursOpenC.toFixed(1) + " t"); else updateStatCard('stats-estimated-hours-c', "- t");
 
     setFocusClass('stat-card-hours-w', showW);
     if (showW) {
         updateStatCard('stats-hours-w', totalHoursW.toFixed(1) + " t", `Av tildelt: ${allocatedW.toFixed(1)} t`);
         updateProgressBar('progress-hours-w', totalHoursW, allocatedW);
-    }
+    } else { updateStatCard('stats-hours-w', "- t", `Av tildelt: - t`); updateProgressBar('progress-hours-w', 0,0); }
+
     setFocusClass('stat-card-open-tasks-w', showW);
-    if (showW) updateStatCard('stats-open-tasks-w', openTasksW.length);
+    if (showW) updateStatCard('stats-open-tasks-w', openTasksW.length); else updateStatCard('stats-open-tasks-w', "-");
+
     setFocusClass('stat-card-estimated-w', showW);
-    if (showW) updateStatCard('stats-estimated-hours-w', estimatedHoursOpenW.toFixed(1) + " t");
+    if (showW) updateStatCard('stats-estimated-hours-w', estimatedHoursOpenW.toFixed(1) + " t"); else updateStatCard('stats-estimated-hours-w', "- t");
 
-
-    // Totalkort
     if (managerFocusUser === 'C') {
         updateStatCard('stats-hours-total', totalHoursC.toFixed(1) + " t");
         updateStatCard('stats-completed-tasks-month', completedTasksCMonth, `C: ${completedTasksCMonth}`);
-        setFocusClass('stat-card-hours-total', true);
-        setFocusClass('stat-card-completed-tasks', true);
     } else if (managerFocusUser === 'W') {
         updateStatCard('stats-hours-total', totalHoursW.toFixed(1) + " t");
         updateStatCard('stats-completed-tasks-month', completedTasksWMonth, `W: ${completedTasksWMonth}`);
-        setFocusClass('stat-card-hours-total', true);
-        setFocusClass('stat-card-completed-tasks', true);
-    } else { // 'all'
+    } else { 
         updateStatCard('stats-hours-total', (totalHoursC + totalHoursW).toFixed(1) + " t");
         updateStatCard('stats-completed-tasks-month', completedTasksCMonth + completedTasksWMonth, `C: ${completedTasksCMonth} / W: ${completedTasksWMonth}`);
-        setFocusClass('stat-card-hours-total', true);
-        setFocusClass('stat-card-completed-tasks', true);
     }
+    setFocusClass('stat-card-hours-total', true); 
+    setFocusClass('stat-card-completed-tasks', true);
 }
 
 function updateProgressBar(elementId, currentValue, maxValue) {
-    // ... (som før)
+    // ... (som i forrige versjon)
     const progressBar = document.getElementById(elementId);
     if (!progressBar) return;
     let percentage = 0;
@@ -290,6 +303,7 @@ function updateProgressBar(elementId, currentValue, maxValue) {
 }
 
 function renderDueTasksList() {
+    // ... (som i forrige versjon)
     const dueTasksListDiv = document.getElementById('due-tasks-list');
     if (!dueTasksListDiv) return;
     dueTasksListDiv.innerHTML = "";
@@ -307,9 +321,9 @@ function renderDueTasksList() {
     const dueAndOverdueTasks = tasksForFocus.filter(task => {
         if (task.status?.toLowerCase() === 'ferdig' || !task.dueDate) return false;
         const dueDate = new Date(task.dueDate);
-        dueDate.setHours(0,0,0,0); // Normaliser for sammenligning
-        return dueDate <= sevenDaysFromNow; // Overdue eller innen 7 dager
-    }).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)); // Sorter etter frist
+        dueDate.setHours(0,0,0,0); 
+        return dueDate <= sevenDaysFromNow; 
+    }).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)); 
 
     if (dueAndOverdueTasks.length === 0) {
         dueTasksListDiv.innerHTML = "<p>Ingen oppgaver nær eller over frist.</p>";
@@ -318,7 +332,7 @@ function renderDueTasksList() {
 
     dueAndOverdueTasks.forEach(task => {
         const taskDiv = document.createElement('div');
-        taskDiv.className = 'task-item-manager'; // Gjenbruker stil
+        taskDiv.className = 'task-item-manager'; 
         const dueDate = new Date(task.dueDate);
         dueDate.setHours(0,0,0,0);
         let dueDateTextClass = '';
@@ -347,9 +361,8 @@ function renderDueTasksList() {
     });
 }
 
-
 function renderQuickTaskOverview() {
-    // ... (som før, men tittelen oppdateres nå av updateSectionTitles)
+    // ... (som i forrige versjon)
     const taskListDiv = document.getElementById('task-list-manager');
     if (!taskListDiv) return;
     taskListDiv.innerHTML = ""; 
@@ -361,7 +374,7 @@ function renderQuickTaskOverview() {
     
     const statusFilter = document.getElementById('task-overview-status-filter').value;
     if (statusFilter !== 'all') {
-        if (statusFilter === 'open') { // Inkluderer nå 'Venter' i 'open'
+        if (statusFilter === 'open') { 
             tasksToDisplay = tasksToDisplay.filter(task => 
                 task.status?.toLowerCase() === 'ny' || 
                 task.status?.toLowerCase() === 'pågår' ||
@@ -372,7 +385,7 @@ function renderQuickTaskOverview() {
         }
     }
 
-    tasksToDisplay.sort((a, b) => { /* ... (sortering som før) ... */
+    tasksToDisplay.sort((a, b) => { 
         const dueDateA = a.dueDate ? new Date(a.dueDate) : new Date('2999-12-31');
         const dueDateB = b.dueDate ? new Date(b.dueDate) : new Date('2999-12-31');
         if (dueDateA < dueDateB) return -1;
@@ -390,7 +403,7 @@ function renderQuickTaskOverview() {
         return;
     }
 
-    tasksToDisplay.slice(0, 15).forEach(task => { /* ... (visning som før) ... */
+    tasksToDisplay.slice(0, 15).forEach(task => { 
         const taskDiv = document.createElement('div');
         taskDiv.className = 'task-item-manager';
         if (task.priority) taskDiv.classList.add(`priority-${task.priority}`);
@@ -425,10 +438,11 @@ function renderQuickTaskOverview() {
 }
 
 function populateManagerCustomerDropdown() {
+    // ... (som i forrige versjon)
     const assignee = document.getElementById('new-task-assignee').value;
     const customerDropdown = document.getElementById('new-task-customer');
     if (!customerDropdown) return;
-    while (customerDropdown.options.length > 1) customerDropdown.remove(1); // Behold placeholder
+    while (customerDropdown.options.length > 1) customerDropdown.remove(1); 
     
     const customersToList = (assignee === 'C') ? customersForUserC : customersForUserW;
 
@@ -443,7 +457,6 @@ function populateManagerCustomerDropdown() {
 }
 
 async function handleSubmitNewTask() {
-    // ... (som før, men bruker sendDataToGoogleScript som nå håndterer 'user')
     const assignee = document.getElementById('new-task-assignee').value;
     const customer = document.getElementById('new-task-customer').value;
     const name = document.getElementById('new-task-name').value.trim();
@@ -464,23 +477,35 @@ async function handleSubmitNewTask() {
     }
 
     const taskData = {
-        action: 'addTask', user: assignee, customer: customer, name: name, status: 'Ny',
-        priority: priority || null, dueDate: dueDate || null,
+        action: 'addTask',
+        user: assignee, // Hvem oppgaven er for
+        customer: customer,
+        name: name,
+        status: 'Ny',
+        priority: priority || null,
+        dueDate: dueDate || null,
         estimatedTime: estimatedTime !== '' ? parseFloat(estimatedTime) : null,
+        source: 'manager' // VIKTIG: Indikerer at oppgaven er opprettet av manager
     };
 
     statusEl.textContent = "Oppretter oppgave..."; statusEl.className = 'status-message';
     document.getElementById('submit-new-task-btn').disabled = true;
 
     try {
-        const response = await sendDataToGoogleScript(taskData); // sendDataToGoogleScript er global
+        const response = await sendDataToGoogleScript(taskData); // Bruker global sendDataToGoogleScript
         if (response.success) {
-            statusEl.textContent = "Oppgave opprettet!"; statusEl.className = 'status-message success';
+            statusEl.textContent = "Oppgave opprettet og varsel sendt!"; statusEl.className = 'status-message success';
             document.getElementById('new-task-name').value = '';
             document.getElementById('new-task-estimated-time').value = '';
             document.getElementById('new-task-due-date').value = '';
             document.getElementById('new-task-priority').value = '';
-            fetchAllDataForDashboard(); // Last inn all data på nytt
+            
+            setTimeout(() => {
+                closeModal('managerCreateTaskModal');
+                statusEl.textContent = ''; 
+            }, 2000); // Litt lenger tid for å se meldingen
+            
+            fetchAllDataForDashboard(); 
         } else {
             throw new Error(response.message || "Ukjent feil ved oppretting av oppgave.");
         }
@@ -492,8 +517,8 @@ async function handleSubmitNewTask() {
     }
 }
 
-// --- Chart Rendering Functions (Oppdatert for Fokus) ---
 function renderCharts() {
+    // ... (som i forrige versjon)
     console.log(`Rendrer diagrammer for fokus: ${managerFocusUser}`);
     let hoursC = 0; allManagerTimeLogsC.forEach(day => hoursC += day.totalHours);
     let hoursW = 0; allManagerTimeLogsW.forEach(day => hoursW += day.totalHours);
@@ -505,44 +530,40 @@ function renderCharts() {
     if (managerFocusUser === 'C') {
         tasksForStatusChart = allManagerTasksC.filter(t => t.status?.toLowerCase() !== 'ferdig');
         openTasksForDistC = tasksForStatusChart.length;
-        openTasksForDistW = 0;
     } else if (managerFocusUser === 'W') {
         tasksForStatusChart = allManagerTasksW.filter(t => t.status?.toLowerCase() !== 'ferdig');
         openTasksForDistW = tasksForStatusChart.length;
-        openTasksForDistC = 0;
-    } else { // 'all'
+    } else { 
         tasksForStatusChart = [...allManagerTasksC, ...allManagerTasksW].filter(t => t.status?.toLowerCase() !== 'ferdig');
         openTasksForDistC = allManagerTasksC.filter(t => t.status?.toLowerCase() !== 'ferdig').length;
         openTasksForDistW = allManagerTasksW.filter(t => t.status?.toLowerCase() !== 'ferdig').length;
     }
     
-    renderLoggedHoursChart(hoursC, hoursW); // Denne vil internt håndtere fokus
-    renderTaskStatusChart(tasksForStatusChart); // Sender allerede filtrerte oppgaver
-    renderOpenTasksDistributionChart(openTasksForDistC, openTasksForDistW); // Sender allerede filtrerte tellinger
+    renderLoggedHoursChart(hoursC, hoursW); 
+    renderTaskStatusChart(tasksForStatusChart); 
+    renderOpenTasksDistributionChart(openTasksForDistC, openTasksForDistW);
 }
 
 function renderLoggedHoursChart(hoursC, hoursW) {
+    // ... (som i forrige versjon)
     const ctx = document.getElementById('loggedHoursChart')?.getContext('2d');
     const container = document.getElementById('chart-container-logged-hours');
     if (!ctx || !container) return;
     if (loggedHoursChartInstance) loggedHoursChartInstance.destroy();
 
-    let data, labels;
+    let data, labels, bgColors, borderColors;
     const accentPrimary = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim();
     const accentSecondary = getComputedStyle(document.documentElement).getPropertyValue('--accent-secondary').trim();
 
     if (managerFocusUser === 'C') {
-        data = [hoursC]; labels = ['Cornelius'];
-        container.classList.remove('inactive-focus');
+        data = [hoursC]; labels = ['Cornelius']; bgColors = [accentPrimary]; borderColors = [accentPrimary];
     } else if (managerFocusUser === 'W') {
-        data = [hoursW]; labels = ['William'];
-        container.classList.remove('inactive-focus');
-    } else { // 'all'
-        data = [hoursC, hoursW]; labels = ['Cornelius', 'William'];
-        container.classList.remove('inactive-focus');
+        data = [hoursW]; labels = ['William']; bgColors = [accentSecondary]; borderColors = [accentSecondary];
+    } else { 
+        data = [hoursC, hoursW]; labels = ['Cornelius', 'William']; bgColors = [accentPrimary, accentSecondary]; borderColors = [accentPrimary, accentSecondary];
     }
-    // Hvis vi vil skjule et diagram helt når det ikke er relevant for fokus:
-    // container.style.display = (managerFocusUser === 'W' && type === 'hours-c') ? 'none' : 'flex';
+    container.classList.toggle('inactive-focus', data.every(d => d === 0) && managerFocusUser !== 'all');
+
 
     loggedHoursChartInstance = new Chart(ctx, {
         type: 'bar',
@@ -550,12 +571,10 @@ function renderLoggedHoursChart(hoursC, hoursW) {
             labels: labels,
             datasets: [{
                 label: 'Timer Logget (Denne Måned)', data: data,
-                backgroundColor: managerFocusUser === 'C' ? [accentPrimary] : managerFocusUser === 'W' ? [accentSecondary] : [accentPrimary, accentSecondary],
-                borderColor: managerFocusUser === 'C' ? [accentPrimary] : managerFocusUser === 'W' ? [accentSecondary] : [accentPrimary, accentSecondary],
-                borderWidth: 1
+                backgroundColor: bgColors, borderColor: borderColors, borderWidth: 1
             }]
         },
-        options: { /* ... (samme options som før) ... */
+        options: { 
             responsive: true, maintainAspectRatio: false,
             scales: {
                 y: { beginAtZero: true, ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() }, grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--border-inactive').trim() } },
@@ -566,15 +585,16 @@ function renderLoggedHoursChart(hoursC, hoursW) {
     });
 }
 
-function renderTaskStatusChart(openTasksForFocus) { // Mottar allerede filtrerte oppgaver
+function renderTaskStatusChart(openTasksForFocus) {
+    // ... (som i forrige versjon)
     const ctx = document.getElementById('taskStatusChart')?.getContext('2d');
     const container = document.getElementById('chart-container-task-status');
     if (!ctx || !container) return;
     if (taskStatusChartInstance) taskStatusChartInstance.destroy();
 
-    container.classList.remove('inactive-focus'); // Dette diagrammet er alltid relevant for fokus
+    container.classList.remove('inactive-focus'); 
 
-    const statusCounts = { 'Ny': 0, 'Pågår': 0, 'Venter': 0 }; // Inkluder 'Venter'
+    const statusCounts = { 'Ny': 0, 'Pågår': 0, 'Venter': 0 }; 
     openTasksForFocus.forEach(task => {
         if (task.status && statusCounts.hasOwnProperty(task.status)) {
             statusCounts[task.status]++;
@@ -592,12 +612,12 @@ function renderTaskStatusChart(openTasksForFocus) { // Mottar allerede filtrerte
             labels: labels,
             datasets: [{
                 label: 'Oppgavestatus (Åpne)', data: data,
-                backgroundColor: ['#64b5f6', 'var(--bar-yellow)', '#ff9800', '#B0BEC5'], // Ny, Pågår, Venter, Annet
+                backgroundColor: ['#64b5f6', 'var(--bar-yellow)', '#ff9800', '#B0BEC5'], 
                 borderColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim(),
                 borderWidth: 2
             }]
         },
-        options: { /* ... (samme options som før) ... */
+        options: { 
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { position: 'bottom', labels: { color: textSecondary } } }
         }
@@ -605,50 +625,46 @@ function renderTaskStatusChart(openTasksForFocus) { // Mottar allerede filtrerte
 }
 
 function renderOpenTasksDistributionChart(openC, openW) {
+    // ... (som i forrige versjon)
     const ctx = document.getElementById('openTasksDistributionChart')?.getContext('2d');
     const container = document.getElementById('chart-container-open-tasks-dist');
     if (!ctx || !container) return;
     if (openTasksDistributionChartInstance) openTasksDistributionChartInstance.destroy();
 
-    let data, labels;
+    let data, labels, bgColors;
     const accentPrimary = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim();
     const accentSecondary = getComputedStyle(document.documentElement).getPropertyValue('--accent-secondary').trim();
     const textSecondary = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim();
 
     if (managerFocusUser === 'C') {
-        data = [openC]; labels = ['Cornelius'];
-        container.classList.remove('inactive-focus');
+        data = [openC]; labels = ['Cornelius']; bgColors = [accentPrimary];
     } else if (managerFocusUser === 'W') {
-        data = [openW]; labels = ['William'];
-        container.classList.remove('inactive-focus');
-    } else { // 'all'
-        data = [openC, openW]; labels = ['Cornelius', 'William'];
-        container.classList.remove('inactive-focus');
+        data = [openW]; labels = ['William']; bgColors = [accentSecondary];
+    } else { 
+        data = [openC, openW]; labels = ['Cornelius', 'William']; bgColors = [accentPrimary, accentSecondary];
     }
+    container.classList.toggle('inactive-focus', data.every(d => d === 0) && managerFocusUser !== 'all');
     
-    // Hvis data er tom (f.eks. en bruker har 0 åpne oppgaver og er i fokus), vis en melding istedenfor tomt diagram?
-    // For nå, la Chart.js håndtere det.
-
     openTasksDistributionChartInstance = new Chart(ctx, {
         type: 'pie',
         data: {
             labels: labels,
             datasets: [{
                 label: 'Fordeling Åpne Oppgaver', data: data,
-                backgroundColor: managerFocusUser === 'C' ? [accentPrimary] : managerFocusUser === 'W' ? [accentSecondary] : [accentPrimary, accentSecondary],
+                backgroundColor: bgColors,
                 borderColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim(),
                 borderWidth: 2
             }]
         },
-        options: { /* ... (samme options som før) ... */
+        options: { 
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { position: 'bottom', labels: { color: textSecondary } } }
         }
     });
 }
 
-// --- Visningsbytte for Oppgaveadmin/Kalender ---
 function showViewManager(viewName) {
+    // ... (som i forrige versjon)
     const taskAdminView = document.getElementById('task-admin-view');
     const calendarViewManager = document.getElementById('calendar-view-manager');
     const btnTaskAdmin = document.getElementById('show-task-admin-btn');
@@ -658,16 +674,16 @@ function showViewManager(viewName) {
 
     if (viewName === 'calendar') {
         taskAdminView.style.display = 'none';
-        calendarViewManager.style.display = 'block'; // Eller 'flex' hvis det er en flex container
+        calendarViewManager.style.display = 'block'; 
         btnTaskAdmin.classList.remove('active');
         btnCalendar.classList.add('active');
-        initializeManagerCalendar(); // Initialiser/render kalenderen
-    } else { // 'task-admin'
-        taskAdminView.style.display = 'block'; // Eller 'grid'/'flex' avhengig av din CSS
+        initializeManagerCalendar(); 
+    } else { 
+        taskAdminView.style.display = 'block'; 
         calendarViewManager.style.display = 'none';
         btnTaskAdmin.classList.add('active');
         btnCalendar.classList.remove('active');
-        if (managerCalendarInstance) { // Ødelegg kalenderinstansen for å spare ressurser
+        if (managerCalendarInstance) { 
             managerCalendarInstance.destroy();
             managerCalendarInstance = null;
         }
@@ -675,8 +691,9 @@ function showViewManager(viewName) {
 }
 
 function initializeManagerCalendar() {
-    if (managerCalendarInstance) { // Hvis den allerede finnes, bare re-render events
-        managerCalendarInstance.refetchEvents(); // Eller removeAllEvents + addEventSource
+    // ... (som i forrige versjon)
+    if (managerCalendarInstance) { 
+        managerCalendarInstance.refetchEvents(); 
         return;
     }
 
@@ -692,13 +709,13 @@ function initializeManagerCalendar() {
     else tasksForCalendar = [...allManagerTasksC, ...allManagerTasksW];
 
     const calendarEvents = tasksForCalendar.filter(task => task.dueDate).map(task => {
-        let color = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim(); // Default
+        let color = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim(); 
         if (task.priority === 'Høy') color = getComputedStyle(document.documentElement).getPropertyValue('--bar-red').trim();
         else if (task.priority === 'Medium') color = getComputedStyle(document.documentElement).getPropertyValue('--bar-yellow').trim();
-        else if (task.priority === 'Lav') color = '#64b5f6'; // Blå for lav
+        else if (task.priority === 'Lav') color = '#64b5f6'; 
         
         let assigneePrefix = '';
-        if (managerFocusUser === 'all') { // Vis kun initial hvis begge vises
+        if (managerFocusUser === 'all') { 
             if (allManagerTasksC.some(t => t.id === task.id)) assigneePrefix = 'C: ';
             else if (allManagerTasksW.some(t => t.id === task.id)) assigneePrefix = 'W: ';
         }
@@ -723,16 +740,16 @@ function initializeManagerCalendar() {
             right: 'dayGridMonth,timeGridWeek,listWeek'
         },
         events: calendarEvents,
-        editable: false, // Kan settes til true hvis du vil ha dra-og-slipp
+        editable: false, 
         eventClick: function(info) {
             console.log('Kalender Event Klikket:', info.event);
-            if (typeof openEditTaskModal_Tasks === 'function') {
-                 openEditTaskModal_Tasks(info.event.id); // Bruk funksjonen fra tasks.js
+            if (typeof openEditTaskModal_Tasks === 'function') { // Sjekk om tasks.js sin modal-funksjon er tilgjengelig
+                 openEditTaskModal_Tasks(info.event.id); 
             } else {
                 alert(`Oppgave: ${info.event.title}\nFrist: ${info.event.startStr}`);
             }
         },
-        height: 'auto', // Eller en fast høyde
+        height: 'auto', 
         eventDidMount: function(info) {
             // Tooltip kan legges til her hvis ønskelig
         }
