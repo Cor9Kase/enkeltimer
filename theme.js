@@ -1,127 +1,114 @@
-// theme.js - Håndterer temabytting (kun lyse temaer), brukerbytte, gamification-visning, og aktiv nav-knapp
+// theme.js - Håndterer et dynamisk dag-tema, brukerbytte, gamification-visning, og aktiv nav-knapp
 
 // Global variabel for gjeldende bruker (C for Cornelius, W for William)
 let currentUserSuffix = localStorage.getItem('currentUserSuffix') || 'C';
 
-// Definisjon av temaer (kun lyse temaer beholdt)
-const themes = {
-  'light-blue': {
-    '--bg-dark': '#f4f7f9', // Lys bakgrunn
-    '--bg-card': '#ffffff', // Hvite kort
-    '--bg-modal': '#ffffff',
-    '--text-primary': '#2c3e50', // Mørk tekst for lesbarhet
-    '--text-secondary': '#7f8c8d',
-    '--accent-primary': '#3498db', // Blå aksent
-    '--accent-secondary': '#2980b9',
-    '--accent-gradient': 'linear-gradient(135deg, #3498db, #2980b9)',
-    '--border-inactive': '#dce4e8',
-    '--bar-green': '#2ecc71',
-    '--bar-yellow': '#f1c40f',
-    '--bar-red': '#e74c3c',
-    '--bar-background': '#ecf0f1',
-  },
-  'ocean-breeze': {
-    '--bg-dark': '#e0f7fa', // Veldig lys blå
-    '--bg-card': '#ffffff',
-    '--bg-modal': '#ffffff',
-    '--text-primary': '#01579b', // Mørk blå tekst
-    '--text-secondary': '#0288d1', // Medium blå
-    '--accent-primary': '#4fc3f7', // Lys himmelblå
-    '--accent-secondary': '#29b6f6',
-    '--accent-gradient': 'linear-gradient(135deg, #4fc3f7, #29b6f6)',
-    '--border-inactive': '#b3e5fc',
-    '--bar-green': '#81c784',
-    '--bar-yellow': '#ffd54f',
-    '--bar-red': '#ef9a9a',
-    '--bar-background': '#cfd8dc',
-  },
-  'minimalist-orange': {
-    '--bg-dark': '#ffffff',               // Hvit bakgrunn
-    '--bg-card': '#fdf6f0',               // Svak kremhvit til kort
-    '--bg-modal': '#fbeee6',              // Litt mørkere krem for modaler
-    '--text-primary': '#1a1a1a',          // Mørk grå tekst for god kontrast
-    '--text-secondary': '#7a7a7a',        // Lysere grå for sekundær tekst
-    '--accent-primary': '#ff6f00',        // Sterk oransje aksent
-    '--accent-secondary': '#ffb74d',      // Lysere oransje som sekundær aksent
-    '--accent-gradient': 'linear-gradient(135deg, #ffe0b2, #ff6f00)', // Oransje gradient
-    '--border-inactive': '#e0e0e0',       // Lys grå for inaktive elementer
-    '--bar-green': '#c8e6c9',             // Nøytral grønn til fremdriftsindikator
-    '--bar-yellow': '#fff9c4',            // Myk gul
-    '--bar-red': '#ffcdd2',               // Mild rød
-    '--bar-background': '#f0f0f0'         // Nøytral lys bakgrunn for bars
-  }
+// Definer fargesett for morgen (start) og kveld (slutt)
+const morningColors = {
+  '--bg-dark': '#f4f7f9',         // Lys blå/grå
+  '--bg-card': '#ffffff',         // Hvit
+  '--bg-modal': '#f8f9fa',        // Nesten hvit
+  '--text-primary': '#2c3e50',    // Mørk blågrå
+  '--text-secondary': '#7f8c8d',  // Medium grå
+  '--accent-primary': '#3498db',  // Klar blå
+  '--accent-secondary': '#2980b9',// Mørkere klar blå
+  '--border-inactive': '#dce4e8',
+  '--bar-background': '#ecf0f1',
+  // Farger for statusbarer beholdes som de er, eller kan også interpoleres hvis ønskelig
+  '--bar-green': '#2ecc71',
+  '--bar-yellow': '#f1c40f',
+  '--bar-red': '#e74c3c',
 };
 
-// --- Hjelpefunksjoner for Tema ---
-function getStartOfWeek(date = new Date()) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(d.setDate(diff));
-  monday.setHours(0, 0, 0, 0);
-  return monday;
+const eveningColors = {
+  '--bg-dark': '#d0d8e0',         // Dusere, mørkere blågrå
+  '--bg-card': '#e8edf0',         // Litt mørkere off-white
+  '--bg-modal': '#dde2e5',        // Dusere modalbakgrunn
+  '--text-primary': '#34495e',    // Litt mykere mørk tekst
+  '--text-secondary': '#6b7d8b',  // Dusere sekundærtekst
+  '--accent-primary': '#5d8aab',  // Duset, desaturert blå
+  '--accent-secondary': '#466d87',// Mørkere duset blå
+  '--border-inactive': '#a8b6bf',
+  '--bar-background': '#cad3d9',
+  // Statusbarfarger kan også justeres for kvelden om ønskelig
+  '--bar-green': '#5cb85c', // Litt dusere grønn
+  '--bar-yellow': '#f0ad4e',// Litt dusere gul
+  '--bar-red': '#d9534f',  // Litt dusere rød
+};
+
+// Hjelpefunksjon for å parse hex-farge til RGB-objekt
+function hexToRgb(hex) {
+  let r = 0, g = 0, b = 0;
+  if (hex.length === 4) { // #RGB format
+    r = parseInt(hex[1] + hex[1], 16);
+    g = parseInt(hex[2] + hex[2], 16);
+    b = parseInt(hex[3] + hex[3], 16);
+  } else if (hex.length === 7) { // #RRGGBB format
+    r = parseInt(hex[1] + hex[2], 16);
+    g = parseInt(hex[3] + hex[4], 16);
+    b = parseInt(hex[5] + hex[6], 16);
+  }
+  return { r, g, b };
 }
 
-function applyAndSaveTheme(themeName, isAutoChange = false) {
-  const themeKeys = Object.keys(themes);
-  // Sørg for at themeName er et gyldig, gjenværende tema
-  const validThemeName = themes[themeName] ? themeName : themeKeys[0]; // Default til første lyse tema
-
-  const selectedTheme = themes[validThemeName];
-  if (!selectedTheme) {
-    console.warn(`Tema "${validThemeName}" ikke funnet. Ingen temabytte.`);
-    return;
-  }
-  for (const [key, value] of Object.entries(selectedTheme)) {
-    document.documentElement.style.setProperty(key, value);
-  }
-  const bodyClasses = document.body.className.split(' ').filter(cls => !cls.startsWith('theme-'));
-  document.body.className = [...bodyClasses, `theme-${validThemeName}`].join(' ');
-
-  localStorage.setItem('selectedTheme', validThemeName);
-  if (!isAutoChange || !localStorage.getItem('themeLastChanged')) {
-    localStorage.setItem('themeLastChanged', new Date().toISOString().split('T')[0]);
-  }
-  console.log(`Tema endret til: ${validThemeName}. Lagret.`);
-  setActiveThemeButton(validThemeName);
+// Hjelpefunksjon for å interpolere en enkelt fargekomponent
+function interpolateColorComponent(startComp, endComp, factor) {
+  return Math.round(startComp + (endComp - startComp) * factor);
 }
 
-function setActiveThemeButton(themeName) {
-  document.querySelectorAll('.theme-btn').forEach(button => {
-    // Fjerner 'active-theme' klasse hvis du hadde det for styling av aktiv knapp
-    // button.classList.remove('active-theme'); 
-    if (button.id === `theme-btn-${themeName}`) {
-      // button.classList.add('active-theme');
+// Hovedfunksjon for å oppdatere det dynamiske temaet
+function updateDynamicDayTheme() {
+  const now = new Date();
+  const currentHour = now.getHours() + now.getMinutes() / 60; // Time med desimaler for jevnere overgang
+
+  const startHour = 8; // 08:00
+  const endHour = 20;  // 20:00 (8 PM) - temaet er fullt "kveldsfarget" her
+
+  let factor = 0; // 0 = full morgen, 1 = full kveld
+
+  if (currentHour <= startHour) {
+    factor = 0;
+  } else if (currentHour >= endHour) {
+    factor = 1;
+  } else {
+    factor = (currentHour - startHour) / (endHour - startHour);
+  }
+
+  // CSS-variabler som skal interpoleres
+  const varsToInterpolate = [
+    '--bg-dark', '--bg-card', '--bg-modal',
+    '--text-primary', '--text-secondary',
+    '--accent-primary', '--accent-secondary',
+    '--border-inactive', '--bar-background',
+    '--bar-green', '--bar-yellow', '--bar-red' // Valgfritt å interpolere disse også
+  ];
+
+  varsToInterpolate.forEach(varName => {
+    const morningHex = morningColors[varName];
+    const eveningHex = eveningColors[varName];
+
+    if (morningHex && eveningHex) {
+      const rgbMorning = hexToRgb(morningHex);
+      const rgbEvening = hexToRgb(eveningHex);
+
+      const r = interpolateColorComponent(rgbMorning.r, rgbEvening.r, factor);
+      const g = interpolateColorComponent(rgbMorning.g, rgbEvening.g, factor);
+      const b = interpolateColorComponent(rgbMorning.b, rgbEvening.b, factor);
+
+      document.documentElement.style.setProperty(varName, `rgb(${r},${g},${b})`);
     }
   });
-}
 
-function loadCheckAndApplyTheme() {
-  const savedTheme = localStorage.getItem('selectedTheme');
-  const lastChangedStr = localStorage.getItem('themeLastChanged');
-  const themeKeys = Object.keys(themes); // Nå kun de lyse temaene
-  let themeToApply = (savedTheme && themes[savedTheme]) ? savedTheme : themeKeys[0]; // Default til første lyse tema
-  let needsSaveOfDate = !savedTheme;
-
-  const startOfThisWeek = getStartOfWeek();
-
-  if (lastChangedStr) {
-    const lastChangedDate = new Date(lastChangedStr);
-    lastChangedDate.setHours(0, 0, 0, 0);
-
-    if (lastChangedDate < startOfThisWeek) {
-      console.log("Ny uke! Velger neste lyse tema automatisk.");
-      const currentIndex = themeKeys.indexOf(themeToApply);
-      const nextIndex = (currentIndex + 1) % themeKeys.length;
-      themeToApply = themeKeys[nextIndex];
-      applyAndSaveTheme(themeToApply, true); // true for isAutoChange
-      return;
-    }
-  } else {
-    needsSaveOfDate = true;
+  // For gradienten, kan vi bruke de interpolerte primær- og sekundæraksentfargene
+  const currentAccentPrimary = document.documentElement.style.getPropertyValue('--accent-primary');
+  const currentAccentSecondary = document.documentElement.style.getPropertyValue('--accent-secondary');
+  if (currentAccentPrimary && currentAccentSecondary) {
+    document.documentElement.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${currentAccentPrimary}, ${currentAccentSecondary})`);
   }
-  applyAndSaveTheme(themeToApply, !needsSaveOfDate);
+
+  // console.log(`Dynamic theme updated. Factor: ${factor.toFixed(2)}`);
 }
+
 
 // --- Gamification Display ---
 function displayGamificationStatus() {
@@ -130,8 +117,7 @@ function displayGamificationStatus() {
   const totalPointsStr = localStorage.getItem('user_totalPoints');
   const streakCountStr = localStorage.getItem('streak_count');
   const rankStr = localStorage.getItem('user_rank');
-  console.log(`Lest fra localStorage: points='${totalPointsStr}', streak='${streakCountStr}', rank='${rankStr}'`);
-
+  
   const totalPoints = parseInt(totalPointsStr || '0');
   const streakCount = parseInt(streakCountStr || '0');
   const rank = rankStr || "Nybegynner"; 
@@ -156,7 +142,6 @@ function displayGamificationStatus() {
     rankElement.innerHTML = `🏆 Rank: ${rank}`;
     rankElement.style.display = 'inline-block';
   }
-  console.log(`Gamification UI oppdatert: Poeng=${totalPoints}, Streak=${streakCount}, Rank=${rank}`);
 }
 
 // --- Aktiv Navigasjonsknapp ---
@@ -194,17 +179,12 @@ function updateUserButtonStates() {
       userBtnW.classList.add('active');
     }
   }
-  console.log(`Brukerknapper oppdatert. Aktiv bruker: ${currentUserSuffix}`);
 }
 
 function switchUser(newUserSuffix) {
     // ... (som før)
-  if (currentUserSuffix === newUserSuffix) {
-    console.log(`Bruker er allerede ${newUserSuffix}. Ingen bytte nødvendig.`);
-    return;
-  }
+  if (currentUserSuffix === newUserSuffix) return;
   
-  console.log(`Bytter bruker til: ${newUserSuffix}`);
   currentUserSuffix = newUserSuffix;
   localStorage.setItem('currentUserSuffix', currentUserSuffix);
   updateUserButtonStates();
@@ -214,41 +194,35 @@ function switchUser(newUserSuffix) {
 
   const currentPage = window.location.pathname.split("/").pop();
   if (currentPage === 'index.html' || currentPage === '') {
-    if (typeof loadCustomers === 'function') loadCustomers(); else console.warn("loadCustomers function not found on index page.");
+    if (typeof loadCustomers === 'function') loadCustomers();
   } else if (currentPage === 'daily-summary.html') {
-    if (typeof loadDailySummary === 'function') loadDailySummary(); else console.warn("loadDailySummary function not found on daily summary page.");
+    if (typeof loadDailySummary === 'function') loadDailySummary();
   } else if (currentPage === 'tasks.html') {
-    if (typeof fetchInitialData_Tasks === 'function') fetchInitialData_Tasks(); else console.warn("fetchInitialData_Tasks function not found on tasks page.");
+    if (typeof fetchInitialData_Tasks === 'function') fetchInitialData_Tasks();
   } else if (currentPage === 'manager-dashboard.html') {
-    if (typeof fetchAllDataForDashboard === 'function') fetchAllDataForDashboard(); else console.warn("fetchAllDataForDashboard function not found on manager page.");
-  }else {
-    console.warn("Ingen spesifikk datalastingsfunksjon funnet for denne siden etter brukerbytte:", currentPage);
+    if (typeof fetchAllDataForDashboard === 'function') fetchAllDataForDashboard();
   }
   displayGamificationStatus();
 }
 
 // --- Event Listeners ---
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("theme.js DOMContentLoaded kjører.");
+  console.log("theme.js DOMContentLoaded kjører for dynamisk tema.");
 
-  loadCheckAndApplyTheme(); // Håndterer lagret/automatisk tema
+  // Initialiser og start dynamisk tema
+  updateDynamicDayTheme(); // Kall en gang for å sette farger umiddelbart
+  setInterval(updateDynamicDayTheme, 5 * 60 * 1000); // Oppdater hvert 5. minutt
 
-  // Lyttere for de GJENVÆRENDE lyse temaknappene
-  document.getElementById('theme-btn-light-blue')?.addEventListener('click', () => applyAndSaveTheme('light-blue', false));
-  document.getElementById('theme-btn-ocean-breeze')?.addEventListener('click', () => applyAndSaveTheme('ocean-breeze', false));
-  document.getElementById('theme-btn-minimalist-orange')?.addEventListener('click', () => applyAndSaveTheme('minimalist-orange', false));
-  
-  // Fjern lyttere for de mørke temaene som ikke lenger finnes i `themes`-objektet
-  // (Knappene i HTML bør også fjernes for et rent UI, men JS vil ikke feile hvis de er der uten lytter)
+  // Fjern lyttere for manuelle temaknapper, da de ikke lenger er i bruk
+  // document.getElementById('theme-btn-light-blue')?.removeEventListener(...) etc.
+  // HTML-knappene for tema bør også fjernes fra HTML-filene.
 
   updateUserButtonStates();
   document.getElementById('user-btn-c')?.addEventListener('click', () => switchUser('C'));
   document.getElementById('user-btn-w')?.addEventListener('click', () => switchUser('W'));
-  // 'user-btn-all' for manager dashboard håndteres av manager-dashboard.js sin setManagerFocus
 
   displayGamificationStatus();
   highlightActiveNavButton();
 });
 
-console.log("theme.js lastet (kun lyse temaer). Aktiv bruker:", currentUserSuffix);
-
+console.log("theme.js lastet (med dynamisk dag-tema). Aktiv bruker:", currentUserSuffix);
