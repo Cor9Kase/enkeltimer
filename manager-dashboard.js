@@ -46,18 +46,27 @@ function setupManagerEventListeners() {
     document.getElementById('user-btn-c')?.addEventListener('click', () => setManagerFocus('C'));
     document.getElementById('user-btn-w')?.addEventListener('click', () => setManagerFocus('W'));
     document.getElementById('user-btn-all')?.addEventListener('click', () => setManagerFocus('all'));
-
-    // ENDRET: Lytter nå til den nye knappen som er flyttet ut
     document.getElementById('open-create-task-modal-btn')?.addEventListener('click', openManagerCreateTaskModal);
-
-    // Knappen inne i modalen har fortsatt samme ID og vil kalle handleSubmitNewTask
     document.getElementById('submit-new-task-btn')?.addEventListener('click', handleSubmitNewTask);
-    
     document.getElementById('new-task-assignee')?.addEventListener('change', populateManagerCustomerDropdown);
     document.getElementById('task-overview-status-filter')?.addEventListener('change', renderQuickTaskOverview);
     document.getElementById('refresh-button')?.addEventListener('click', fetchAllDataForDashboard);
     document.getElementById('show-task-admin-btn')?.addEventListener('click', () => showViewManager('task-admin'));
     document.getElementById('show-calendar-view-btn')?.addEventListener('click', () => showViewManager('calendar'));
+
+    // Event listener for recurrence rule dropdown to show/hide end date
+    const recurrenceRuleDropdown = document.getElementById('new-task-recurrence-rule');
+    const recurrenceEndDateGroup = document.getElementById('recurrence-end-date-group');
+    if (recurrenceRuleDropdown && recurrenceEndDateGroup) {
+        recurrenceRuleDropdown.addEventListener('change', function() {
+            if (this.value && this.value !== 'Aldri') {
+                recurrenceEndDateGroup.style.display = 'block';
+            } else {
+                recurrenceEndDateGroup.style.display = 'none';
+                document.getElementById('new-task-recurrence-end-date').value = ''; // Clear end date if recurrence is "Aldri"
+            }
+        });
+    }
 }
 
 function openManagerCreateTaskModal() {
@@ -74,11 +83,16 @@ function openManagerCreateTaskModal() {
         }
         const statusEl = document.getElementById('new-task-status');
         if(statusEl) statusEl.textContent = '';
+        
+        // Tøm skjemafelter ved åpning
         document.getElementById('new-task-name').value = '';
         document.getElementById('new-task-estimated-time').value = '';
-        document.getElementById('new-task-due-date').value = '';
+        document.getElementById('new-task-due-date').value = ''; // Dette blir startdato for gjentakende
         document.getElementById('new-task-priority').value = '';
-        // La kunde-dropdown være som den er, da den oppdateres av populateManagerCustomerDropdown
+        document.getElementById('new-task-recurrence-rule').value = 'Aldri'; // Default
+        document.getElementById('new-task-recurrence-end-date').value = '';
+        document.getElementById('recurrence-end-date-group').style.display = 'none'; // Skjul som default
+
 
         modal.style.display = 'block';
         console.log("ManagerCreateTaskModal åpnet.");
@@ -87,14 +101,8 @@ function openManagerCreateTaskModal() {
     }
 }
 
-// ... (resten av JavaScript-funksjonene forblir som i forrige versjon)
-// setManagerFocus, fetchAllDataForDashboard, showLoadingState, fetchDataFromScript_Manager,
-// renderDashboard, updateSectionTitles, renderStats, updateProgressBar, renderDueTasksList,
-// renderQuickTaskOverview, populateManagerCustomerDropdown, handleSubmitNewTask,
-// renderCharts, renderLoggedHoursChart, renderTaskStatusChart, renderOpenTasksDistributionChart,
-// showViewManager, initializeManagerCalendar
-
 function setManagerFocus(focusUser, reloadData = true) {
+    // ... (som før)
     managerFocusUser = focusUser;
     localStorage.setItem('managerDashboardFocus', managerFocusUser);
     console.log(`Manager dashboard fokus satt til: ${managerFocusUser}`);
@@ -118,6 +126,7 @@ function setManagerFocus(focusUser, reloadData = true) {
 }
 
 async function fetchAllDataForDashboard() {
+    // ... (som før)
     console.log("Henter all data for manager dashboard...");
     showLoadingState(true);
     try {
@@ -130,10 +139,10 @@ async function fetchAllDataForDashboard() {
             timeLogsWRes, tasksWRes, customersWRes
         ] = await Promise.all([
             fetchDataFromScript_Manager({ action: 'getTimeLog', user: 'C', ...commonParamsMonth }),
-            fetchDataFromScript_Manager({ action: 'getTasks', user: 'C' }),
+            fetchDataFromScript_Manager({ action: 'getTasks', user: 'C' }), // Vil nå inkludere recurrence data
             fetchDataFromScript_Manager({ action: 'getCustomers', user: 'C' }),
             fetchDataFromScript_Manager({ action: 'getTimeLog', user: 'W', ...commonParamsMonth }),
-            fetchDataFromScript_Manager({ action: 'getTasks', user: 'W' }),
+            fetchDataFromScript_Manager({ action: 'getTasks', user: 'W' }), // Vil nå inkludere recurrence data
             fetchDataFromScript_Manager({ action: 'getCustomers', user: 'W' })
         ]);
 
@@ -157,6 +166,7 @@ async function fetchAllDataForDashboard() {
 }
 
 function showLoadingState(isLoading) {
+    // ... (som før)
     const elementsToUpdate = [
         'stats-hours-c', 'stats-hours-w', 'stats-hours-total',
         'stats-open-tasks-c', 'stats-open-tasks-w', 'stats-completed-tasks-month',
@@ -179,6 +189,7 @@ function showLoadingState(isLoading) {
 }
 
 function fetchDataFromScript_Manager(params) {
+    // ... (som før)
     const urlParams = new URLSearchParams(params);
     urlParams.append('nocache', Date.now());
     const url = `${GOOGLE_SCRIPT_URL}?${urlParams.toString()}`;
@@ -197,6 +208,7 @@ function fetchDataFromScript_Manager(params) {
 }
 
 function renderDashboard() {
+    // ... (som før)
     updateSectionTitles();
     renderStats();
     renderDueTasksList();
@@ -208,6 +220,7 @@ function renderDashboard() {
 }
 
 function updateSectionTitles() {
+    // ... (som før)
     const focusText = managerFocusUser === 'C' ? 'Cornelius' : managerFocusUser === 'W' ? 'William' : 'Begge';
     document.getElementById('stats-section-title').innerHTML = `Nøkkeltall (Denne Måned) - <span>${focusText}</span>`;
     document.getElementById('charts-section-title').innerHTML = `Visuell Oversikt - <span>${focusText}</span>`;
@@ -217,6 +230,7 @@ function updateSectionTitles() {
 }
 
 function renderStats() {
+    // ... (som før)
     console.log(`Rendrer statistikk for fokus: ${managerFocusUser}`);
     const updateStatCard = (id, value, subtext = null) => { 
         const el = document.getElementById(id);
@@ -284,6 +298,7 @@ function renderStats() {
 }
 
 function updateProgressBar(elementId, currentValue, maxValue) {
+    // ... (som i forrige versjon)
     const progressBar = document.getElementById(elementId);
     if (!progressBar) return;
     let percentage = 0;
@@ -306,6 +321,7 @@ function updateProgressBar(elementId, currentValue, maxValue) {
 }
 
 function renderDueTasksList() {
+    // ... (som i forrige versjon)
     const dueTasksListDiv = document.getElementById('due-tasks-list');
     if (!dueTasksListDiv) return;
     dueTasksListDiv.innerHTML = "";
@@ -364,6 +380,7 @@ function renderDueTasksList() {
 }
 
 function renderQuickTaskOverview() {
+    // ... (som i forrige versjon)
     const taskListDiv = document.getElementById('task-list-manager');
     if (!taskListDiv) return;
     taskListDiv.innerHTML = ""; 
@@ -439,6 +456,7 @@ function renderQuickTaskOverview() {
 }
 
 function populateManagerCustomerDropdown() {
+    // ... (som i forrige versjon)
     const assignee = document.getElementById('new-task-assignee').value;
     const customerDropdown = document.getElementById('new-task-customer');
     if (!customerDropdown) return;
@@ -461,8 +479,10 @@ async function handleSubmitNewTask() {
     const customer = document.getElementById('new-task-customer').value;
     const name = document.getElementById('new-task-name').value.trim();
     const estimatedTime = document.getElementById('new-task-estimated-time').value;
-    const dueDate = document.getElementById('new-task-due-date').value;
+    const dueDate = document.getElementById('new-task-due-date').value; // Dette blir startdato for gjentakende
     const priority = document.getElementById('new-task-priority').value;
+    const recurrenceRule = document.getElementById('new-task-recurrence-rule').value; // NYTT
+    const recurrenceEndDate = document.getElementById('new-task-recurrence-end-date').value; // NYTT
     const statusEl = document.getElementById('new-task-status'); 
 
     if (!customer || !name) {
@@ -475,12 +495,25 @@ async function handleSubmitNewTask() {
         statusEl.className = 'status-message error';
         return;
     }
+    if (recurrenceRule !== 'Aldri' && !dueDate) {
+        statusEl.textContent = "Frist (startdato) må settes for gjentakende oppgaver.";
+        statusEl.className = 'status-message error';
+        return;
+    }
+
 
     const taskData = {
-        action: 'addTask', user: assignee, customer: customer, name: name, status: 'Ny',
-        priority: priority || null, dueDate: dueDate || null,
+        action: 'addTask', 
+        user: assignee, // Hvem oppgaven er TILDELT
+        customer: customer, 
+        name: name, 
+        status: 'Ny',
+        priority: priority || null, 
+        dueDate: dueDate || null, // Startdato for gjentakende, vanlig frist ellers
         estimatedTime: estimatedTime !== '' ? parseFloat(estimatedTime) : null,
-        source: 'manager' 
+        source: 'manager',
+        recurrenceRule: recurrenceRule === 'Aldri' ? null : recurrenceRule, // NYTT
+        recurrenceEndDate: recurrenceEndDate || null // NYTT
     };
 
     statusEl.textContent = "Oppretter oppgave..."; statusEl.className = 'status-message';
@@ -489,11 +522,17 @@ async function handleSubmitNewTask() {
     try {
         const response = await sendDataToGoogleScript(taskData); 
         if (response.success) {
-            statusEl.textContent = "Oppgave opprettet og varsel sendt!"; statusEl.className = 'status-message success';
+            statusEl.textContent = "Oppgave opprettet" + (taskData.source === 'manager' ? " og varsel sendt!" : "!"); 
+            statusEl.className = 'status-message success';
+            
+            // Tøm kun noen felter, la assignee og kunde stå hvis manager vil lage flere for samme
             document.getElementById('new-task-name').value = '';
             document.getElementById('new-task-estimated-time').value = '';
             document.getElementById('new-task-due-date').value = '';
             document.getElementById('new-task-priority').value = '';
+            document.getElementById('new-task-recurrence-rule').value = 'Aldri';
+            document.getElementById('new-task-recurrence-end-date').value = '';
+            document.getElementById('recurrence-end-date-group').style.display = 'none';
             
             setTimeout(() => {
                 closeModal('managerCreateTaskModal');
@@ -513,6 +552,7 @@ async function handleSubmitNewTask() {
 }
 
 function renderCharts() {
+    // ... (som i forrige versjon)
     console.log(`Rendrer diagrammer for fokus: ${managerFocusUser}`);
     let hoursC = 0; allManagerTimeLogsC.forEach(day => hoursC += day.totalHours);
     let hoursW = 0; allManagerTimeLogsW.forEach(day => hoursW += day.totalHours);
@@ -539,6 +579,7 @@ function renderCharts() {
 }
 
 function renderLoggedHoursChart(hoursC, hoursW) {
+    // ... (som i forrige versjon)
     const ctx = document.getElementById('loggedHoursChart')?.getContext('2d');
     const container = document.getElementById('chart-container-logged-hours');
     if (!ctx || !container) return;
@@ -579,6 +620,7 @@ function renderLoggedHoursChart(hoursC, hoursW) {
 }
 
 function renderTaskStatusChart(openTasksForFocus) {
+    // ... (som i forrige versjon)
     const ctx = document.getElementById('taskStatusChart')?.getContext('2d');
     const container = document.getElementById('chart-container-task-status');
     if (!ctx || !container) return;
@@ -617,6 +659,7 @@ function renderTaskStatusChart(openTasksForFocus) {
 }
 
 function renderOpenTasksDistributionChart(openC, openW) {
+    // ... (som i forrige versjon)
     const ctx = document.getElementById('openTasksDistributionChart')?.getContext('2d');
     const container = document.getElementById('chart-container-open-tasks-dist');
     if (!ctx || !container) return;
@@ -655,6 +698,7 @@ function renderOpenTasksDistributionChart(openC, openW) {
 }
 
 function showViewManager(viewName) {
+    // ... (som i forrige versjon)
     const taskAdminView = document.getElementById('task-admin-view');
     const calendarViewManager = document.getElementById('calendar-view-manager');
     const btnTaskAdmin = document.getElementById('show-task-admin-btn');
@@ -681,15 +725,14 @@ function showViewManager(viewName) {
 }
 
 function initializeManagerCalendar() {
+    // ... (som i forrige versjon)
     if (managerCalendarInstance) { 
-        // Kalenderen finnes, oppdater events
         let tasksForCalendar = [];
         if (managerFocusUser === 'C') tasksForCalendar = [...allManagerTasksC];
         else if (managerFocusUser === 'W') tasksForCalendar = [...allManagerTasksW];
         else tasksForCalendar = [...allManagerTasksC, ...allManagerTasksW];
 
         const calendarEvents = tasksForCalendar.filter(task => task.dueDate).map(task => {
-            // ... (samme event-mapping som under)
             let color = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim(); 
             if (task.priority === 'Høy') color = getComputedStyle(document.documentElement).getPropertyValue('--bar-red').trim();
             else if (task.priority === 'Medium') color = getComputedStyle(document.documentElement).getPropertyValue('--bar-yellow').trim();
@@ -704,7 +747,7 @@ function initializeManagerCalendar() {
         });
         managerCalendarInstance.removeAllEvents();
         managerCalendarInstance.addEventSource(calendarEvents);
-        managerCalendarInstance.render(); // Re-render for å vise endringer
+        managerCalendarInstance.render(); 
         console.log("Managerkalender oppdatert med nye events.");
         return;
     }
@@ -761,9 +804,9 @@ function initializeManagerCalendar() {
                 alert(`Oppgave: ${info.event.title}\nFrist: ${info.event.startStr}`);
             }
         },
-        height: 650, // Satt en fast høyde for bedre visning
+        height: 650, 
         eventDidMount: function(info) {
-            // Kan legge til tooltips her
+            // Tooltip kan legges til her
         }
     });
     managerCalendarInstance.render();
