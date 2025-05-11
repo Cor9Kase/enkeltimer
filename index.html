@@ -3,33 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cornys Timetracker</title>
+  <title>Skar timetracker</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="header"> <!-- Hovedheader-container -->
-    <h1>Cornys Timetracker</h1>
+  <div class="header"> <h1>Skar timetracker</h1>
     <div id="current-date" class="current-date"></div>
     <div class="update-status">Sist oppdatert: <span id="last-updated">Aldri</span></div>
 
-    <!-- === START GAMIFICATION DISPLAY === -->
-    <!-- Plassert her for å være synlig under dato/status -->
     <div class="gamification-display">
-        <span id="streak-display" style="display: none;"></span> <!-- Skjult som standard, vises av JS -->
-        <span id="rank-display" style="display: none;"></span>   <!-- Skjult som standard, vises av JS -->
+        <span id="streak-display" style="display: none;"></span>
+        <span id="rank-display" style="display: none;"></span>
     </div>
-    <!-- === SLUTT GAMIFICATION DISPLAY === -->
-
-    <!-- Hovedknapper UTEN refresh -->
     <div class="header-main-actions">
-      <!-- Refresh-knappen er FLYTTET herfra -->
-      <!-- FJERN 'active' fra denne knappen -->
       <button class="nav-btn" onclick="window.location.href='index.html'">Timeregistrering</button>
       <button class="nav-btn" onclick="window.location.href='daily-summary.html'">Dagsoversikt</button>
       <button class="nav-btn" onclick="window.location.href='tasks.html'">Oppgaver</button>
     </div>
-    
-    <!-- Container for temaknapper (posisjoneres av CSS) -->
+
+    <div class="user-selection-actions">
+      <button class="user-switch-btn" id="user-btn-c">Vis Cornelius</button>
+      <button class="user-switch-btn" id="user-btn-w">Vis William</button>
+    </div>
     <div class="theme-switcher">
       <button id="theme-btn-dark-purple" title="Mørk Lilla Tema" class="theme-btn theme-dark-purple"></button>
       <button id="theme-btn-light-blue" title="Lys Blå Tema" class="theme-btn theme-light-blue"></button>
@@ -40,19 +35,13 @@
       <button id="theme-btn-minimalist-orange" title="Oransje Tema" class="theme-btn theme-minimalist-orange"></button>
     </div>
 
-  </div> <!-- Slutt på .header -->
-
-  <div class="container" id="customer-container">
-    <!-- Add customer button always comes first -->
+  </div> <div class="container" id="customer-container">
     <div class="add-customer" id="add-customer-box" onclick="startNewCustomerTimer()">
       <div class="add-customer-icon">+</div>
       <div class="add-customer-timer" id="new-customer-timer">00:00:00</div>
     </div>
+    </div>
 
-    <!-- Customer boxes will be added here, sorted alphabetically -->
-  </div>
-
-  <!-- Modal for comments -->
   <div id="commentModal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeModal('commentModal')">×</span>
@@ -64,54 +53,44 @@
     </div>
   </div>
 
-  <!-- Modal for new customer -->
   <div id="newCustomerModal" class="modal new-customer-modal">
     <div class="modal-content">
       <span class="close" onclick="cancelNewCustomer()">×</span>
       <h2>Legg til ny kunde</h2>
       <p id="new-customer-time-spent">Tid brukt: 00:00:00</p>
-
       <div class="form-group">
         <label for="new-customer-name">Kundenavn:</label>
         <input type="text" id="new-customer-name" placeholder="Skriv inn kundenavn">
       </div>
-
       <div class="form-group">
         <label for="new-customer-hours">Timer tilgjengelig (ved start):</label>
         <input type="number" id="new-customer-hours" placeholder="Antall timer">
       </div>
-
       <div class="form-group">
         <label for="new-customer-comment">Kommentar (valgfri):</label>
         <textarea id="new-customer-comment" placeholder="Skriv en kommentar om arbeidet..."></textarea>
       </div>
-
       <button class="submit-btn" id="create-customer-btn">Lagre kunde og tid</button>
     </div>
   </div>
 
-  <!-- Modal for editing customer -->
   <div id="editCustomerModal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeModal('editCustomerModal')">×</span>
       <h2>Rediger kunde</h2>
-
       <div class="form-group">
         <label for="edit-customer-name">Kundenavn:</label>
         <input type="text" id="edit-customer-name">
       </div>
-
       <div class="form-group">
         <label for="edit-customer-hours">Timer tilgjengelig (nåværende):</label>
         <input type="number" id="edit-customer-hours">
       </div>
-
       <input type="hidden" id="edit-customer-id">
       <button class="submit-btn" id="update-customer-btn">Lagre endringer</button>
     </div>
   </div>
 
-  <!-- Confirmation modal for delete -->
   <div id="confirmDeleteModal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeModal('confirmDeleteModal')">×</span>
@@ -119,7 +98,6 @@
       <p>Er du sikker på at du vil slette kunden <strong id="delete-customer-name" style="color: var(--accent-primary);"></strong>?</p>
       <p>Dette vil også slette kunden fra 'Kunder'-arket, men logget tid i 'Tidslogg' blir værende.</p>
       <p>Handlingen kan ikke angres.</p>
-
       <input type="hidden" id="delete-customer-id">
       <div class="modal-buttons">
         <button class="cancel-btn" onclick="closeModal('confirmDeleteModal')">Avbryt</button>
@@ -127,9 +105,11 @@
       </div>
     </div>
   </div>
-<button id="refresh-button" class="icon-btn refresh-btn-fixed" title="Oppdater data">🔄</button>
+
+  <button id="refresh-button" class="icon-btn refresh-btn-fixed" title="Oppdater data">🔄</button>
+  
   <script src="script.js"></script>
   <script src="gamification.js"></script>
-  <script src="theme.js"></script>
-</body>
+  <script src="theme.js"></script> 
+  </body>
 </html>
