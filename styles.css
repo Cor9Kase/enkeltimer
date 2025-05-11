@@ -1,4 +1,4 @@
-/* styles.css - Felles stilark for Cornys Timetracker */
+/* styles.css - Felles stilark for Skar timetracker */
 
 /* === 1. Globale Variabler (Styres av theme.js) === */
 :root {
@@ -36,15 +36,15 @@ body {
   background-color: var(--bg-dark);
   color: var(--text-primary);
   line-height: 1.6;
-  padding: 20px; /* Generell luft rundt innholdet */
-  padding-bottom: 80px; /* EKSTRA PADDING NEDE for å unngå overlapp med fast refresh-knapp */
+  padding: 20px; 
+  padding-bottom: 80px; 
 }
 
-/* === 3. Header (Ikke Fixed) === */
+/* === 3. Header === */
 .header {
   text-align: center;
-  margin-bottom: 30px;
-  position: relative; /* For theme-switcher posisjonering */
+  margin-bottom: 20px; /* Redusert margin-bottom litt */
+  position: relative; 
   padding: 10px 0;
 }
 
@@ -74,15 +74,53 @@ body {
   min-height: 1.2em;
 }
 
-/* Hovedknapper i header (sentrert) */
-/* Navn endret til header-main-actions i HTML */
+/* Hovedknapper i header */
 .header-main-actions {
   display: flex;
   gap: 12px;
   justify-content: center;
   margin-top: 15px;
+  margin-bottom: 10px; /* Litt luft før brukerknapper */
   flex-wrap: wrap;
 }
+
+/* === NYTT: Brukervalg-knapper === */
+.user-selection-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 10px; /* Margin over knappene */
+  margin-bottom: 15px; /* Margin under knappene */
+  flex-wrap: wrap;
+}
+
+.user-switch-btn {
+  background-color: var(--bg-card);
+  color: var(--text-secondary); /* Litt dusere farge for ikke-aktiv */
+  border: 1px solid var(--border-inactive);
+  padding: 7px 15px; /* Litt mindre padding enn nav-btn */
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 13px; /* Litt mindre font */
+  transition: var(--transition);
+}
+
+.user-switch-btn:hover {
+  border-color: var(--accent-secondary);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.user-switch-btn.active {
+  background: var(--accent-primary);
+  color: white;
+  border-color: var(--accent-primary);
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(157, 78, 221, 0.2);
+  pointer-events: none; /* Ikke klikkbar når aktiv */
+  transform: none !important;
+}
+
 
 /* === 4. Gamification Display (i Header) === */
 .gamification-display {
@@ -101,7 +139,7 @@ body {
 
 #streak-display { color: #ff9800; }
 #rank-display { color: var(--accent-primary); }
-#points-display { color: var(--bar-yellow); } /* Farge for poeng */
+#points-display { color: var(--bar-yellow); } 
 
 #streak-display::before,
 #rank-display::before,
@@ -110,7 +148,7 @@ body {
   font-size: 1.1em;
   vertical-align: middle;
 }
-#points-display::before { content: "✨ "; } /* Emoji for poeng */
+#points-display::before { content: "✨ "; } 
 #streak-display::before { content: "🔥 "; }
 #rank-display::before { content: "🏆 "; }
 
@@ -138,6 +176,7 @@ body {
   transform: scale(1.15);
   border-color: var(--text-primary);
 }
+/* ... (resten av temaknapp-stilene forblir de samme) ... */
 .theme-btn.theme-dark-purple { background: linear-gradient(135deg, #9d4edd, #7b2cbf); }
 .theme-btn.theme-light-blue { background: linear-gradient(135deg, #3498db, #2980b9); }
 .theme-btn.theme-forest-green { background: linear-gradient(135deg, #2ecc71, #27ae60); }
@@ -159,7 +198,6 @@ button {
   line-height: 1.4;
 }
 
-/* Standard navigasjon/info-knapp */
 .nav-btn, .daily-summary-btn, .tasks-btn, .cancel-btn {
   background-color: var(--bg-card);
   color: var(--text-primary);
@@ -177,7 +215,6 @@ button {
 .cancel-btn:hover {
    border-color: var(--text-secondary);
 }
-/* Aktiv nav-knapp */
 .nav-btn.active {
   background: var(--accent-gradient);
   color: white;
@@ -189,7 +226,6 @@ button {
   transform: none !important;
 }
 
-/* Ikonknapp (for refresh nå) */
 .icon-btn {
   background: none;
   border: none;
@@ -206,8 +242,6 @@ button {
   transform: scale(1.1);
 }
 
-
-/* Fremhevede knapper (Submit) */
 .submit-btn {
    background: var(--accent-gradient);
    color: white;
@@ -231,11 +265,10 @@ button {
     color: var(--text-secondary) !important;
 }
 
-/* Slett-knapp */
 .delete-btn {
   background-color: var(--bar-red);
   color: white;
-  border: none; /* Fjernet border */
+  border: none; 
   padding: 10px 22px;
   border-radius: 8px;
   font-weight: bold;
@@ -253,8 +286,8 @@ button {
     color: var(--text-secondary) !important;
 }
 
-
 /* === 7. Container & Kundekort (index.html) === */
+/* ... (resten av .container og .customer-box stilene forblir de samme) ... */
 .container {
   display: flex;
   flex-wrap: wrap;
@@ -325,6 +358,7 @@ button {
 
 
 /* === 8. Modal Styling === */
+/* ... (modal-stilene forblir de samme) ... */
 .modal {
   display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%;
   background-color: rgba(0, 0, 0, 0.75); backdrop-filter: blur(5px);
@@ -365,8 +399,8 @@ textarea { min-height: 100px; resize: vertical; }
 #confirmDeleteModal .modal-content p { font-size: 0.95rem; }
 #confirmDeleteModal .modal-buttons { justify-content: center; }
 
-
 /* === 9. Fast Oppdateringsknapp === */
+/* ... (refresh-btn-fixed stilene forblir de samme) ... */
 .refresh-btn-fixed {
   position: fixed;
   bottom: 15px;
@@ -396,7 +430,6 @@ textarea { min-height: 100px; resize: vertical; }
   box-shadow: 0 5px 15px rgba(157, 78, 221, 0.3);
 }
 
-
 /* === 10. Animasjoner === */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideIn { from { transform: translateY(-15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -406,9 +439,10 @@ textarea { min-height: 100px; resize: vertical; }
     .container { justify-content: space-around; }
 }
 @media (max-width: 768px) {
-  body { padding: 15px; padding-bottom: 70px; /* Mer bunn-padding for fast knapp */ }
+  body { padding: 15px; padding-bottom: 70px; }
   .header h1 { font-size: 1.8rem; }
-  .header-main-actions { gap: 10px; } /* Bruker dette navnet nå */
+  .header-main-actions { gap: 10px; }
+  .user-selection-actions { gap: 8px; } /* Juster gap for mindre skjermer */
    .theme-switcher { top: 8px; right: 10px; gap: 5px; }
    .theme-btn { width: 18px; height: 18px; border-width: 1px; }
   .container { padding: 15px 0; gap: 15px; }
@@ -423,12 +457,12 @@ textarea { min-height: 100px; resize: vertical; }
    .header {
        margin-bottom: 20px;
        padding-left: 10px;
-       padding-right: 55px; /* Plass til tema */
-       text-align: center; /* Tilbake til sentrert */
+       padding-right: 55px; 
+       text-align: center; 
    }
     .header h1 { font-size: 1.6rem; }
-   .header-main-actions { flex-direction: column; align-items: center; gap: 8px; margin-top: 15px; }
-   .header-main-actions button { width: 90%; max-width: 280px; justify-content: center; }
+   .header-main-actions, .user-selection-actions { flex-direction: column; align-items: center; gap: 8px; }
+   .header-main-actions button, .user-selection-actions button { width: 90%; max-width: 280px; justify-content: center; }
    .theme-switcher { top: 6px; right: 6px; gap: 4px; }
    .theme-btn { width: 16px; height: 16px; }
    .container { gap: 10px; }
