@@ -115,11 +115,11 @@
     </section>
 
     <div class="view-selector-manager">
-        <button id="show-task-admin-btn" class="view-btn active">Oppgaveliste</button> <button id="show-calendar-view-btn" class="view-btn">Kalendervisning</button>
+        <button id="show-task-admin-btn" class="view-btn active">Oppgaveliste</button>
+        <button id="show-calendar-view-btn" class="view-btn">Kalendervisning</button>
     </div>
 
-    <div id="task-admin-view">
-        <div class="dashboard-columns" style="grid-template-columns: 1fr;"> <section class="dashboard-section quick-task-overview-section">
+    <div id="task-list-view"> <div class="dashboard-columns" style="grid-template-columns: 1fr;"> <section class="dashboard-section quick-task-overview-section">
               <h2 id="quick-task-overview-title">Hurtigoversikt Oppgaver (<span id="task-overview-user">Begge</span>)</h2>
                <div class="task-overview-filters">
                     <label for="task-overview-status-filter">Status:</label>
@@ -136,7 +136,7 @@
                 <p>Laster oppgaver...</p>
               </div>
             </section>
-            </div>
+        </div>
     </div>
 
     <div id="calendar-view-manager" class="dashboard-section" style="display: none;">
@@ -185,6 +185,20 @@
             <option value="Høy">Høy</option>
           </select>
         </div>
+        <div class="form-group">
+            <label for="new-task-recurrence-rule">Gjenta Oppgave:</label>
+            <select id="new-task-recurrence-rule">
+                <option value="Aldri" selected>Aldri</option>
+                <option value="Daglig">Daglig</option>
+                <option value="Ukentlig">Ukentlig</option>
+                <option value="Månedlig">Månedlig</option>
+            </select>
+        </div>
+        <div class="form-group" id="recurrence-end-date-group" style="display: none;">
+            <label for="new-task-recurrence-end-date">Gjentakelse Slutter (valgfri):</label>
+            <input type="date" id="new-task-recurrence-end-date">
+        </div>
+
         <div class="modal-buttons">
             <button class="cancel-btn" onclick="closeModal('managerCreateTaskModal')">Avbryt</button>
             <button id="submit-new-task-btn" class="submit-btn">Opprett Oppgave</button>
