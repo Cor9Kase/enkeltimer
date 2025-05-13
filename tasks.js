@@ -1,4 +1,4 @@
-// tasks.js (Oppdatert for interaktiv kalender: dra-og-slipp dato, hover-info)
+// tasks.js (Oppdatert for brukerbytte, gjentakende oppgaver, sletting og interaktiv kalender)
 
 // GOOGLE_SCRIPT_URL hentes globalt fra script.js
 
@@ -17,26 +17,21 @@ let customTooltip = null; // DOM-element for egendefinert tooltip i kalenderen
 // --- Initialisering ---
 document.addEventListener('DOMContentLoaded', () => {
     console.log("Tasks DOM lastet.");
-    // Hent aktiv bruker fra localStorage (satt av theme.js), default til 'C'
     if (typeof currentUserSuffix === 'undefined') {
+        console.warn("currentUserSuffix ikke definert i tasks.js. Fallback.");
         // eslint-disable-next-line no-global-assign
         currentUserSuffix = localStorage.getItem('currentUserSuffix') || 'C';
-        console.warn(`currentUserSuffix var undefined i tasks.js, satt til: ${currentUserSuffix}`);
     }
-    // Sjekk om backend-URL er tilgjengelig
     if (typeof GOOGLE_SCRIPT_URL === 'undefined' || !GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("DIN_NETTAPP_URL_HER")) {
        alert("KRITISK FEIL: GOOGLE_SCRIPT_URL er ikke tilgjengelig eller riktig satt globalt (sjekk script.js)! Oppgavesiden vil ikke fungere.");
-       return; // Stopp videre kjøring hvis URL mangler
+       return;
     }
-
-    updateCurrentDateHeader_Tasks(); // Oppdater datovisning
-    setupEventListeners_Tasks();     // Sett opp alle hendelseslyttere
-    fetchInitialData_Tasks();        // Hent initiale data (oppgaver og kunder)
-
-    createCustomTooltipElement();    // Forbered tooltip-elementet for kalenderen
+    updateCurrentDateHeader_Tasks();
+    setupEventListeners_Tasks(); 
+    fetchInitialData_Tasks();
+    createCustomTooltipElement(); // Opprett tooltip-elementet for kalenderen
 });
 
-// Sett opp alle hendelseslyttere for siden
 function setupEventListeners_Tasks() {
     document.getElementById('customer-filter')?.addEventListener('change', handleCustomerFilterChange_Tasks);
     document.querySelectorAll('.status-filter-btn')?.forEach(button => {
@@ -44,20 +39,19 @@ function setupEventListeners_Tasks() {
     });
     document.getElementById('refresh-button')?.addEventListener('click', fetchInitialData_Tasks);
     document.getElementById('add-task-btn')?.addEventListener('click', openAddTaskModal_Tasks);
-    document.getElementById('save-task-btn')?.addEventListener('click', handleSaveTask_Tasks); // Knappen inne i modalen
+    document.getElementById('save-task-btn')?.addEventListener('click', handleSaveTask_Tasks);
     document.getElementById('kanban-view-btn')?.addEventListener('click', () => switchView_Tasks('kanban'));
     document.getElementById('calendar-view-btn')?.addEventListener('click', () => switchView_Tasks('calendar'));
     
-    // Lukkeknapper for oppgavemodal og slettemodal
     document.querySelectorAll('#taskModal .close, #taskModal .cancel-btn').forEach(btn => {
-         btn.addEventListener('click', () => closeModal('taskModal')); // Bruker global closeModal
+         btn.addEventListener('click', () => closeModal('taskModal'));
     });
+    // Lyttere for slettebekreftelsesmodalen
     document.getElementById('confirm-delete-task-btn')?.addEventListener('click', deleteTask_Tasks);
     document.querySelectorAll('#confirmDeleteTaskModal .close, #confirmDeleteTaskModal .cancel-btn').forEach(btn => {
-        btn.addEventListener('click', () => closeModal('confirmDeleteTaskModal')); // Bruker global closeModal
+        btn.addEventListener('click', () => closeModal('confirmDeleteTaskModal'));
     });
 
-    // Lukk modaler ved klikk utenfor
     window.addEventListener('click', function(event) {
         const taskModal = document.getElementById('taskModal');
         if (taskModal && taskModal.style.display === 'block' && event.target === taskModal) {
@@ -68,23 +62,18 @@ function setupEventListeners_Tasks() {
             closeModal('confirmDeleteTaskModal');
         }
     });
-
-    // Drag-and-drop for Kanban-kolonner
     document.querySelectorAll('.kanban-column .task-list').forEach(list => {
         list.addEventListener('dragover', handleDragOver_Tasks);
         list.addEventListener('dragleave', handleDragLeave_Tasks);
         list.addEventListener('drop', handleDrop_Tasks);
     });
 
-    // Vis/skjul sluttdato for gjentakelse i modalen
     const recurrenceRuleDropdown = document.getElementById('task-recurrence-rule');
     const recurrenceEndDateGroup = document.getElementById('task-recurrence-end-date-group');
     if (recurrenceRuleDropdown && recurrenceEndDateGroup) {
         recurrenceRuleDropdown.addEventListener('change', function() {
             recurrenceEndDateGroup.style.display = (this.value && this.value !== 'Aldri') ? 'block' : 'none';
-            if (this.value === 'Aldri') {
-                document.getElementById('task-recurrence-end-date').value = ''; // Tøm dato hvis "Aldri"
-            }
+            if (this.value === 'Aldri') document.getElementById('task-recurrence-end-date').value = '';
         });
     }
 }
@@ -94,10 +83,9 @@ function createCustomTooltipElement() {
     if (document.getElementById('calendar-task-tooltip')) return;
     customTooltip = document.createElement('div');
     customTooltip.id = 'calendar-task-tooltip';
-    // Styling for tooltipen
     customTooltip.style.position = 'absolute';
     customTooltip.style.display = 'none';
-    customTooltip.style.backgroundColor = 'var(--bg-modal, #2f2f2f)'; // Litt lysere enn kort for synlighet
+    customTooltip.style.backgroundColor = 'var(--bg-modal, #2f2f2f)';
     customTooltip.style.color = 'var(--text-primary, #ffffff)';
     customTooltip.style.border = '1px solid var(--border-inactive, #444)';
     customTooltip.style.padding = '10px 15px';
@@ -107,45 +95,34 @@ function createCustomTooltipElement() {
     customTooltip.style.fontSize = '0.9rem';
     customTooltip.style.lineHeight = '1.4';
     customTooltip.style.maxWidth = '280px';
-    customTooltip.style.pointerEvents = 'none'; // Viktig!
+    customTooltip.style.pointerEvents = 'none';
     document.body.appendChild(customTooltip);
 }
 
 function showCalendarTooltip(eventInfo) {
-    if (!customTooltip) createCustomTooltipElement(); // Sikkerhetssjekk
-    
-    const task = eventInfo.event.extendedProps; // Hent all oppgavedata
-    let title = eventInfo.event.title;
-    // Fjern brukerprefix (C: / W: ) og gjentakelsesikon fra tittelen i tooltipen for renere visning
-    title = title.replace(/^[CW]:\s*/, '').replace(/^🔄\s*/, '');
-
+    if (!customTooltip) createCustomTooltipElement();
+    const task = eventInfo.event.extendedProps;
+    let title = eventInfo.event.title.replace(/^[CW]:\s*/, '').replace(/^🔄\s*/, '');
     let content = `<strong>${title}</strong><hr style="border-color: var(--border-inactive); margin: 5px 0;">`;
     content += `Kunde: ${task.customer || 'N/A'}<br>`;
     content += `Status: ${task.status || 'N/A'}`;
     if (task.priority) content += ` | Prioritet: ${task.priority}`;
     content += `<br>`;
     if (task.estimatedTime) content += `Estimert: ${task.estimatedTime}t<br>`;
-    if (task.description) {
-        content += `Beskrivelse: ${task.description.substring(0, 70)}${task.description.length > 70 ? '...' : ''}<br>`;
-    }
+    if (task.description) content += `Beskrivelse: ${task.description.substring(0, 70)}${task.description.length > 70 ? '...' : ''}<br>`;
     if (task.recurrenceRule && task.recurrenceRule !== 'Aldri') {
         content += `<span style="color: var(--accent-primary);">Gjentar: ${task.recurrenceRule}`;
         if (task.recurrenceEndDate) content += ` til ${new Date(task.recurrenceEndDate).toLocaleDateString('no-NO')}`;
         content += `</span>`;
     }
-
     customTooltip.innerHTML = content;
     customTooltip.style.display = 'block';
-    
-    // Posisjoner tooltip
     let x = eventInfo.jsEvent.pageX + 10;
     let y = eventInfo.jsEvent.pageY + 10;
-    
     customTooltip.style.left = x + 'px';
     customTooltip.style.top = y + 'px';
-
     const tooltipRect = customTooltip.getBoundingClientRect();
-    if (tooltipRect.right > window.innerWidth - 10) { // 10px margin
+    if (tooltipRect.right > window.innerWidth - 10) {
         customTooltip.style.left = (eventInfo.jsEvent.pageX - tooltipRect.width - 10) + 'px';
     }
     if (tooltipRect.bottom > window.innerHeight - 10) {
@@ -154,20 +131,20 @@ function showCalendarTooltip(eventInfo) {
 }
 
 function hideCalendarTooltip() {
-    if (customTooltip) {
-        customTooltip.style.display = 'none';
-    }
+    if (customTooltip) customTooltip.style.display = 'none';
 }
 
 // --- Datahenting og UI-oppdatering ---
 function updateCurrentDateHeader_Tasks() {
     const now = new Date();
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    document.getElementById('current-date').textContent = now.toLocaleDateString('no-NO', options);
+    const displayElement = document.getElementById('current-date');
+    if(displayElement) displayElement.textContent = now.toLocaleDateString('no-NO', options);
 }
 
 function showLoadingIndicator_Tasks(isLoading) {
-    const placeholder = document.querySelector('#task-board .kanban-column[data-status="Ny"] .task-placeholder');
+    const board = document.getElementById('task-board');
+    const placeholder = board?.querySelector('.kanban-column[data-status="Ny"] .task-list .task-placeholder');
     if (placeholder) {
         placeholder.textContent = isLoading ? "Laster oppgaver..." : "Ingen oppgaver funnet.";
         placeholder.style.display = isLoading || allTasks.length === 0 ? 'block' : 'none';
@@ -175,17 +152,15 @@ function showLoadingIndicator_Tasks(isLoading) {
     document.getElementById('calendar-view-container')?.classList.toggle('loading', isLoading);
 }
 
-// Hovedfunksjon for å laste inn all data for oppgavesiden
 function fetchInitialData_Tasks() {
     if (typeof currentUserSuffix === 'undefined') {
         currentUserSuffix = localStorage.getItem('currentUserSuffix') || 'C';
     }
     console.log(`Henter initiale data for oppgaver (bruker: ${currentUserSuffix})...`);
     showLoadingIndicator_Tasks(true);
-
     Promise.all([
-        fetchCustomersForTasks_Tasks(), // Henter kundeliste for filter
-        fetchTasks_Tasks()              // Henter selve oppgavene
+        fetchCustomersForTasks_Tasks(),
+        fetchTasks_Tasks()
     ])
     .then(() => {
         populateCustomerFilter_Tasks();
@@ -198,16 +173,12 @@ function fetchInitialData_Tasks() {
     .catch(error => {
         console.error(`Feil ved henting av initiale data for oppgaver (${currentUserSuffix}):`, error);
         alert("Kunne ikke hente data for oppgavesiden: " + error.message);
-        showLoadingIndicator_Tasks(false); // Skjul lasteindikator ved feil
     })
     .finally(() => {
-        if (!document.querySelector('#task-board .kanban-column[data-status="Ny"] .task-placeholder')?.style.display === 'block') {
-             showLoadingIndicator_Tasks(false); // Sørg for at lasteindikator skjules hvis ingen oppgaver ble funnet
-        }
+        showLoadingIndicator_Tasks(false);
     });
 }
 
-// Henter kundeliste spesifikt for oppgavefilteret
 function fetchCustomersForTasks_Tasks() {
     return fetchDataFromScript_Tasks({ action: 'getCustomers', user: currentUserSuffix })
         .then(data => {
@@ -215,13 +186,12 @@ function fetchCustomersForTasks_Tasks() {
                 data.customers.sort((a, b) => a.name.localeCompare(b.name, 'no')) : [];
             return allCustomersForTasks;
         })
-        .catch(() => { // Håndter feil her også
+        .catch(() => { 
             allCustomersForTasks = []; 
             return allCustomersForTasks;
         });
 }
 
-// Henter oppgaver for den valgte brukeren
 function fetchTasks_Tasks() {
     return fetchDataFromScript_Tasks({ action: 'getTasks', user: currentUserSuffix })
         .then(data => {
@@ -233,7 +203,6 @@ function fetchTasks_Tasks() {
         });
 }
 
-// Generell funksjon for GET-forespørsler til backend
 function fetchDataFromScript_Tasks(params) {
     const urlParams = new URLSearchParams(params);
     urlParams.append('nocache', Date.now());
@@ -244,7 +213,6 @@ function fetchDataFromScript_Tasks(params) {
     });
 }
 
-// Generell funksjon for POST-forespørsler til backend
 function postDataToScript_Tasks(data) {
     const formData = new FormData();
     for (const key in data) {
@@ -255,9 +223,55 @@ function postDataToScript_Tasks(data) {
 }
 
 // --- Rendering av Kanban-brett og oppgavekort ---
-function populateCustomerFilter_Tasks() { /* ... (uendret) ... */ }
-function renderTaskBoard_Tasks() { /* ... (uendret) ... */ }
-function createTaskCardElement_Tasks(task) { /* ... (uendret, men sjekk at sletteknapp og klikk fungerer) ... */ 
+function populateCustomerFilter_Tasks() {
+    const select = document.getElementById('customer-filter');
+    if (!select) return;
+    const previousValue = select.value;
+    while (select.options.length > 1) select.remove(1);
+    allCustomersForTasks.forEach(customer => {
+        const option = document.createElement('option');
+        option.value = customer.name; option.textContent = customer.name;
+        select.appendChild(option);
+    });
+    select.value = Array.from(select.options).some(opt => opt.value === previousValue) ? previousValue : 'all';
+}
+
+function renderTaskBoard_Tasks() {
+    console.log(`Rendrer Kanban-tavle for ${currentUserSuffix}...`);
+    const board = document.getElementById('task-board');
+    if (!board) return;
+
+    board.querySelectorAll('.task-list').forEach(list => {
+        const placeholderHTML = list.closest('.kanban-column[data-status="Ny"]') ? '<div class="task-placeholder">Laster...</div>' : '';
+        list.innerHTML = placeholderHTML;
+    });
+
+    let filteredTasks = filterTasks_Tasks(allTasks); 
+    const nyPlaceholder = board.querySelector('.kanban-column[data-status="Ny"] .task-list .task-placeholder');
+    if (nyPlaceholder) {
+        nyPlaceholder.textContent = "Ingen oppgaver funnet.";
+        nyPlaceholder.style.display = filteredTasks.length === 0 ? 'block' : 'none';
+    }
+
+    filteredTasks.sort((a, b) => (a.dueDate ? new Date(a.dueDate).getTime() : Infinity) - (b.dueDate ? new Date(b.dueDate).getTime() : Infinity));
+
+    filteredTasks.forEach(task => {
+        const card = createTaskCardElement_Tasks(task); 
+        const columnList = board.querySelector(`.kanban-column[data-status="${task.status}"] .task-list`);
+        if (columnList) {
+             if (task.status === "Ny" && columnList.querySelector('.task-placeholder')) {
+                 columnList.querySelector('.task-placeholder').style.display = 'none';
+             }
+            columnList.appendChild(card);
+        } else { // Fallback til "Ny"-kolonnen
+            const nyKolonneList = board.querySelector('.kanban-column[data-status="Ny"] .task-list');
+            if (nyKolonneList?.querySelector('.task-placeholder')) nyKolonneList.querySelector('.task-placeholder').style.display = 'none';
+            nyKolonneList?.appendChild(card);
+        }
+    });
+}
+
+function createTaskCardElement_Tasks(task) {
     const card = document.createElement('div');
     card.className = 'task-card';
     card.setAttribute('draggable', true);
@@ -275,45 +289,31 @@ function createTaskCardElement_Tasks(task) { /* ... (uendret, men sjekk at slett
         if (isOverdue) card.classList.add('due-overdue');
         else if (daysUntilDue <= 3) card.classList.add('due-soon');
         else if (daysUntilDue <= 7) card.classList.add('due-near');
-        dueDateHtml = `
-            <span class="task-due-date ${isOverdue ? 'overdue' : ''}" title="Frist">
-                📅 ${new Date(task.dueDate).toLocaleDateString('no-NO', { day: 'numeric', month: 'short' })}
-                ${isOverdue ? ' (Forfalt)' : (daysUntilDue <= 7 ? ` (${daysUntilDue} d)` : '')}
-            </span>`;
+        dueDateHtml = `<span class="task-due-date ${isOverdue ? 'overdue' : ''}" title="Frist">📅 ${new Date(task.dueDate).toLocaleDateString('no-NO', { day: 'numeric', month: 'short' })}${isOverdue ? ' (Forfalt)' : (daysUntilDue <= 7 ? ` (${daysUntilDue} d)` : '')}</span>`;
     }
     let estimatedTimeHtml = ''; 
-    if (task.estimatedTime !== null && task.estimatedTime !== undefined && task.estimatedTime > 0) {
-         estimatedTimeHtml = `
-            <span class="task-estimated" title="Estimert tid">
-                ⏱️ ${parseFloat(task.estimatedTime).toFixed(1)} t
-            </span>`;
-    }
-    let recurrenceHtml = '';
-    if (task.recurrenceRule && task.recurrenceRule !== 'Aldri') {
-        recurrenceHtml = `<span class="task-recurrence" title="Gjentakende: ${task.recurrenceRule}">🔄</span>`;
-    }
+    if (task.estimatedTime) estimatedTimeHtml = `<span class="task-estimated" title="Estimert tid">⏱️ ${parseFloat(task.estimatedTime).toFixed(1)} t</span>`;
+    let recurrenceHtml = (task.recurrenceRule && task.recurrenceRule !== 'Aldri') ? `<span class="task-recurrence" title="Gjentakende: ${task.recurrenceRule}">🔄</span>` : '';
 
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'task-delete-btn';
     deleteBtn.innerHTML = '🗑️'; 
     deleteBtn.title = 'Slett oppgave';
-    deleteBtn.onclick = (e) => {
-        e.stopPropagation(); 
-        confirmDeleteTask_Tasks(task.id, task.name);
-    };
+    deleteBtn.onclick = (e) => { e.stopPropagation(); confirmDeleteTask_Tasks(task.id, task.name); };
 
-    card.innerHTML = `
-        <h4>
-            <span class="task-title-text">${recurrenceHtml} ${task.name || 'Ukjent oppgave'}</span>
-            </h4>
-        <div class="task-meta">
-            <span class="task-customer" title="Kunde">👤 ${task.customer || 'Ingen'}</span>
-            ${dueDateHtml}
-            ${estimatedTimeHtml}
-            ${task.priority ? `<span title="Prioritet">${getPriorityIcon_Tasks(task.priority)} ${task.priority}</span>` : ''}
-        </div>
-    `;
-    card.querySelector('h4').appendChild(deleteBtn);
+    const h4 = document.createElement('h4');
+    const titleSpan = document.createElement('span');
+    titleSpan.className = 'task-title-text';
+    titleSpan.innerHTML = `${recurrenceHtml} ${task.name || 'Ukjent oppgave'}`;
+    h4.appendChild(titleSpan);
+    h4.appendChild(deleteBtn);
+
+    const metaDiv = document.createElement('div');
+    metaDiv.className = 'task-meta';
+    metaDiv.innerHTML = `<span class="task-customer" title="Kunde">👤 ${task.customer || 'Ingen'}</span>${dueDateHtml}${estimatedTimeHtml}${task.priority ? `<span title="Prioritet">${getPriorityIcon_Tasks(task.priority)} ${task.priority}</span>` : ''}`;
+    
+    card.appendChild(h4);
+    card.appendChild(metaDiv);
 
     card.addEventListener('dragstart', handleDragStart_Tasks);
     card.addEventListener('dragend', handleDragEnd_Tasks);
@@ -324,119 +324,394 @@ function createTaskCardElement_Tasks(task) { /* ... (uendret, men sjekk at slett
     });
     return card;
 }
-function getPriorityIcon_Tasks(priority) { /* ... (uendret) ... */ }
 
-// --- Filter Håndtering ---
-function handleCustomerFilterChange_Tasks(event) { /* ... (uendret) ... */ }
-function handleStatusFilterChange_Tasks(event) { /* ... (uendret) ... */ }
-function filterTasks_Tasks(tasksToFilter) { /* ... (uendret) ... */ }
+function getPriorityIcon_Tasks(priority) {
+    switch (priority?.toLowerCase()) {
+        case 'høy': return '🔴'; case 'medium': return '🟡'; case 'lav': return '🔵'; default: return '';
+    }
+}
 
-// --- Modal og Lagring (inkludert gjentakelse) ---
-function openAddTaskModal_Tasks() { /* ... (uendret) ... */ }
-function openEditTaskModal_Tasks(taskId) { /* ... (uendret) ... */ }
-function clearTaskModal_Tasks() { /* ... (uendret) ... */ }
-function populateCustomerDropdown_Modal_Tasks() { /* ... (uendret) ... */ }
-function handleSaveTask_Tasks() { /* ... (uendret) ... */ }
+function handleCustomerFilterChange_Tasks(event) {
+    currentCustomerFilter_Tasks = event.target.value;
+    if (currentView_Tasks === 'kanban') renderTaskBoard_Tasks();
+    else initializeOrUpdateCalendar_Tasks();
+}
+
+function handleStatusFilterChange_Tasks(event) {
+    const clickedButton = event.target;
+    document.querySelectorAll('.status-filter-btn.active').forEach(btn => btn.classList.remove('active'));
+    clickedButton.classList.add('active');
+    currentStatusFilter_Tasks = clickedButton.getAttribute('data-status');
+    if (currentView_Tasks === 'kanban') renderTaskBoard_Tasks();
+    else initializeOrUpdateCalendar_Tasks();
+}
+
+function filterTasks_Tasks(tasksToFilter) {
+    return tasksToFilter.filter(task => {
+        const customerMatch = currentCustomerFilter_Tasks === 'all' || task.customer === currentCustomerFilter_Tasks;
+        let statusMatch = false;
+        const taskStatusLower = task.status?.toLowerCase();
+        if (currentStatusFilter_Tasks === 'all') {
+            statusMatch = true;
+        } else if (currentStatusFilter_Tasks === 'open') {
+            statusMatch = taskStatusLower === 'ny' || taskStatusLower === 'pågår' || taskStatusLower === 'venter';
+        } else {
+            statusMatch = taskStatusLower === currentStatusFilter_Tasks?.toLowerCase();
+        }
+        return customerMatch && statusMatch;
+    });
+}
+
+// --- Modal og Lagring ---
+function openAddTaskModal_Tasks() {
+    clearTaskModal_Tasks();
+    document.getElementById('task-modal-title').textContent = 'Legg til ny oppgave';
+    populateCustomerDropdown_Modal_Tasks();
+    document.getElementById('taskModal').style.display = 'block';
+}
+
+function openEditTaskModal_Tasks(taskId) {
+    const task = allTasks.find(t => t.id === taskId);
+    if (!task) { alert("Feil: Fant ikke oppgaven."); return; }
+    
+    clearTaskModal_Tasks();
+    document.getElementById('task-modal-title').textContent = 'Rediger oppgave';
+    populateCustomerDropdown_Modal_Tasks();
+
+    document.getElementById('task-id').value = task.id;
+    document.getElementById('task-customer').value = task.customer;
+    document.getElementById('task-name').value = task.name;
+    document.getElementById('task-description').value = task.description || '';
+    document.getElementById('task-status').value = task.status;
+    document.getElementById('task-priority').value = task.priority || '';
+    document.getElementById('task-due-date').value = task.dueDate || '';
+    document.getElementById('task-estimated-time').value = (task.estimatedTime !== null && task.estimatedTime !== undefined) ? task.estimatedTime : '1.5';
+    
+    const recurrenceRuleDropdown = document.getElementById('task-recurrence-rule');
+    const recurrenceEndDateInput = document.getElementById('task-recurrence-end-date');
+    const recurrenceEndDateGroup = document.getElementById('task-recurrence-end-date-group');
+
+    recurrenceRuleDropdown.value = task.recurrenceRule || 'Aldri';
+    if (task.recurrenceRule && task.recurrenceRule !== 'Aldri') {
+        recurrenceEndDateGroup.style.display = 'block';
+        recurrenceEndDateInput.value = task.recurrenceEndDate || '';
+    } else {
+        recurrenceEndDateGroup.style.display = 'none';
+        recurrenceEndDateInput.value = '';
+    }
+    
+    document.getElementById('taskModal').style.display = 'block';
+}
+
+function clearTaskModal_Tasks() {
+    document.getElementById('task-id').value = '';
+    document.getElementById('task-customer').value = '';
+    document.getElementById('task-name').value = '';
+    document.getElementById('task-description').value = '';
+    document.getElementById('task-status').value = 'Ny';
+    document.getElementById('task-priority').value = '';
+    document.getElementById('task-due-date').value = '';
+    document.getElementById('task-estimated-time').value = '1.5';
+    document.getElementById('task-recurrence-rule').value = 'Aldri';
+    document.getElementById('task-recurrence-end-date').value = '';
+    document.getElementById('task-recurrence-end-date-group').style.display = 'none';
+}
+
+function populateCustomerDropdown_Modal_Tasks() {
+     const select = document.getElementById('task-customer');
+    if (!select) return;
+    const currentValue = select.value;
+    while (select.options.length > 1) select.remove(1);
+    allCustomersForTasks.forEach(customer => { 
+        const option = document.createElement('option');
+        option.value = customer.name; option.textContent = customer.name;
+        select.appendChild(option);
+    });
+    if(currentValue && Array.from(select.options).some(opt => opt.value === currentValue)) {
+        select.value = currentValue;
+    }
+}
+
+function handleSaveTask_Tasks() {
+    if (isSubmittingTask) return;
+    const taskId = document.getElementById('task-id').value;
+    const estimatedTimeValue = document.getElementById('task-estimated-time').value;
+    const recurrenceRule = document.getElementById('task-recurrence-rule').value;
+    const recurrenceEndDate = document.getElementById('task-recurrence-end-date').value;
+    const dueDateValue = document.getElementById('task-due-date').value;
+
+    const taskData = {
+        id: taskId || undefined,
+        customer: document.getElementById('task-customer').value,
+        name: document.getElementById('task-name').value.trim(),
+        description: document.getElementById('task-description').value.trim(),
+        status: document.getElementById('task-status').value,
+        priority: document.getElementById('task-priority').value || null,
+        dueDate: dueDateValue || null,
+        estimatedTime: estimatedTimeValue !== '' ? estimatedTimeValue : null,
+        user: currentUserSuffix,
+        recurrenceRule: recurrenceRule === 'Aldri' ? null : recurrenceRule,
+        recurrenceEndDate: (recurrenceRule !== 'Aldri' && recurrenceEndDate) ? recurrenceEndDate : null
+    };
+
+    if (!taskData.customer || !taskData.name) { alert("Kunde og oppgavenavn må fylles ut."); return; }
+    if (estimatedTimeValue !== '' && (isNaN(parseFloat(estimatedTimeValue)) || parseFloat(estimatedTimeValue) < 0)) {
+         alert("Estimert tid må være et positivt tall eller stå tomt."); return;
+    }
+    if (taskData.recurrenceRule && !taskData.dueDate) {
+        alert("Frist (startdato) må settes for gjentakende oppgaver."); return;
+    }
+
+    isSubmittingTask = true;
+    taskData.action = taskId ? 'updateTask' : 'addTask';
+    const saveButton = document.getElementById('save-task-btn');
+    if(saveButton) { saveButton.disabled = true; saveButton.textContent = 'Lagrer...';}
+
+    postDataToScript_Tasks(taskData)
+        .then(response => {
+            if (response.success) {
+                closeModal('taskModal');
+                return fetchTasks_Tasks().then(() => {
+                    if (currentView_Tasks === 'kanban') renderTaskBoard_Tasks();
+                    else initializeOrUpdateCalendar_Tasks();
+                });
+            } else {
+                throw new Error(response.message || 'Ukjent feil ved lagring fra server');
+            }
+        })
+        .catch(error => {
+            alert(`Kunne ikke lagre oppgave: ${error.message}`);
+        })
+        .finally(() => {
+            isSubmittingTask = false;
+            if (saveButton){
+                 saveButton.disabled = false;
+                 saveButton.textContent = taskId ? 'Lagre Endringer' : 'Lagre Oppgave';
+            }
+        });
+}
 
 // --- Slettefunksjoner ---
-function confirmDeleteTask_Tasks(taskId, taskName) { /* ... (uendret) ... */ }
-function deleteTask_Tasks() { /* ... (uendret) ... */ }
+function confirmDeleteTask_Tasks(taskId, taskName) {
+    if (!taskId || !taskName) return;
+    const modal = document.getElementById('confirmDeleteTaskModal');
+    const nameEl = document.getElementById('delete-task-name-modal');
+    const idEl = document.getElementById('delete-task-id-modal');
+
+    if (modal && nameEl && idEl) {
+        nameEl.textContent = taskName;
+        idEl.value = taskId;
+        modal.style.display = 'block';
+    } else {
+        if (confirm(`Er du sikker på at du vil slette oppgaven "${taskName}"?`)) {
+            const tempIdEl = document.getElementById('delete-task-id-modal');
+            if (tempIdEl) tempIdEl.value = taskId;
+            deleteTask_Tasks();
+        }
+    }
+}
+
+function deleteTask_Tasks() {
+    if (isDeletingTask) return;
+    const taskIdEl = document.getElementById('delete-task-id-modal');
+    const taskId = taskIdEl ? taskIdEl.value : null;
+    if (!taskId) { closeModal('confirmDeleteTaskModal'); return; }
+
+    isDeletingTask = true;
+    const deleteButton = document.getElementById('confirm-delete-task-btn');
+    const cancelButton = document.querySelector('#confirmDeleteTaskModal .cancel-btn');
+    if (deleteButton) deleteButton.disabled = true;
+    if (cancelButton) cancelButton.disabled = true;
+
+    const dataToSend = { action: 'deleteTask', taskId: taskId, user: currentUserSuffix };
+    postDataToScript_Tasks(dataToSend)
+        .then(response => {
+            if (response.success) {
+                allTasks = allTasks.filter(task => task.id !== taskId);
+                if (currentView_Tasks === 'kanban') renderTaskBoard_Tasks();
+                else initializeOrUpdateCalendar_Tasks();
+            } else { throw new Error(response.message || "Ukjent feil ved sletting på server."); }
+        })
+        .catch(error => alert(`Kunne ikke slette oppgave: ${error.message}`))
+        .finally(() => {
+            isDeletingTask = false;
+            if (deleteButton) deleteButton.disabled = false;
+            if (cancelButton) cancelButton.disabled = false;
+            closeModal('confirmDeleteTaskModal');
+            if(taskIdEl) taskIdEl.value = '';
+        });
+}
 
 // --- Drag and Drop (Kanban) & Kalender (Oppdatert for interaktivitet) ---
-function handleDragStart_Tasks(event) { /* ... (uendret) ... */ }
-function handleDragEnd_Tasks(event) { /* ... (uendret) ... */ }
-function handleDragOver_Tasks(event) { /* ... (uendret) ... */ }
-function handleDragLeave_Tasks(event) { /* ... (uendret) ... */ }
-function handleDrop_Tasks(event) { /* ... (uendret) ... */ }
-function updateTaskStatus_Tasks(taskId, newStatus) { /* ... (uendret) ... */ } // For Kanban statusendring
-function switchView_Tasks(viewToShow) { /* ... (uendret) ... */ }
+function handleDragStart_Tasks(event) {
+    if (!event.target.classList.contains('task-card')) return;
+    draggedTaskId = event.target.getAttribute('data-task-id');
+    setTimeout(() => event.target.classList.add('dragging'), 0);
+}
+
+function handleDragEnd_Tasks(event) {
+    if (event.target.classList.contains('task-card')) {
+        event.target.classList.remove('dragging');
+    }
+    document.querySelectorAll('.kanban-column .task-list.drag-over')
+            .forEach(list => list.classList.remove('drag-over'));
+    draggedTaskId = null;
+}
+
+function handleDragOver_Tasks(event) {
+    event.preventDefault();
+    const targetList = event.currentTarget;
+    if(targetList.classList.contains('task-list')){
+        targetList.classList.add('drag-over');
+        event.dataTransfer.dropEffect = 'move';
+    }
+}
+
+function handleDragLeave_Tasks(event) {
+    const targetList = event.currentTarget;
+    if (targetList.classList.contains('task-list') && !targetList.contains(event.relatedTarget)) {
+        targetList.classList.remove('drag-over');
+    }
+}
+
+function handleDrop_Tasks(event) {
+    event.preventDefault();
+    const targetList = event.currentTarget;
+    if (!targetList.classList.contains('task-list')) return;
+    targetList.classList.remove('drag-over');
+    const targetColumn = targetList.closest('.kanban-column');
+    const newStatus = targetColumn?.getAttribute('data-status');
+    const droppedOnCard = event.target.closest('.task-card');
+
+    if (newStatus && draggedTaskId) {
+        const taskCard = document.querySelector(`.task-card[data-task-id='${draggedTaskId}']`);
+        if (!taskCard) { draggedTaskId = null; return; }
+        const currentStatus = taskCard.closest('.kanban-column')?.getAttribute('data-status');
+        if (newStatus !== currentStatus) {
+            if(droppedOnCard && droppedOnCard !== taskCard) {
+                targetList.insertBefore(taskCard, droppedOnCard);
+            } else {
+                targetList.appendChild(taskCard);
+            }
+            updateTaskStatus_Tasks(draggedTaskId, newStatus); 
+        }
+    }
+    draggedTaskId = null;
+}
+
+function updateTaskStatus_Tasks(taskId, newStatus) {
+    console.log(`Oppdaterer status for ${taskId} til ${newStatus} (bruker: ${currentUserSuffix})`);
+    const taskData = { action: 'updateTask', id: taskId, status: newStatus, user: currentUserSuffix }; 
+    const taskIndex = allTasks.findIndex(t => t.id === taskId);
+    let originalStatus = null;
+    if (taskIndex > -1) {
+        originalStatus = allTasks[taskIndex].status;
+        allTasks[taskIndex].status = newStatus;
+    }
+    postDataToScript_Tasks(taskData) 
+        .then(response => {
+            if (!response.success) {
+                alert(`Kunne ikke oppdatere status: ${response.message || 'Ukjent feil'}. Tilbakestiller.`);
+                 if (taskIndex > -1 && originalStatus) {
+                    allTasks[taskIndex].status = originalStatus;
+                    renderTaskBoard_Tasks();
+                 } else {
+                    fetchTasks_Tasks().then(renderTaskBoard_Tasks);
+                 }
+            }
+        })
+        .catch(error => {
+             alert(`Nettverksfeil ved oppdatering av status: ${error.message}. Tilbakestiller.`);
+              if (taskIndex > -1 && originalStatus) {
+                 allTasks[taskIndex].status = originalStatus;
+                 renderTaskBoard_Tasks();
+              } else {
+                 fetchTasks_Tasks().then(renderTaskBoard_Tasks);
+              }
+        });
+}
+
+function switchView_Tasks(viewToShow) {
+    if (viewToShow === currentView_Tasks) return;
+    const kanbanContainer = document.getElementById('task-board-container');
+    const calendarContainer = document.getElementById('calendar-view-container');
+    const kanbanBtn = document.getElementById('kanban-view-btn');
+    const calendarBtn = document.getElementById('calendar-view-btn');
+    if (!kanbanContainer || !calendarContainer || !kanbanBtn || !calendarBtn) return;
+    currentView_Tasks = viewToShow;
+    if (viewToShow === 'kanban') {
+        kanbanContainer.style.display = 'block';
+        calendarContainer.style.display = 'none';
+        kanbanBtn.classList.add('active');
+        calendarBtn.classList.remove('active');
+        renderTaskBoard_Tasks();
+    } else { // calendar
+        kanbanContainer.style.display = 'none';
+        calendarContainer.style.display = 'block';
+        kanbanBtn.classList.remove('active');
+        calendarBtn.classList.add('active');
+        initializeOrUpdateCalendar_Tasks();
+    }
+    console.log(`Byttet oppgavevisning til: ${currentView_Tasks} for ${currentUserSuffix}`);
+}
 
 function initializeOrUpdateCalendar_Tasks() {
     const calendarEl = document.getElementById('calendar');
-    if (!calendarEl) {
-        console.error("Kalenderelement #calendar ikke funnet!");
-        return;
-    }
+    if (!calendarEl) return;
     
     const filteredTasks = filterTasks_Tasks(allTasks);
     const formattedTasks = formatTasksForCalendar_Simple_Tasks(filteredTasks);
 
-    if (calendarInstance) { // Hvis instansen finnes, oppdater events
+    if (calendarInstance) {
         calendarInstance.removeAllEvents();
         calendarInstance.addEventSource(formattedTasks);
         return;
     }
-
-    // Initialiser kalenderen hvis den ikke finnes
     try {
         calendarInstance = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            locale: 'no',
+            initialView: 'dayGridMonth', locale: 'no',
             headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek' },
             events: formattedTasks,
-            editable: true, // Tillat dra-og-slipp
+            editable: true, 
             eventDrop: function(info) {
-                console.log('Oppgave flyttet:', info.event.id, 'til ny dato:', info.event.start);
                 const taskId = info.event.id;
                 const newDueDate = info.event.start.toISOString().split('T')[0];
-
                 const taskToUpdate = allTasks.find(t => t.id === taskId);
-                if (taskToUpdate && taskToUpdate.dueDate === newDueDate) {
-                    console.log("Dato ikke endret, ingen oppdatering nødvendig.");
-                    return;
-                }
-                
-                // Optimistisk oppdatering av lokal data
+                if (taskToUpdate && taskToUpdate.dueDate === newDueDate) return;
+                const oldDueDate = taskToUpdate ? taskToUpdate.dueDate : null;
                 if (taskToUpdate) taskToUpdate.dueDate = newDueDate;
 
-                const taskData = {
-                    action: 'updateTask',
-                    id: taskId,
-                    dueDate: newDueDate,
-                    user: currentUserSuffix // Viktig for backend
-                };
-                
+                const taskData = { action: 'updateTask', id: taskId, dueDate: newDueDate, user: currentUserSuffix };
                 postDataToScript_Tasks(taskData)
                     .then(response => {
                         if (!response.success) {
-                            console.error("Feil ved oppdatering av frist via kalender:", response.message);
                             alert("Kunne ikke lagre ny frist. Endringen er tilbakestilt.");
-                            info.revert(); // Tilbakestill flyttingen i kalenderen
-                            // Gjenopprett gammel dato i allTasks hvis nødvendig
-                            if(taskToUpdate && info.oldEvent) taskToUpdate.dueDate = info.oldEvent.start.toISOString().split('T')[0];
+                            info.revert();
+                            if(taskToUpdate && oldDueDate) taskToUpdate.dueDate = oldDueDate;
                         } else {
-                            console.log(`Frist for oppgave ${taskId} oppdatert til ${newDueDate}.`);
-                            // Ikke nødvendig å kalle fetchTasks_Tasks() her hvis den lokale oppdateringen er nok for UI
+                             console.log(`Frist for ${taskId} oppdatert til ${newDueDate}.`);
+                             if (currentView_Tasks === 'kanban') renderTaskBoard_Tasks();
                         }
                     })
                     .catch(error => {
-                        console.error("Nettverksfeil ved oppdatering av frist:", error);
                         alert("Nettverksfeil. Kunne ikke lagre ny frist. Endringen er tilbakestilt.");
                         info.revert();
-                        if(taskToUpdate && info.oldEvent) taskToUpdate.dueDate = info.oldEvent.start.toISOString().split('T')[0];
+                        if(taskToUpdate && oldDueDate) taskToUpdate.dueDate = oldDueDate;
                     });
             },
-            eventClick: function(info) {
-                if (info.event.id) openEditTaskModal_Tasks(info.event.id);
-            },
-            eventMouseEnter: function(info) {
-                showCalendarTooltip(info);
-            },
-            eventMouseLeave: function(info) {
-                hideCalendarTooltip();
-            },
-            height: 'auto', // Eller en fast høyde som f.eks. 650
+            eventClick: function(info) { if (info.event.id) openEditTaskModal_Tasks(info.event.id); },
+            eventMouseEnter: showCalendarTooltip,
+            eventMouseLeave: hideCalendarTooltip,
+            height: 650, 
         });
         calendarInstance.render();
-    } catch (e) {
-        console.error("FEIL ved initialisering av FullCalendar (tasks):", e);
-    }
+    } catch (e) { console.error("FEIL ved initialisering av FullCalendar (tasks):", e); }
 }
 
 function formatTasksForCalendar_Simple_Tasks(tasks) {
     console.log(`Formaterer ${tasks.length} oppgaver for kalender (bruker: ${currentUserSuffix})`);
     return tasks
-        .filter(task => task.dueDate) // Kun oppgaver med frist
+        .filter(task => task.dueDate)
         .map(task => {
             const colors = getEventColorsForStatus_Tasks(task.status);
             let title = `${task.name} (${task.customer || '?'})`;
@@ -446,9 +721,9 @@ function formatTasksForCalendar_Simple_Tasks(tasks) {
             return {
                 id: task.id,
                 title: title,
-                start: task.dueDate, // FullCalendar håndterer tidssoner basert på input
-                allDay: true, // Anta at alle oppgaver er heldagsoppgaver i kalenderen
-                extendedProps: task, // Legg hele task-objektet her for tooltip og eventClick
+                start: task.dueDate,
+                allDay: true,
+                extendedProps: task,
                 backgroundColor: colors.backgroundColor,
                 borderColor: colors.borderColor,
                 textColor: colors.textColor
@@ -457,10 +732,9 @@ function formatTasksForCalendar_Simple_Tasks(tasks) {
 }
 
 function getEventColorsForStatus_Tasks(status) {
-    let backgroundColor = 'var(--accent-primary)'; // Default
+    let backgroundColor = 'var(--accent-primary)';
     let borderColor = 'var(--accent-secondary)';
-    let textColor = '#ffffff'; // Default for mørke bakgrunner
-
+    let textColor = '#ffffff';
     switch (status?.toLowerCase()) {
         case 'ny':      backgroundColor = '#64b5f6'; borderColor = '#42a5f5'; textColor = '#000000'; break;
         case 'pågår':   backgroundColor = 'var(--bar-yellow)'; borderColor = '#ffa000'; textColor = '#000000'; break;
