@@ -110,10 +110,9 @@ function showCalendarTooltip(eventInfo) {
     content += `<br>`;
     if (task.estimatedTime) content += `Estimert: ${task.estimatedTime}t<br>`;
     
-    // FIKS: Sjekk om task.description er en streng før substring kalles
     if (task.description && typeof task.description === 'string') {
         content += `Beskrivelse: ${task.description.substring(0, 70)}${task.description.length > 70 ? '...' : ''}<br>`;
-    } else if (task.description) { // Hvis den finnes, men ikke er en streng, konverter til streng
+    } else if (task.description) { 
         content += `Beskrivelse: ${String(task.description).substring(0, 70)}${String(task.description).length > 70 ? '...' : ''}<br>`;
     }
 
@@ -691,54 +690,59 @@ function initializeOrUpdateCalendar_Tasks() {
             editable: true, // Tillat dra-og-slipp
             eventDrop: function(info) {
                 const taskId = info.event.id;
+                // FullCalendar returnerer datoobjekter. For å være sikker på format, konverter til ISO-streng.
                 const newDueDate = info.event.start.toISOString().split('T')[0]; 
                 
-                console.log(`Oppgave ${taskId} flyttet i kalenderen til ${newDueDate}.`);
+                console.log(`Oppgave ${taskId} (event.title: "${info.event.title}") flyttet i kalenderen til ${newDueDate}.`);
 
-                const taskToUpdate = allTasks.find(t => t.id === taskId);
-                const oldDueDate = taskToUpdate ? taskToUpdate.dueDate : null;
+                const taskToUpdateLocally = allTasks.find(t => t.id === taskId);
+                const oldDueDate = taskToUpdateLocally ? taskToUpdateLocally.dueDate : null;
 
-                if (taskToUpdate && taskToUpdate.dueDate === newDueDate) {
-                    console.log("Dato er den samme, ingen backend-oppdatering nødvendig.");
+                // Sjekk om datoen faktisk er endret for å unngå unødvendige kall
+                if (taskToUpdateLocally && taskToUpdateLocally.dueDate === newDueDate) {
+                    console.log("Dato er den samme som den lokale modellen, ingen backend-oppdatering nødvendig.");
                     return; 
                 }
                 
                 // Optimistisk UI-oppdatering av den lokale datamodellen
-                if (taskToUpdate) {
-                    taskToUpdate.dueDate = newDueDate;
+                if (taskToUpdateLocally) {
+                    taskToUpdateLocally.dueDate = newDueDate;
                 }
 
-                const taskData = { 
+                const taskDataForBackend = { 
                     action: 'updateTask', 
                     id: taskId, 
                     dueDate: newDueDate, 
                     user: currentUserSuffix // Send med brukeren som eier oppgavelisten
                 };
                 
-                postDataToScript_Tasks(taskData)
+                // Visuell endring skjer umiddelbart av FullCalendar.
+                // Vi sender til backend. Hvis det feiler, kaller vi info.revert().
+                postDataToScript_Tasks(taskDataForBackend) // <--- HER SKJER POST-KALLET
                     .then(response => {
-                        if (!response.success) {
-                            console.error("Feil ved oppdatering av frist via kalender (backend):", response.message);
-                            alert(`Kunne ikke lagre ny frist for oppgave "${info.event.title.replace(/^[CW]:\s*/, '').replace(/^🔄\s*/, '')}": ${response.message || 'Ukjent serverfeil'}. Endringen er tilbakestilt.`);
-                            info.revert(); // FullCalendar tilbakestiller hendelsen visuelt
-                            if(taskToUpdate && oldDueDate) {
-                                taskToUpdate.dueDate = oldDueDate; // Tilbakestill lokal data også
-                            }
-                        } else {
+                        if (response.success) {
                              console.log(`Frist for oppgave ${taskId} lagret i backend som ${newDueDate}.`);
+                             // Den lokale allTasks er allerede oppdatert optimistisk.
                              // Hvis Kanban er synlig, re-render den for å reflektere ny sortering/frist
                              if (currentView_Tasks === 'kanban') {
                                  renderTaskBoard_Tasks();
                              }
                              // Kalenderen er allerede visuelt oppdatert av FullCalendar
+                        } else { // HVIS BACKEND RETURNERER { success: false }
+                            console.error("Feil ved oppdatering av frist via kalender (backend):", response.message);
+                            alert(`Kunne ikke lagre ny frist for oppgave "${info.event.title.replace(/^[CW]:\s*/, '').replace(/^🔄\s*/, '')}": ${response.message || 'Ukjent serverfeil'}. Endringen er tilbakestilt.`);
+                            info.revert(); // FullCalendar tilbakestiller hendelsen visuelt
+                            if(taskToUpdateLocally && oldDueDate) {
+                                taskToUpdateLocally.dueDate = oldDueDate; // Tilbakestill lokal data også
+                            }
                         }
                     })
-                    .catch(error => {
+                    .catch(error => { // HVIS FETCH-KALLET I SEG SELV FEILER (NETTVERK E.L.)
                         console.error("Nettverksfeil ved oppdatering av frist via kalender:", error);
                         alert(`Nettverksfeil. Kunne ikke lagre ny frist for "${info.event.title.replace(/^[CW]:\s*/, '').replace(/^🔄\s*/, '')}". Endringen er tilbakestilt.`);
                         info.revert();
-                        if(taskToUpdate && oldDueDate) {
-                            taskToUpdate.dueDate = oldDueDate; // Tilbakestill lokal data
+                        if(taskToUpdateLocally && oldDueDate) {
+                            taskToUpdateLocally.dueDate = oldDueDate; // Tilbakestill lokal data
                         }
                     });
             },
