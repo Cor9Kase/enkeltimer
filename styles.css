@@ -1,476 +1,248 @@
-/* styles.css - Felles stilark for Skar timetracker */
+/* tasks.css - Stilsetting for oppgavesiden */
 
-/* === 1. Globale Variabler (Styres av theme.js) === */
+/* ... (eksisterende :root og andre stiler) ... */
 :root {
-  /* Default tema (Dark Purple) - vil bli overskrevet av theme.js */
   --bg-dark: #121212;
   --bg-card: #1e1e1e;
   --bg-modal: #242424;
   --text-primary: #ffffff;
   --text-secondary: #b0b0b0;
-  --accent-primary: #9d4edd; /* Lilla hovedfarge */
-  --accent-secondary: #7b2cbf; /* Mørkere lilla */
+  --accent-primary: #9d4edd;
+  --accent-secondary: #7b2cbf;
   --accent-gradient: linear-gradient(135deg, #9d4edd, #7b2cbf);
   --inactive: #4f4f4f;
-  --active: var(--accent-primary); /* Bruker hovedfargen for aktiv */
+  --active: #9d4edd;
   --border-inactive: #383838;
-  --shadow: 0 4px 12px rgba(0, 0, 0, 0.4); /* Litt dusere skygge */
-  --transition: all 0.25s ease-in-out; /* Litt raskere transition */
-
-  /* Bar Colors */
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --transition: all 0.3s ease;
   --bar-green: #4CAF50;
   --bar-yellow: #ffc107;
   --bar-red: #e53935;
-  --bar-background: #373737; /* Litt lysere bar-bakgrunn */
-}
-
-/* === 2. Grunnleggende Reset & Body === */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+  --bar-background: #333;
+  --success-green: #4CAF50; /* For "ferdig"-knapp */
+  --success-green-hover: #388E3C;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--bg-dark);
-  color: var(--text-primary);
-  line-height: 1.6;
-  padding: 20px; 
-  padding-bottom: 80px; 
+    padding-top: 20px; 
 }
 
-/* === 3. Header === */
-.header {
-  text-align: center;
-  margin-bottom: 20px; /* Redusert margin-bottom litt */
-  position: relative; 
-  padding: 10px 0;
+.task-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    margin: 10px auto 20px auto;
+    max-width: 1200px;
+    background-color: var(--bg-card);
+    border-radius: 8px;
+    border: 1px solid var(--border-inactive);
+    gap: 15px;
+}
+.task-filters { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; flex-grow: 1; }
+.filter-group { display: flex; align-items: center; gap: 8px; }
+.filter-group label { font-size: 13px; color: var(--text-secondary); font-weight: 500; white-space: nowrap; }
+.filter-group select, .filter-group input { background-color: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-inactive); border-radius: 6px; padding: 6px 10px; font-size: 13px; min-width: 150px; }
+.filter-group select:focus, .filter-group input:focus { outline: none; border-color: var(--accent-primary); }
+.status-filter-buttons { display: flex; gap: 5px; flex-wrap: wrap; }
+.status-filter-btn { background-color: var(--bg-dark); color: var(--text-secondary); border: 1px solid var(--border-inactive); padding: 5px 12px; font-size: 12px; border-radius: 15px; cursor: pointer; transition: var(--transition); }
+.status-filter-btn:hover { border-color: var(--accent-secondary); color: var(--text-primary); }
+.status-filter-btn.active { background-color: var(--accent-primary); color: white; border-color: var(--accent-primary); font-weight: bold; }
+.view-switcher { display: flex; gap: 5px; }
+.view-btn { background-color: var(--bg-dark); color: var(--text-secondary); border: 1px solid var(--border-inactive); padding: 6px 15px; font-size: 13px; border-radius: 6px; cursor: pointer; transition: var(--transition); }
+.view-btn:hover { border-color: var(--accent-secondary); color: var(--text-primary); }
+.view-btn.active { background-color: var(--accent-primary); color: white; border-color: var(--accent-primary); font-weight: bold; }
+#add-task-btn { padding: 8px 18px; font-size: 14px; }
+
+#task-board-container { max-width: 1200px; margin: 0 auto; padding: 0 15px; display: block; }
+.kanban-board { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 15px; min-height: 400px; }
+.kanban-column { background-color: var(--bg-card); border-radius: 8px; padding: 10px 15px; min-width: 280px; max-width: 300px; flex: 1 0 auto; border: 1px solid var(--border-inactive); display: flex; flex-direction: column; }
+.kanban-column h3 { margin-top: 0; margin-bottom: 15px; font-size: 16px; color: var(--text-secondary); font-weight: 600; border-bottom: 1px solid var(--border-inactive); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.status-ny { background-color: #64b5f6; }
+.status-pågår { background-color: var(--bar-yellow); }
+.status-venter { background-color: #ff9800; }
+.status-ferdig { background-color: var(--bar-green); }
+.task-list { flex-grow: 1; min-height: 100px; list-style: none; padding: 5px 0; margin: 0; transition: background-color 0.2s ease; }
+.task-placeholder { color: var(--text-secondary); font-style: italic; text-align: center; padding: 20px; font-size: 14px; display: none; }
+
+/* Oppgavekort */
+.task-card {
+    background-color: var(--bg-dark);
+    border: 1px solid var(--border-inactive);
+    border-radius: 6px;
+    padding: 12px;
+    padding-left: 10px;
+    margin-bottom: 10px;
+    cursor: grab;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+.task-card:hover {
+    border-color: var(--accent-secondary);
+    box-shadow: 0 2px 10px rgba(0,0,0, 0.4);
+}
+.task-card h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: var(--text-primary);
+    word-break: break-word;
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+}
+.task-card h4 .task-title-text { 
+    flex-grow: 1; 
+    margin-right: 8px; 
 }
 
-.header h1 {
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-fill-color: transparent;
-  font-size: 2.2rem;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
-  font-weight: 700;
+.task-meta { font-size: 12px; color: var(--text-secondary); display: flex; flex-wrap: wrap; gap: 5px 10px; margin-top: 8px; align-items: center; }
+.task-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.task-customer { font-weight: 500; color: var(--accent-primary); }
+.task-recurrence { font-size: 0.9em; margin-right: 5px; opacity: 0.7; } 
+.task-estimated::before { content: "⏱️ "; margin-right: 2px; }
+
+.task-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background-color: transparent; transition: background-color 0.3s ease; border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
+.task-card.priority-høy::before { background-color: var(--bar-red); }
+.task-card.priority-medium::before { background-color: var(--bar-yellow); }
+.task-card.priority-lav::before { background-color: #42a5f5; }
+.task-card.due-near:not(.priority-høy):not(.priority-medium):not(.priority-lav)::before { background-color: var(--bar-yellow); opacity: 0.7; }
+.task-card.due-soon:not(.priority-høy):not(.priority-medium):not(.priority-lav)::before { background-color: var(--bar-red); opacity: 0.7; }
+.task-card.due-overdue:not(.priority-høy):not(.priority-medium):not(.priority-lav)::before { background-color: var(--bar-red); }
+.task-card.due-overdue { opacity: 0.9; }
+.task-due-date.overdue { color: var(--bar-red); font-weight: bold; }
+
+/* Styling for knapper på oppgavekort (slett og marker ferdig) */
+.task-card-buttons {
+    display: flex;
+    align-items: center;
+    gap: 5px; /* Litt avstand mellom knappene */
+    flex-shrink: 0; /* Forhindre at containeren krymper */
 }
 
-.current-date {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: var(--accent-primary);
-  margin-bottom: 5px;
+.task-delete-btn, .task-complete-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.1rem; 
+    cursor: pointer;
+    padding: 2px 4px; 
+    line-height: 1;
+    border-radius: 4px;
+    opacity: 0.6; 
+    transition: opacity 0.2s ease, color 0.2s ease;
 }
-
-.update-status {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin-bottom: 10px;
-  min-height: 1.2em;
+.task-card:hover .task-delete-btn,
+.task-card:hover .task-complete-btn {
+    opacity: 1; 
 }
-
-/* Hovedknapper i header */
-.header-main-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  margin-top: 15px;
-  margin-bottom: 10px; /* Litt luft før brukerknapper */
-  flex-wrap: wrap;
+.task-delete-btn:hover {
+    color: var(--bar-red); 
+    opacity: 1;
 }
-
-/* === NYTT: Brukervalg-knapper === */
-.user-selection-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin-top: 10px; /* Margin over knappene */
-  margin-bottom: 15px; /* Margin under knappene */
-  flex-wrap: wrap;
-}
-
-.user-switch-btn {
-  background-color: var(--bg-card);
-  color: var(--text-secondary); /* Litt dusere farge for ikke-aktiv */
-  border: 1px solid var(--border-inactive);
-  padding: 7px 15px; /* Litt mindre padding enn nav-btn */
-  border-radius: 6px;
-  font-weight: 500;
-  font-size: 13px; /* Litt mindre font */
-  transition: var(--transition);
-}
-
-.user-switch-btn:hover {
-  border-color: var(--accent-secondary);
-  color: var(--text-primary);
-  transform: translateY(-1px);
-}
-
-.user-switch-btn.active {
-  background: var(--accent-primary);
-  color: white;
-  border-color: var(--accent-primary);
-  font-weight: bold;
-  box-shadow: 0 2px 5px rgba(157, 78, 221, 0.2);
-  pointer-events: none; /* Ikke klikkbar når aktiv */
-  transform: none !important;
+.task-complete-btn:hover {
+    color: var(--success-green); /* Grønn farge for "ferdig"-knappen */
+    opacity: 1;
 }
 
 
-/* === 4. Gamification Display (i Header) === */
-.gamification-display {
-  margin-top: 8px;
-  margin-bottom: 10px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  flex-wrap: wrap;
-  min-height: 1.5em;
+/* Drag and Drop Styling */
+.task-card.dragging { opacity: 0.4; cursor: grabbing; transform: rotate(2deg) scale(1.02); box-shadow: 0 4px 15px rgba(0,0,0, 0.5); }
+.kanban-column .task-list.drag-over { background-color: rgba(157, 78, 221, 0.1); outline: 2px dashed var(--accent-primary); outline-offset: -2px; border-radius: 5px; }
+
+/* Kalender Styling */
+#calendar-view-container { max-width: 1200px; margin: 20px auto; padding: 15px; background-color: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-inactive); }
+#calendar { --fc-border-color: var(--border-inactive); --fc-page-bg-color: var(--bg-card); --fc-neutral-bg-color: rgba(255, 255, 255, 0.05); --fc-list-event-hover-bg-color: rgba(157, 78, 221, 0.1); --fc-today-bg-color: rgba(157, 78, 221, 0.15); }
+#calendar a { color: inherit; text-decoration: none; }
+
+/* Styling for FullCalendar event-innhold for å inkludere knappen */
+.fc-event-main-custom {
+    display: flex;
+    justify-content: space-between; /* Plasser tittel og knapp på hver sin side */
+    align-items: center;
+    width: 100%; /* Fyll hele bredden av event-containeren */
+    overflow: hidden; /* For å håndtere tekst-ellipsis */
+}
+.fc-event-title-custom {
+    flex-grow: 1; /* La tittelen ta mesteparten av plassen */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 5px; /* Litt avstand til knappen */
+}
+.calendar-task-complete-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary); /* Eller en annen farge som passer temaet */
+    font-size: 0.9em; /* Litt mindre i kalenderen */
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.2s ease, color 0.2s ease;
+    margin-left: auto; /* Skyv knappen helt til høyre */
+    flex-shrink: 0; /* Forhindre at knappen krymper */
+}
+.fc-event:hover .calendar-task-complete-btn {
+    opacity: 1;
+}
+.calendar-task-complete-btn:hover {
+    color: var(--success-green);
 }
 
-#streak-display { color: #ff9800; }
-#rank-display { color: var(--accent-primary); }
-#points-display { color: var(--bar-yellow); } 
 
-#streak-display::before,
-#rank-display::before,
-#points-display::before {
-  margin-right: 4px;
-  font-size: 1.1em;
-  vertical-align: middle;
-}
-#points-display::before { content: "✨ "; } 
-#streak-display::before { content: "🔥 "; }
-#rank-display::before { content: "🏆 "; }
+.fc-event { padding: 2px 4px; font-size: 12px; cursor: pointer; /* overflow: hidden; text-overflow: ellipsis; white-space: nowrap; -- Håndteres av .fc-event-title-custom nå */ border-width: 1px !important; border-style: solid !important; border-radius: 4px; }
+.fc-event:hover { filter: brightness(1.2); }
+.fc-daygrid-event-dot { border-color: var(--accent-primary) !important; }
+.fc-toolbar-title { color: var(--text-primary); }
+.fc-button { background-color: var(--accent-primary) !important; border: none !important; opacity: 0.9; }
+.fc-button:hover { background-color: var(--accent-secondary) !important; opacity: 1; }
+.fc-button-primary:disabled { background-color: var(--inactive) !important; }
+.fc-col-header-cell-cushion { color: var(--text-secondary); }
+.fc-daygrid-day-number { color: var(--text-primary); }
 
-/* === 5. Theme Switcher (i Header) === */
-.theme-switcher {
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  z-index: 5;
+/* Oppgave Modal */
+.task-modal-content { max-width: 600px; }
+.form-row { display: flex; flex-wrap: wrap; gap: 15px; }
+.form-row .form-group { flex: 1 1 150px; min-width: 150px; margin-bottom: 10px; }
+.form-row .form-group label { font-size: 13px; }
+
+/* Melding for full dag */
+.day-full-message {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--bar-red, #e53935);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    z-index: 1010;
+    font-size: 0.9em;
+    text-align: center;
 }
-.theme-btn {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 2px solid var(--border-inactive);
-  cursor: pointer;
-  padding: 0;
-  transition: var(--transition);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-}
-.theme-btn:hover {
-  transform: scale(1.15);
-  border-color: var(--text-primary);
-}
-/* ... (resten av temaknapp-stilene forblir de samme) ... */
-.theme-btn.theme-dark-purple { background: linear-gradient(135deg, #9d4edd, #7b2cbf); }
-.theme-btn.theme-light-blue { background: linear-gradient(135deg, #3498db, #2980b9); }
-.theme-btn.theme-forest-green { background: linear-gradient(135deg, #2ecc71, #27ae60); }
-.theme-btn.theme-ocean-breeze { background: linear-gradient(135deg, #4dd0e1, #00acc1); }
-.theme-btn.theme-sunset-glow { background: linear-gradient(135deg, #ffb74d, #ff8a65); }
-.theme-btn.theme-monochrome-mint { background: linear-gradient(135deg, #a7ffeb, #80cbc4);}
-.theme-btn.theme-minimalist-orange { background: linear-gradient(135deg, #ffe0b2, #ff6f00);}
 
 
-/* === 6. Knapper (Generelle + Spesifikke) === */
-button {
-  cursor: pointer;
-  border-radius: 6px;
-  padding: 8px 16px;
-  font-size: 14px;
-  border: none;
-  transition: var(--transition);
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-.nav-btn, .daily-summary-btn, .tasks-btn, .cancel-btn {
-  background-color: var(--bg-card);
-  color: var(--text-primary);
-  border: 1px solid var(--border-inactive);
-  padding: 8px 18px;
-  border-radius: 8px;
-  font-weight: bold;
-}
-.nav-btn:hover, .daily-summary-btn:hover, .tasks-btn:hover, .cancel-btn:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent-primary);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  color: var(--text-primary);
-}
-.cancel-btn:hover {
-   border-color: var(--text-secondary);
-}
-.nav-btn.active {
-  background: var(--accent-gradient);
-  color: white;
-  border-color: transparent;
-  font-weight: bold;
-  cursor: default;
-  pointer-events: none;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-  transform: none !important;
-}
-
-.icon-btn {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 1.5rem;
-  padding: 5px;
-  cursor: pointer;
-  transition: color 0.2s ease, transform 0.2s ease;
-  line-height: 1;
-  border-radius: 50%;
-}
-.icon-btn:hover {
-  color: var(--accent-primary);
-  transform: scale(1.1);
-}
-
-.submit-btn {
-   background: var(--accent-gradient);
-   color: white;
-   border: none;
-   padding: 10px 22px;
-   border-radius: 8px;
-   font-weight: bold;
-   font-size: 15px;
-}
-.submit-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(157, 78, 221, 0.3);
-  filter: brightness(1.1);
-}
-.submit-btn:disabled {
-    background: var(--inactive);
-    cursor: not-allowed;
-    box-shadow: none;
-    transform: none;
-    opacity: 0.6;
-    color: var(--text-secondary) !important;
-}
-
-.delete-btn {
-  background-color: var(--bar-red);
-  color: white;
-  border: none; 
-  padding: 10px 22px;
-  border-radius: 8px;
-  font-weight: bold;
-}
-.delete-btn:hover {
-  background-color: #c62828;
-  transform: translateY(-2px);
-   box-shadow: 0 5px 15px rgba(229, 57, 53, 0.3);
-}
-.delete-btn:disabled {
-    background: var(--inactive);
-    cursor: not-allowed;
-    transform: none;
-     opacity: 0.6;
-    color: var(--text-secondary) !important;
-}
-
-/* === 7. Container & Kundekort (index.html) === */
-/* ... (resten av .container og .customer-box stilene forblir de samme) ... */
-.container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: center;
-  padding-bottom: 50px;
-  max-width: 1200px;
-  margin: 20px auto 0 auto;
-}
-
-.customer-box, .add-customer {
-  background-color: var(--bg-card);
-  border-radius: 10px;
-  box-shadow: var(--shadow);
-  padding: 15px 18px;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  transition: var(--transition);
-  border: 1px solid transparent;
-  display: flex;
-  flex-direction: column;
-  width: 260px;
-  min-height: 170px;
-}
-.customer-box:hover, .add-customer:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-  border-color: var(--accent-primary);
-}
-.customer-box.active {
-  border-color: var(--active);
-  box-shadow: 0 0 15px rgba(157, 78, 221, 0.4);
-}
-
-.add-customer {
-  border: 2px dashed var(--border-inactive);
-  justify-content: center;
-  align-items: center;
-  order: -1;
-  text-align: center;
-}
-.add-customer:hover { border-color: var(--accent-primary); border-style: solid; }
-.add-customer.active { border: 2px solid var(--accent-primary); }
-.add-customer-icon { font-size: 40px; color: var(--inactive); transition: var(--transition); line-height: 1; }
-.add-customer:hover .add-customer-icon, .add-customer.active .add-customer-icon { color: var(--accent-primary); }
-.add-customer-timer { font-size: 22px; font-weight: bold; margin-top: 10px; color: var(--accent-primary); }
-
-.customer-name { font-size: 17px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); word-break: break-word; }
-.timer { font-size: 22px; font-weight: 700; margin-top: auto; margin-bottom: 5px; color: var(--accent-primary); line-height: 1.1; text-align: left; }
-.customer-box.active .timer { color: var(--active); }
-.status { font-size: 13px; color: var(--inactive); align-self: flex-start; font-weight: 500; }
-.customer-box.active .status { color: var(--active); font-weight: bold; }
-
-.hours-indicator { display: flex; align-items: center; gap: 8px; margin-top: 8px; margin-bottom: 10px; }
-.hours-bar-container { flex-grow: 1; background-color: var(--bar-background); border-radius: 5px; height: 10px; overflow: hidden; border: 1px solid rgba(0,0,0,0.2); }
-.hours-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease-in-out, background-color 0.4s ease; width: 0%; background-color: var(--inactive); }
-.hours-bar-fill.bar-green { background-color: var(--bar-green); }
-.hours-bar-fill.bar-yellow { background-color: var(--bar-yellow); }
-.hours-bar-fill.bar-red { background-color: var(--bar-red); }
-.hours-remaining-text { font-size: 11px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; flex-shrink: 0; }
-
-.customer-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; opacity: 0; transition: opacity 0.3s ease; z-index: 10; }
-.customer-box:hover .customer-actions { opacity: 1; }
-.customer-action-btn { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-inactive); color: var(--text-secondary); cursor: pointer; font-size: 14px; padding: 0; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; transition: var(--transition); }
-.customer-action-btn:hover { background: rgba(0, 0, 0, 0.6); color: var(--text-primary); transform: scale(1.05); border-color: var(--text-secondary); }
-.customer-action-btn.delete-btn:hover { background-color: var(--bar-red); color: white; border-color: var(--bar-red); }
-
-
-/* === 8. Modal Styling === */
-/* ... (modal-stilene forblir de samme) ... */
-.modal {
-  display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%;
-  background-color: rgba(0, 0, 0, 0.75); backdrop-filter: blur(5px);
-  animation: fadeIn 0.3s ease-out; overflow-y: auto; padding: 5vh 15px;
-}
-.modal-content {
-  background-color: var(--bg-modal); margin: 0 auto; padding: 30px 35px;
-  border-radius: 10px; width: 100%; max-width: 550px; box-shadow: var(--shadow);
-  border: 1px solid var(--border-inactive); position: relative; animation: slideIn 0.3s ease-out;
-}
-.close {
-  color: var(--text-secondary); position: absolute; top: 12px; right: 18px;
-  font-size: 32px; font-weight: bold; cursor: pointer; transition: color 0.2s ease; line-height: 0.8;
-}
-.close:hover { color: var(--accent-primary); }
-
-textarea, input[type="text"], input[type="number"], input[type="date"], select {
-  width: 100%; box-sizing: border-box; padding: 12px 15px; margin-bottom: 15px; margin-top: 5px;
-  border-radius: 8px; background-color: var(--bg-dark); border: 1px solid var(--border-inactive);
-  color: var(--text-primary); font-family: inherit; font-size: 0.95rem; transition: var(--transition);
-}
-textarea:focus, input:focus, select:focus {
-  outline: none; border-color: var(--accent-primary); box-shadow: 0 0 8px rgba(157, 78, 221, 0.3);
-}
-textarea { min-height: 100px; resize: vertical; }
-
-.modal-content h2 { color: var(--text-primary); margin-top: 0; margin-bottom: 20px; font-size: 1.5rem; border-bottom: 1px solid var(--border-inactive); padding-bottom: 15px; font-weight: 600; }
-.modal-content p { margin-bottom: 15px; color: var(--text-secondary); font-size: 0.9rem; }
-#modal-customer-name, #new-customer-time-spent { color: var(--accent-primary); font-weight: 600; font-size: 1rem; }
-#modal-time-spent { color: var(--text-secondary); }
-
-.form-group { margin-bottom: 18px; }
-.form-group label { display: block; margin-bottom: 6px; font-weight: 500; color: var(--text-secondary); font-size: 0.85rem; }
-
-.modal-buttons { display: flex; gap: 12px; justify-content: flex-end; margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border-inactive); }
-
-#confirmDeleteModal .modal-content { max-width: 420px; text-align: center; }
-#confirmDeleteModal .modal-content p { font-size: 0.95rem; }
-#confirmDeleteModal .modal-buttons { justify-content: center; }
-
-/* === 9. Fast Oppdateringsknapp === */
-/* ... (refresh-btn-fixed stilene forblir de samme) ... */
-.refresh-btn-fixed {
-  position: fixed;
-  bottom: 15px;
-  right: 15px;
-  z-index: 1000;
-  background: var(--bg-card);
-  color: var(--accent-primary);
-  border: 1px solid var(--border-inactive);
-  font-size: 1.6rem;
-  padding: 8px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: var(--transition);
-  line-height: 1;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.3);
-}
-.refresh-btn-fixed:hover {
-  background-color: var(--accent-primary);
-  color: white;
-  border-color: var(--accent-primary);
-  transform: scale(1.08) rotate(90deg);
-  box-shadow: 0 5px 15px rgba(157, 78, 221, 0.3);
-}
-
-/* === 10. Animasjoner === */
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideIn { from { transform: translateY(-15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-/* === 11. Responsivitet === */
+/* Responsivitet */
 @media (max-width: 900px) {
-    .container { justify-content: space-around; }
+    .task-controls { flex-direction: column; align-items: stretch; gap: 15px; }
+    .task-filters { order: 1; }
+    .view-switcher { order: 2; align-self: center; margin-bottom: 10px; }
+    #add-task-btn { order: 3; align-self: stretch; }
 }
-@media (max-width: 768px) {
-  body { padding: 15px; padding-bottom: 70px; }
-  .header h1 { font-size: 1.8rem; }
-  .header-main-actions { gap: 10px; }
-  .user-selection-actions { gap: 8px; } /* Juster gap for mindre skjermer */
-   .theme-switcher { top: 8px; right: 10px; gap: 5px; }
-   .theme-btn { width: 18px; height: 18px; border-width: 1px; }
-  .container { padding: 15px 0; gap: 15px; }
-   .customer-box, .add-customer { width: calc(50% - 10px); min-width: 0; }
-  .modal-content { width: 95%; margin: 8% auto; padding: 20px 25px; }
-  .gamification-display { font-size: 0.8rem; }
-  .refresh-btn-fixed { width: 40px; height: 40px; font-size: 1.4rem; bottom: 10px; right: 10px; }
-}
-
-@media (max-width: 480px) {
-   body { padding: 10px; padding-bottom: 70px; }
-   .header {
-       margin-bottom: 20px;
-       padding-left: 10px;
-       padding-right: 55px; 
-       text-align: center; 
-   }
-    .header h1 { font-size: 1.6rem; }
-   .header-main-actions, .user-selection-actions { flex-direction: column; align-items: center; gap: 8px; }
-   .header-main-actions button, .user-selection-actions button { width: 90%; max-width: 280px; justify-content: center; }
-   .theme-switcher { top: 6px; right: 6px; gap: 4px; }
-   .theme-btn { width: 16px; height: 16px; }
-   .container { gap: 10px; }
-   .customer-box, .add-customer { width: 100%; }
-  .timer { font-size: 1.3rem; }
-  .customer-name { font-size: 1rem; }
-  .modal-content { margin: 5% auto; padding: 15px 20px; }
-  .modal-buttons { flex-direction: column; align-items: stretch; }
-  .gamification-display { font-size: 0.75rem; flex-direction: column; align-items: center; margin-bottom: 15px; gap: 8px; }
-  .refresh-btn-fixed { width: 38px; height: 38px; font-size: 1.3rem; }
+@media (max-width: 600px) {
+    .kanban-column { min-width: 250px; }
+    .filter-group { flex-direction: column; align-items: flex-start; }
+    .status-filter-buttons { justify-content: flex-start; }
+    .form-row { flex-direction: column; }
+    .form-row .form-group { flex-basis: auto; min-width: 0; }
+    #calendar .fc-toolbar { flex-direction: column; gap: 10px; }
+    #calendar .fc-toolbar-chunk { display: flex; justify-content: center; gap: 5px; }
+    .fc-event { font-size: 11px; }
+    .fc-event-main-custom { flex-direction: column; align-items: flex-start; } /* Stack tittel og knapp på små skjermer */
+    .calendar-task-complete-btn { margin-left: 0; margin-top: 3px; }
 }
