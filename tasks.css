@@ -21,6 +21,7 @@
   --bar-background: #333;
   --success-green: #4CAF50; /* For "ferdig"-knapp */
   --success-green-hover: #388E3C;
+  --button-default-icon-color: #888; /* NY: Standardfarge for ikoner som ikke skal være for fremtredende */
 }
 
 body {
@@ -119,32 +120,40 @@ body {
 .task-card-buttons {
     display: flex;
     align-items: center;
-    gap: 5px; /* Litt avstand mellom knappene */
-    flex-shrink: 0; /* Forhindre at containeren krymper */
+    gap: 5px; 
+    flex-shrink: 0; 
 }
 
 .task-delete-btn, .task-complete-btn {
     background: none;
     border: none;
-    color: var(--text-secondary);
     font-size: 1.1rem; 
     cursor: pointer;
     padding: 2px 4px; 
     line-height: 1;
     border-radius: 4px;
-    opacity: 0.6; 
     transition: opacity 0.2s ease, color 0.2s ease;
 }
+
+.task-delete-btn {
+    color: var(--button-default-icon-color); /* Mer nøytral standardfarge */
+    opacity: 0.5; /* Litt mer dus som standard */
+}
+.task-complete-btn {
+    color: var(--button-default-icon-color); /* Mer nøytral standardfarge */
+    opacity: 0.5; /* Litt mer dus som standard */
+}
+
 .task-card:hover .task-delete-btn,
 .task-card:hover .task-complete-btn {
-    opacity: 1; 
+    opacity: 0.8; /* Litt mindre enn full opacity på hover av kortet */
 }
 .task-delete-btn:hover {
     color: var(--bar-red); 
     opacity: 1;
 }
 .task-complete-btn:hover {
-    color: var(--success-green); /* Grønn farge for "ferdig"-knappen */
+    color: var(--success-green); 
     opacity: 1;
 }
 
@@ -161,40 +170,42 @@ body {
 /* Styling for FullCalendar event-innhold for å inkludere knappen */
 .fc-event-main-custom {
     display: flex;
-    justify-content: space-between; /* Plasser tittel og knapp på hver sin side */
+    justify-content: space-between; 
     align-items: center;
-    width: 100%; /* Fyll hele bredden av event-containeren */
-    overflow: hidden; /* For å håndtere tekst-ellipsis */
+    width: 100%; 
+    overflow: hidden; 
+    padding-right: 2px; /* Litt padding for å unngå at knappen klistres helt inntil kanten av eventet */
 }
 .fc-event-title-custom {
-    flex-grow: 1; /* La tittelen ta mesteparten av plassen */
+    flex-grow: 1; 
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding-right: 5px; /* Litt avstand til knappen */
+    margin-right: 4px; /* Økt avstand til knappen */
 }
 .calendar-task-complete-btn {
     background: none;
     border: none;
-    color: var(--text-secondary); /* Eller en annen farge som passer temaet */
-    font-size: 0.9em; /* Litt mindre i kalenderen */
+    color: var(--button-default-icon-color); /* Bruk nøytral farge */
+    font-size: 0.9em; 
     cursor: pointer;
     padding: 0 2px;
     line-height: 1;
-    opacity: 0.7;
+    opacity: 0.6; /* Mer dus som standard i kalenderen */
     transition: opacity 0.2s ease, color 0.2s ease;
-    margin-left: auto; /* Skyv knappen helt til høyre */
-    flex-shrink: 0; /* Forhindre at knappen krymper */
+    margin-left: auto; 
+    flex-shrink: 0; 
 }
 .fc-event:hover .calendar-task-complete-btn {
-    opacity: 1;
+    opacity: 1; /* Full synlighet på hover av selve eventet */
 }
 .calendar-task-complete-btn:hover {
-    color: var(--success-green);
+    color: var(--success-green); /* Grønn på hover av knappen */
+    opacity: 1;
 }
 
 
-.fc-event { padding: 2px 4px; font-size: 12px; cursor: pointer; /* overflow: hidden; text-overflow: ellipsis; white-space: nowrap; -- Håndteres av .fc-event-title-custom nå */ border-width: 1px !important; border-style: solid !important; border-radius: 4px; }
+.fc-event { padding: 2px 4px; font-size: 12px; cursor: pointer; border-width: 1px !important; border-style: solid !important; border-radius: 4px; }
 .fc-event:hover { filter: brightness(1.2); }
 .fc-daygrid-event-dot { border-color: var(--accent-primary) !important; }
 .fc-toolbar-title { color: var(--text-primary); }
@@ -243,6 +254,16 @@ body {
     #calendar .fc-toolbar { flex-direction: column; gap: 10px; }
     #calendar .fc-toolbar-chunk { display: flex; justify-content: center; gap: 5px; }
     .fc-event { font-size: 11px; }
-    .fc-event-main-custom { flex-direction: column; align-items: flex-start; } /* Stack tittel og knapp på små skjermer */
-    .calendar-task-complete-btn { margin-left: 0; margin-top: 3px; }
+    .fc-event-main-custom { 
+        flex-direction: row; /* Behold rad-layout, men juster padding/margin for knapp */
+        align-items: center; 
+    } 
+    .fc-event-title-custom {
+      padding-right: 2px; /* Mindre padding */
+    }
+    .calendar-task-complete-btn { 
+        margin-left: 2px; /* Mindre margin */
+        margin-top: 0; 
+        font-size: 0.85em; /* Enda litt mindre på små skjermer om nødvendig */
+    }
 }
