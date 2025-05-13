@@ -1,18 +1,20 @@
-// tasks.js (Oppdatert for brukerbytte, gjentakende oppgaver, sletting og interaktiv kalender)
+// tasks.js (Oppdatert for brukerbytte, gjentakende oppgaver, sletting og interaktiv kalender med tidsestimat)
 
 // GOOGLE_SCRIPT_URL hentes globalt fra script.js
 
 // --- Globale variabler ---
-let allTasks = []; // Holder alle oppgaver for den valgte brukeren
-let allCustomersForTasks = []; // Holder kundeliste for filter, spesifikk for den valgte brukeren
-let currentCustomerFilter_Tasks = 'all'; // Aktivt kundefilter
-let currentStatusFilter_Tasks = 'open'; // Aktivt statusfilter (f.eks. 'open', 'Ny', 'Ferdig')
-let calendarInstance = null; // Holder FullCalendar-instansen
-let currentView_Tasks = 'kanban'; // Hvilken visning som er aktiv ('kanban' eller 'calendar')
-let draggedTaskId = null; // ID på oppgave som dras i Kanban-visning
-let isSubmittingTask = false; // Forhindrer doble innsendinger ved lagring/oppdatering av oppgave
-let isDeletingTask = false; // Forhindrer doble slettinger av oppgave
-let customTooltip = null; // DOM-element for egendefinert tooltip i kalenderen
+let allTasks = [];
+let allCustomersForTasks = [];
+let currentCustomerFilter_Tasks = 'all';
+let currentStatusFilter_Tasks = 'open';
+let calendarInstance = null;
+let currentView_Tasks = 'kanban';
+let draggedTaskId = null;
+let isSubmittingTask = false;
+let isDeletingTask = false;
+let customTooltip = null;
+const DEFAULT_TASK_START_HOUR = 8; // Starter arbeidsdagen kl. 08:00
+const DEFAULT_TASK_DURATION_HOURS = 1; // Hvis estimert tid mangler
 
 // --- Initialisering ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -29,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCurrentDateHeader_Tasks();
     setupEventListeners_Tasks(); 
     fetchInitialData_Tasks();
-    createCustomTooltipElement(); // Opprett tooltip-elementet for kalenderen
+    createCustomTooltipElement();
 });
 
 function setupEventListeners_Tasks() {
@@ -46,7 +48,6 @@ function setupEventListeners_Tasks() {
     document.querySelectorAll('#taskModal .close, #taskModal .cancel-btn').forEach(btn => {
          btn.addEventListener('click', () => closeModal('taskModal'));
     });
-    // Lyttere for slettebekreftelsesmodalen
     document.getElementById('confirm-delete-task-btn')?.addEventListener('click', deleteTask_Tasks);
     document.querySelectorAll('#confirmDeleteTaskModal .close, #confirmDeleteTaskModal .cancel-btn').forEach(btn => {
         btn.addEventListener('click', () => closeModal('confirmDeleteTaskModal'));
@@ -626,7 +627,6 @@ function updateTaskStatus_Tasks(taskId, newStatus) {
                  }
             } else {
                 // Suksess, den optimistiske oppdateringen er korrekt.
-                // Kanban-tavlen er allerede visuelt oppdatert av drag-and-drop.
             }
         })
         .catch(error => {
@@ -683,66 +683,72 @@ function initializeOrUpdateCalendar_Tasks() {
     // Initialiser kalenderen for første gang
     try {
         calendarInstance = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
+            initialView: 'timeGridWeek', // Standardvisning er nå uke med tid
             locale: 'no',
-            headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek' },
+            slotMinTime: '08:00:00',     // Vis tidslinje fra kl. 08:00
+            slotMaxTime: '17:00:00',     // Vis tidslinje til kl. 17:00 (dekker 08-16 arbeidsdag)
+            businessHours: {             // Definerer typisk arbeidstid (valgfritt, for visuell indikasjon)
+                daysOfWeek: [ 1, 2, 3, 4, 5 ], // Mandag - Fredag
+                startTime: '08:00',
+                endTime: '16:00',
+            },
+            allDaySlot: false, // Skjul "hele dagen"-raden
+            headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek' },
             events: formattedTasks,
             editable: true, // Tillat dra-og-slipp
             eventDrop: function(info) {
                 const taskId = info.event.id;
-                // FullCalendar returnerer datoobjekter. For å være sikker på format, konverter til ISO-streng.
-                const newDueDate = info.event.start.toISOString().split('T')[0]; 
+                const newStartDateTime = info.event.start; 
+                const newDueDate = newStartDateTime.toISOString().split('T')[0]; 
                 
-                console.log(`Oppgave ${taskId} (event.title: "${info.event.title}") flyttet i kalenderen til ${newDueDate}.`);
+                console.log(`Oppgave ${taskId} ("${info.event.title}") flyttet i kalenderen til ${newDueDate}.`);
 
                 const taskToUpdateLocally = allTasks.find(t => t.id === taskId);
                 const oldDueDate = taskToUpdateLocally ? taskToUpdateLocally.dueDate : null;
 
-                // Sjekk om datoen faktisk er endret for å unngå unødvendige kall
                 if (taskToUpdateLocally && taskToUpdateLocally.dueDate === newDueDate) {
-                    console.log("Dato er den samme som den lokale modellen, ingen backend-oppdatering nødvendig.");
+                    console.log("Dato er den samme, ingen backend-oppdatering nødvendig (tid ikke sjekket).");
                     return; 
                 }
                 
-                // Optimistisk UI-oppdatering av den lokale datamodellen
                 if (taskToUpdateLocally) {
-                    taskToUpdateLocally.dueDate = newDueDate;
+                    taskToUpdateLocally.dueDate = newDueDate; 
                 }
 
                 const taskDataForBackend = { 
                     action: 'updateTask', 
                     id: taskId, 
                     dueDate: newDueDate, 
-                    user: currentUserSuffix // Send med brukeren som eier oppgavelisten
+                    user: currentUserSuffix 
                 };
                 
-                // Visuell endring skjer umiddelbart av FullCalendar.
-                // Vi sender til backend. Hvis det feiler, kaller vi info.revert().
-                postDataToScript_Tasks(taskDataForBackend) // <--- HER SKJER POST-KALLET
+                postDataToScript_Tasks(taskDataForBackend)
                     .then(response => {
                         if (response.success) {
                              console.log(`Frist for oppgave ${taskId} lagret i backend som ${newDueDate}.`);
-                             // Den lokale allTasks er allerede oppdatert optimistisk.
-                             // Hvis Kanban er synlig, re-render den for å reflektere ny sortering/frist
+                             // Siden den lokale 'allTasks' er oppdatert, vil neste render av Kanban
+                             // eller kalender (hvis den hentes på nytt) reflektere dette.
                              if (currentView_Tasks === 'kanban') {
                                  renderTaskBoard_Tasks();
                              }
-                             // Kalenderen er allerede visuelt oppdatert av FullCalendar
-                        } else { // HVIS BACKEND RETURNERER { success: false }
+                             // For å være helt sikker på at kalenderen har den nyeste dataen fra server
+                             // (hvis backend gjør andre justeringer enn bare dato), kan man kalle fetchTasks_Tasks() her.
+                             // Men for nå, antar vi at backend kun oppdaterer datoen.
+                        } else { 
                             console.error("Feil ved oppdatering av frist via kalender (backend):", response.message);
                             alert(`Kunne ikke lagre ny frist for oppgave "${info.event.title.replace(/^[CW]:\s*/, '').replace(/^🔄\s*/, '')}": ${response.message || 'Ukjent serverfeil'}. Endringen er tilbakestilt.`);
-                            info.revert(); // FullCalendar tilbakestiller hendelsen visuelt
+                            info.revert(); 
                             if(taskToUpdateLocally && oldDueDate) {
-                                taskToUpdateLocally.dueDate = oldDueDate; // Tilbakestill lokal data også
+                                taskToUpdateLocally.dueDate = oldDueDate; 
                             }
                         }
                     })
-                    .catch(error => { // HVIS FETCH-KALLET I SEG SELV FEILER (NETTVERK E.L.)
+                    .catch(error => { 
                         console.error("Nettverksfeil ved oppdatering av frist via kalender:", error);
                         alert(`Nettverksfeil. Kunne ikke lagre ny frist for "${info.event.title.replace(/^[CW]:\s*/, '').replace(/^🔄\s*/, '')}". Endringen er tilbakestilt.`);
                         info.revert();
                         if(taskToUpdateLocally && oldDueDate) {
-                            taskToUpdateLocally.dueDate = oldDueDate; // Tilbakestill lokal data
+                            taskToUpdateLocally.dueDate = oldDueDate; 
                         }
                     });
             },
@@ -751,7 +757,9 @@ function initializeOrUpdateCalendar_Tasks() {
             },
             eventMouseEnter: showCalendarTooltip,
             eventMouseLeave: hideCalendarTooltip,
-            height: 650, // Eller 'auto' hvis du foretrekker det
+            height: 'auto', 
+            contentHeight: 600, 
+            nowIndicator: true, 
         });
         calendarInstance.render();
     } catch (e) { console.error("FEIL ved initialisering av FullCalendar (tasks):", e); }
@@ -760,19 +768,35 @@ function initializeOrUpdateCalendar_Tasks() {
 function formatTasksForCalendar_Simple_Tasks(tasks) {
     console.log(`Formaterer ${tasks.length} oppgaver for kalender (bruker: ${currentUserSuffix})`);
     return tasks
-        .filter(task => task.dueDate) // Kun oppgaver med frist
+        .filter(task => task.dueDate) // Krever en startdato
         .map(task => {
             const colors = getEventColorsForStatus_Tasks(task.status);
             let title = `${task.name} (${task.customer || '?'})`;
             if (task.recurrenceRule && task.recurrenceRule !== 'Aldri') {
                 title = `🔄 ${title}`;
             }
+
+            const startDate = new Date(task.dueDate); 
+            startDate.setHours(DEFAULT_TASK_START_HOUR, 0, 0, 0); 
+
+            let endDate = new Date(startDate);
+            // Håndter komma i estimert tid
+            const estimatedTimeString = String(task.estimatedTime).replace(',', '.');
+            const estimatedHours = parseFloat(estimatedTimeString) || DEFAULT_TASK_DURATION_HOURS; 
+            
+            if (!isNaN(estimatedHours) && estimatedHours > 0) {
+                const durationMinutes = estimatedHours * 60;
+                endDate.setMinutes(startDate.getMinutes() + durationMinutes);
+            } else {
+                endDate.setHours(startDate.getHours() + DEFAULT_TASK_DURATION_HOURS);
+            }
+            
             return {
                 id: task.id,
                 title: title,
-                start: task.dueDate, // FullCalendar håndterer tidssoner basert på input
-                allDay: true, // Anta at alle oppgaver er heldagsoppgaver i kalenderen
-                extendedProps: task, // Legg hele task-objektet her for tooltip og eventClick
+                start: startDate.toISOString(),
+                end: endDate.toISOString(),
+                extendedProps: task,
                 backgroundColor: colors.backgroundColor,
                 borderColor: colors.borderColor,
                 textColor: colors.textColor
@@ -781,10 +805,9 @@ function formatTasksForCalendar_Simple_Tasks(tasks) {
 }
 
 function getEventColorsForStatus_Tasks(status) {
-    let backgroundColor = 'var(--accent-primary)'; // Default
+    let backgroundColor = 'var(--accent-primary)'; 
     let borderColor = 'var(--accent-secondary)';
-    let textColor = '#ffffff'; // Default for mørke bakgrunner
-
+    let textColor = '#ffffff'; 
     switch (status?.toLowerCase()) {
         case 'ny':      backgroundColor = '#64b5f6'; borderColor = '#42a5f5'; textColor = '#000000'; break;
         case 'pågår':   backgroundColor = 'var(--bar-yellow)'; borderColor = '#ffa000'; textColor = '#000000'; break;
