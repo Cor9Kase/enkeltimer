@@ -1,4 +1,4 @@
-// tasks.js (Oppdatert for brukerbytte, gjentakende oppgaver, sletting, interaktiv kalender OG lagring av automatisk planlegging til backend)
+// tasks.js (Revidert for dynamisk, ikke-overlappende dagplanlegging med lagring)
 
 // GOOGLE_SCRIPT_URL hentes globalt fra script.js
 
@@ -9,22 +9,24 @@ let currentCustomerFilter_Tasks = 'all';
 let currentStatusFilter_Tasks = 'open';
 let calendarInstance = null;
 let currentView_Tasks = 'kanban';
-let draggedTaskId = null;
+let draggedTaskId = null; // For Kanban drag
 let isSubmittingTask = false;
 let isDeletingTask = false;
 let customTooltip = null;
-const DEFAULT_TASK_START_HOUR = 8; 
-const DEFAULT_TASK_DURATION_HOURS = 1;
 
-// --- Konstanter for automatisk planlegging ---
-const WORKING_DAY_START_HOUR = 8;
-const WORKING_DAY_END_HOUR = 16;
-const LUNCH_BREAK_START_HOUR = 12;
-const LUNCH_BREAK_DURATION_HOURS = 0.5;
+const DEFAULT_TASK_START_HOUR = 8; // Brukes hvis en oppgave kun har frist, ikke planlagt tid
+const DEFAULT_TASK_DURATION_HOURS = 1; // Hvis estimert tid mangler
+
+// --- Konstanter for arbeidsdag ---
+const WORKING_DAY_START_HOUR = 8;    // Arbeidsdagen starter kl. 08:00
+const WORKING_DAY_END_HOUR = 16;     // Arbeidsdagen slutter kl. 16:00
+const LUNCH_BREAK_START_HOUR = 12;   // Lunsjpause starter kl. 12:00
+const LUNCH_BREAK_DURATION_HOURS = 0.5; // Lunsjpause varer 30 minutter
+const MINIMUM_SLOT_MINUTES = 15; // Minste tidsenhet for plassering
 
 // --- Initialisering ---
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("Tasks DOM lastet.");
+    console.log("Tasks DOM lastet. Revidert for dynamisk planlegging.");
     if (typeof currentUserSuffix === 'undefined') {
         console.warn("currentUserSuffix ikke definert i tasks.js. Fallback.");
         currentUserSuffix = localStorage.getItem('currentUserSuffix') || 'C';
@@ -46,21 +48,12 @@ function setupEventListeners_Tasks() {
     });
     document.getElementById('refresh-button')?.addEventListener('click', fetchInitialData_Tasks);
     document.getElementById('add-task-btn')?.addEventListener('click', openAddTaskModal_Tasks);
-    document.getElementById('save-task-btn')?.addEventListener('click', handleSaveTask_Tasks);
+    document.getElementById('save-task-btn')?.addEventListener('click', handleSaveTask_Tasks); 
     document.getElementById('kanban-view-btn')?.addEventListener('click', () => switchView_Tasks('kanban'));
     document.getElementById('calendar-view-btn')?.addEventListener('click', () => switchView_Tasks('calendar'));
     
-    document.getElementById('schedule-today-btn')?.addEventListener('click', () => {
-        const today = new Date(); 
-        scheduleDailyTasks(today);
-        if (currentView_Tasks !== 'calendar') {
-            switchView_Tasks('calendar');
-        }
-        if (calendarInstance) {
-            calendarInstance.changeView('timeGridDay', today.toISOString().slice(0,10));
-        }
-    });
-    
+    // Event listener for "Planlegg Dag" er fjernet
+
     document.querySelectorAll('#taskModal .close, #taskModal .cancel-btn').forEach(btn => {
          btn.addEventListener('click', () => closeModal('taskModal'));
     });
@@ -77,6 +70,11 @@ function setupEventListeners_Tasks() {
         const confirmDeleteModal = document.getElementById('confirmDeleteTaskModal');
         if (confirmDeleteModal && confirmDeleteModal.style.display === 'block' && event.target === confirmDeleteModal) {
             closeModal('confirmDeleteTaskModal');
+        }
+        // Skjul "dagen er full"-melding ved klikk utenfor
+        const dayFullMsg = document.getElementById('day-full-message');
+        if (dayFullMsg && dayFullMsg.style.display !== 'none' && !dayFullMsg.contains(event.target)) {
+            hideDayFullMessage();
         }
     });
     document.querySelectorAll('.kanban-column .task-list').forEach(list => {
@@ -95,9 +93,25 @@ function setupEventListeners_Tasks() {
     }
 }
 
+// --- Melding for full dag ---
+function showDayFullMessage(message) {
+    const msgElement = document.getElementById('day-full-message');
+    if (msgElement) {
+        msgElement.textContent = message || "Dagen er full! Flytt oppgaven til en annen dag eller juster andre oppgaver.";
+        msgElement.style.display = 'block';
+        setTimeout(hideDayFullMessage, 5000); // Skjul automatisk etter 5 sekunder
+    } else {
+        alert(message || "Dagen er full! Flytt oppgaven til en annen dag eller juster andre oppgaver.");
+    }
+}
+function hideDayFullMessage() {
+    const msgElement = document.getElementById('day-full-message');
+    if (msgElement) msgElement.style.display = 'none';
+}
+
+
 // --- Tooltip funksjoner for Kalender ---
 function createCustomTooltipElement() {
-    // ... (som før) ...
     if (document.getElementById('calendar-task-tooltip')) return;
     customTooltip = document.createElement('div');
     customTooltip.id = 'calendar-task-tooltip';
@@ -118,10 +132,9 @@ function createCustomTooltipElement() {
 }
 
 function showCalendarTooltip(eventInfo) {
-    // ... (som før, men sjekk at extendedProps.scheduled og extendedProps.originalId er tilgjengelig hvis du vil vise dem) ...
     if (!customTooltip) createCustomTooltipElement();
-    const task = eventInfo.event.extendedProps;
-    let title = eventInfo.event.title.replace(/^(Autom\.:\s*)/, '').replace(/^[CW]:\s*/, '').replace(/^🔄\s*/, '');
+    const task = eventInfo.event.extendedProps.originalTask || eventInfo.event.extendedProps; // Bruk originalTask hvis det finnes
+    let title = eventInfo.event.title.replace(/^[CW]:\s*/, '').replace(/^🔄\s*/, '');
     let content = `<strong>${title}</strong><hr style="border-color: var(--border-inactive); margin: 5px 0;">`;
     content += `Kunde: ${task.customer || 'N/A'}<br>`;
     content += `Status: ${task.status || 'N/A'}`;
@@ -140,12 +153,15 @@ function showCalendarTooltip(eventInfo) {
         if (task.recurrenceEndDate) content += ` til ${new Date(task.recurrenceEndDate).toLocaleDateString('no-NO')}`;
         content += `</span>`;
     }
-    if (task.scheduled) { 
-        content += `<br><em style="color: var(--accent-secondary); font-size: 0.85em;">Automatisk planlagt</em>`;
-        if (eventInfo.event.start) content += `<br><span style="font-size:0.8em;">Planlagt: ${eventInfo.event.start.toLocaleTimeString('no-NO', {hour: '2-digit', minute:'2-digit'})} - ${eventInfo.event.end ? eventInfo.event.end.toLocaleTimeString('no-NO', {hour: '2-digit', minute:'2-digit'}) : ''}</span>`;
+    
+    // Vis planlagt tid hvis det finnes, ellers frist
+    if (eventInfo.event.start && eventInfo.event.extendedProps.isScheduledExplicitly) { // Nytt flagg
+        content += `<br><em style="color: var(--accent-secondary); font-size: 0.85em;">Planlagt tid</em>`;
+        content += `<br><span style="font-size:0.8em;">${eventInfo.event.start.toLocaleTimeString('no-NO', {hour: '2-digit', minute:'2-digit'})} - ${eventInfo.event.end ? eventInfo.event.end.toLocaleTimeString('no-NO', {hour: '2-digit', minute:'2-digit'}) : ''}</span>`;
     } else if (task.dueDate) {
          content += `<br><span style="font-size:0.8em;">Frist: ${new Date(task.dueDate).toLocaleDateString('no-NO')}</span>`;
     }
+
     customTooltip.innerHTML = content;
     customTooltip.style.display = 'block';
     let x = eventInfo.jsEvent.pageX + 10;
@@ -160,14 +176,12 @@ function showCalendarTooltip(eventInfo) {
         customTooltip.style.top = (eventInfo.jsEvent.pageY - tooltipRect.height - 10) + 'px';
     }
 }
-
 function hideCalendarTooltip() {
     if (customTooltip) customTooltip.style.display = 'none';
 }
 
 // --- Datahenting og UI-oppdatering ---
 function updateCurrentDateHeader_Tasks() {
-    // ... (som før) ...
     const now = new Date();
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const displayElement = document.getElementById('current-date');
@@ -175,7 +189,6 @@ function updateCurrentDateHeader_Tasks() {
 }
 
 function showLoadingIndicator_Tasks(isLoading) {
-    // ... (som før) ...
     const board = document.getElementById('task-board');
     const placeholder = board?.querySelector('.kanban-column[data-status="Ny"] .task-list .task-placeholder');
     if (placeholder) {
@@ -185,8 +198,7 @@ function showLoadingIndicator_Tasks(isLoading) {
     document.getElementById('calendar-view-container')?.classList.toggle('loading', isLoading);
 }
 
-function fetchInitialData_Tasks() {
-    // ... (som før) ...
+function fetchInitialData_Tasks() { 
     if (typeof currentUserSuffix === 'undefined') {
         currentUserSuffix = localStorage.getItem('currentUserSuffix') || 'C';
     }
@@ -194,7 +206,7 @@ function fetchInitialData_Tasks() {
     showLoadingIndicator_Tasks(true);
     Promise.all([
         fetchCustomersForTasks_Tasks(),
-        fetchTasks_Tasks() // Denne må nå returnere scheduledStart/End fra backend
+        fetchTasks_Tasks() 
     ])
     .then(() => {
         populateCustomerFilter_Tasks();
@@ -213,8 +225,7 @@ function fetchInitialData_Tasks() {
     });
 }
 
-function fetchCustomersForTasks_Tasks() {
-    // ... (som før) ...
+function fetchCustomersForTasks_Tasks() { 
     return fetchDataFromScript_Tasks({ action: 'getCustomers', user: currentUserSuffix })
         .then(data => {
             allCustomersForTasks = (data.success && Array.isArray(data.customers)) ? 
@@ -228,15 +239,14 @@ function fetchCustomersForTasks_Tasks() {
 }
 
 function fetchTasks_Tasks() {
-    // VIKTIG: Backend (handleGetTasks) må nå returnere 'scheduledStart' og 'scheduledEnd' for hver oppgave.
     return fetchDataFromScript_Tasks({ action: 'getTasks', user: currentUserSuffix })
         .then(data => {
             if (data.success && Array.isArray(data.tasks)) {
                 allTasks = data.tasks.map(task => ({
                     ...task,
-                    // Sørg for at disse feltene finnes, selv om de er null
-                    scheduledStart: task.scheduledStart || null, 
-                    scheduledEnd: task.scheduledEnd || null
+                    // Ensure these fields exist, even if null, and are valid ISO strings or null
+                    scheduledStart: task.scheduledStart && !isNaN(new Date(task.scheduledStart)) ? new Date(task.scheduledStart).toISOString() : null, 
+                    scheduledEnd: task.scheduledEnd && !isNaN(new Date(task.scheduledEnd)) ? new Date(task.scheduledEnd).toISOString() : null
                 }));
             } else {
                 allTasks = [];
@@ -246,10 +256,9 @@ function fetchTasks_Tasks() {
             }
             return allTasks;
         });
-}
+ }
 
-function fetchDataFromScript_Tasks(params) {
-    // ... (som før) ...
+function fetchDataFromScript_Tasks(params) { 
     const urlParams = new URLSearchParams(params);
     urlParams.append('nocache', Date.now());
     const url = `${GOOGLE_SCRIPT_URL}?${urlParams.toString()}`;
@@ -259,8 +268,7 @@ function fetchDataFromScript_Tasks(params) {
     });
 }
 
-function postDataToScript_Tasks(data) {
-    // ... (som før) ...
+function postDataToScript_Tasks(data) { 
     const formData = new FormData();
     for (const key in data) {
         formData.append(key, (data[key] === null || data[key] === undefined) ? '' : data[key]);
@@ -271,7 +279,6 @@ function postDataToScript_Tasks(data) {
 
 // --- Rendering av Kanban-brett og oppgavekort ---
 function populateCustomerFilter_Tasks() {
-    // ... (som før) ...
     const select = document.getElementById('customer-filter');
     if (!select) return;
     const previousValue = select.value;
@@ -285,7 +292,6 @@ function populateCustomerFilter_Tasks() {
 }
 
 function renderTaskBoard_Tasks() {
-    // ... (som før) ...
     console.log(`Rendrer Kanban-tavle for ${currentUserSuffix}...`);
     const board = document.getElementById('task-board');
     if (!board) return;
@@ -302,7 +308,18 @@ function renderTaskBoard_Tasks() {
         nyPlaceholder.style.display = filteredTasks.length === 0 ? 'block' : 'none';
     }
 
-    filteredTasks.sort((a, b) => (a.dueDate ? new Date(a.dueDate).getTime() : Infinity) - (b.dueDate ? new Date(b.dueDate).getTime() : Infinity));
+    // Sort by due date for Kanban view
+    filteredTasks.sort((a, b) => {
+        const dueDateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+        const dueDateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+        if (dueDateA !== dueDateB) return dueDateA - dueDateB;
+        // Secondary sort by priority if due dates are the same or both are null
+        const priorityOrder = { 'Høy': 1, 'Medium': 2, 'Lav': 3, '': 4 };
+        const priorityA = priorityOrder[a.priority || ''] || 4;
+        const priorityB = priorityOrder[b.priority || ''] || 4;
+        return priorityA - priorityB;
+    });
+
 
     filteredTasks.forEach(task => {
         const card = createTaskCardElement_Tasks(task); 
@@ -321,7 +338,6 @@ function renderTaskBoard_Tasks() {
 }
 
 function createTaskCardElement_Tasks(task) {
-    // ... (som før) ...
     const card = document.createElement('div');
     card.className = 'task-card';
     card.setAttribute('draggable', true);
@@ -339,7 +355,7 @@ function createTaskCardElement_Tasks(task) {
         if (isOverdue) card.classList.add('due-overdue');
         else if (daysUntilDue <= 3) card.classList.add('due-soon');
         else if (daysUntilDue <= 7) card.classList.add('due-near');
-        dueDateHtml = `<span class="task-due-date ${isOverdue ? 'overdue' : ''}" title="Frist">📅 ${new Date(task.dueDate).toLocaleDateString('no-NO', { day: 'numeric', month: 'short' })}${isOverdue ? ' (Forfalt)' : (daysUntilDue <= 7 ? ` (${daysUntilDue} d)` : '')}</span>`;
+        dueDateHtml = `<span class="task-due-date ${isOverdue ? 'overdue' : ''}" title="Frist/Dato">📅 ${new Date(task.dueDate).toLocaleDateString('no-NO', { day: 'numeric', month: 'short' })}${isOverdue ? ' (Forfalt)' : (daysUntilDue <= 7 ? ` (${daysUntilDue} d)` : '')}</span>`;
     }
     let estimatedTimeHtml = ''; 
     if (task.estimatedTime) estimatedTimeHtml = `<span class="task-estimated" title="Estimert tid">⏱️ ${parseFloat(String(task.estimatedTime).replace(',', '.')).toFixed(1)} t</span>`;
@@ -376,21 +392,18 @@ function createTaskCardElement_Tasks(task) {
 }
 
 function getPriorityIcon_Tasks(priority) {
-    // ... (som før) ...
     switch (priority?.toLowerCase()) {
         case 'høy': return '🔴'; case 'medium': return '🟡'; case 'lav': return '🔵'; default: return '';
     }
 }
 
 function handleCustomerFilterChange_Tasks(event) {
-    // ... (som før) ...
     currentCustomerFilter_Tasks = event.target.value;
     if (currentView_Tasks === 'kanban') renderTaskBoard_Tasks();
     else initializeOrUpdateCalendar_Tasks();
 }
 
 function handleStatusFilterChange_Tasks(event) {
-    // ... (som før) ...
     const clickedButton = event.target;
     document.querySelectorAll('.status-filter-btn.active').forEach(btn => btn.classList.remove('active'));
     clickedButton.classList.add('active');
@@ -400,7 +413,6 @@ function handleStatusFilterChange_Tasks(event) {
 }
 
 function filterTasks_Tasks(tasksToFilter) { 
-    // ... (som før) ...
     return tasksToFilter.filter(task => {
         const customerMatch = currentCustomerFilter_Tasks === 'all' || task.customer === currentCustomerFilter_Tasks;
         let statusMatch = false;
@@ -419,7 +431,6 @@ function filterTasks_Tasks(tasksToFilter) {
 
 // --- Modal og Lagring ---
 function openAddTaskModal_Tasks() {
-    // ... (som før) ...
     clearTaskModal_Tasks();
     document.getElementById('task-modal-title').textContent = 'Legg til ny oppgave';
     populateCustomerDropdown_Modal_Tasks();
@@ -427,8 +438,7 @@ function openAddTaskModal_Tasks() {
 }
 
 function openEditTaskModal_Tasks(taskId) {
-    // ... (som før, håndterer 'scheduled-' prefiks) ...
-    const actualTaskId = String(taskId).startsWith('scheduled-') ? taskId.split('-')[1] : taskId;
+    const actualTaskId = String(taskId).startsWith('scheduled-') ? taskId.split('-')[1] : taskId; // Should not happen with new IDing
     const task = allTasks.find(t => t.id === actualTaskId);
     if (!task) { alert("Feil: Fant ikke oppgaven."); return; }
     
@@ -442,8 +452,8 @@ function openEditTaskModal_Tasks(taskId) {
     document.getElementById('task-description').value = task.description || '';
     document.getElementById('task-status').value = task.status;
     document.getElementById('task-priority').value = task.priority || '';
-    document.getElementById('task-due-date').value = task.dueDate || '';
-    document.getElementById('task-estimated-time').value = (task.estimatedTime !== null && task.estimatedTime !== undefined) ? String(task.estimatedTime).replace(',', '.') : '1.5';
+    document.getElementById('task-due-date').value = task.dueDate || ''; // "Dato" feltet
+    document.getElementById('task-estimated-time').value = (task.estimatedTime !== null && task.estimatedTime !== undefined) ? String(task.estimatedTime).replace(',', '.') : ''; // Tom hvis null
     
     const recurrenceRuleDropdown = document.getElementById('task-recurrence-rule');
     const recurrenceEndDateInput = document.getElementById('task-recurrence-end-date');
@@ -457,12 +467,10 @@ function openEditTaskModal_Tasks(taskId) {
         recurrenceEndDateGroup.style.display = 'none';
         recurrenceEndDateInput.value = '';
     }
-    // Merk: Viser ikke scheduledStart/End i modalen per nå. Kan legges til hvis ønskelig.
     document.getElementById('taskModal').style.display = 'block';
 }
 
 function clearTaskModal_Tasks() {
-    // ... (som før) ...
     document.getElementById('task-id').value = '';
     document.getElementById('task-customer').value = '';
     document.getElementById('task-name').value = '';
@@ -470,14 +478,13 @@ function clearTaskModal_Tasks() {
     document.getElementById('task-status').value = 'Ny';
     document.getElementById('task-priority').value = '';
     document.getElementById('task-due-date').value = '';
-    document.getElementById('task-estimated-time').value = '1.5';
+    document.getElementById('task-estimated-time').value = ''; // Start tom
     document.getElementById('task-recurrence-rule').value = 'Aldri';
     document.getElementById('task-recurrence-end-date').value = '';
     document.getElementById('task-recurrence-end-date-group').style.display = 'none';
 }
 
 function populateCustomerDropdown_Modal_Tasks() {
-    // ... (som før) ...
      const select = document.getElementById('task-customer');
     if (!select) return;
     const currentValue = select.value;
@@ -492,40 +499,85 @@ function populateCustomerDropdown_Modal_Tasks() {
     }
 }
 
-function handleSaveTask_Tasks() {
-    // ... (som før) ...
-    // Denne funksjonen oppdaterer IKKE scheduledStart/End direkte.
-    // Det håndteres av eventDrop og scheduleDailyTasks.
-    // Hvis en statusendring (f.eks. til 'Ferdig') skal fjerne planlagt tid, må logikk legges til her.
+async function handleSaveTask_Tasks() {
     if (isSubmittingTask) return;
-    const taskId = document.getElementById('task-id').value;
-    const estimatedTimeValue = document.getElementById('task-estimated-time').value.replace(',', '.');
-    const recurrenceRule = document.getElementById('task-recurrence-rule').value;
-    const recurrenceEndDate = document.getElementById('task-recurrence-end-date').value;
-    const dueDateValue = document.getElementById('task-due-date').value;
+    hideDayFullMessage(); // Skjul melding hvis den vises
 
-    const taskData = {
+    const taskId = document.getElementById('task-id').value;
+    const estimatedTimeStr = document.getElementById('task-estimated-time').value.replace(',', '.');
+    const dueDateValue = document.getElementById('task-due-date').value; // Dette er "Dato"
+    
+    let taskData = {
         id: taskId || undefined,
         customer: document.getElementById('task-customer').value,
         name: document.getElementById('task-name').value.trim(),
         description: document.getElementById('task-description').value.trim(),
         status: document.getElementById('task-status').value,
         priority: document.getElementById('task-priority').value || null,
-        dueDate: dueDateValue || null,
-        estimatedTime: estimatedTimeValue !== '' ? parseFloat(estimatedTimeValue) : null,
+        dueDate: dueDateValue || null, 
+        estimatedTime: estimatedTimeStr !== '' ? parseFloat(estimatedTimeStr) : null,
         user: currentUserSuffix,
-        recurrenceRule: recurrenceRule === 'Aldri' ? null : recurrenceRule,
-        recurrenceEndDate: (recurrenceRule !== 'Aldri' && recurrenceEndDate) ? recurrenceEndDate : null
-        // scheduledStart og scheduledEnd sendes ikke herfra med vilje,
-        // da de styres av kalenderinteraksjoner.
+        recurrenceRule: document.getElementById('task-recurrence-rule').value === 'Aldri' ? null : document.getElementById('task-recurrence-rule').value,
+        recurrenceEndDate: (document.getElementById('task-recurrence-rule').value !== 'Aldri' && document.getElementById('task-recurrence-end-date').value) ? document.getElementById('task-recurrence-end-date').value : null,
+        scheduledStart: null, 
+        scheduledEnd: null
     };
 
     if (!taskData.customer || !taskData.name) { alert("Kunde og oppgavenavn må fylles ut."); return; }
-    if (taskData.estimatedTime !== null && (isNaN(taskData.estimatedTime) || taskData.estimatedTime < 0)) {
-         alert("Estimert tid må være et positivt tall eller stå tomt."); return;
+    // Estimert tid kan være null, men hvis satt, må den være > 0 for planlegging
+    if (taskData.estimatedTime !== null && (isNaN(taskData.estimatedTime) || taskData.estimatedTime <= 0) && taskData.dueDate) {
+         alert("Estimert tid må være et positivt tall (større enn 0) hvis en dato er satt for planlegging, eller stå tomt."); return;
+    }
+     if (taskData.estimatedTime === null && taskData.dueDate) {
+        // Tillat lagring med bare frist, men ingen planlagt tid
+        console.log("Lagrer oppgave med frist, men uten estimert tid. Ingen spesifikk tid vil bli planlagt.");
     }
     if (taskData.recurrenceRule && !taskData.dueDate) {
         alert("Frist (startdato) må settes for gjentakende oppgaver."); return;
+    }
+
+    // Hvis en dato er satt OG gyldig estimert tid, prøv å finne en plass
+    if (taskData.dueDate && taskData.estimatedTime && taskData.estimatedTime > 0) {
+        const taskDurationHours = taskData.estimatedTime;
+        const targetDate = new Date(taskData.dueDate); // Dato fra input
+        targetDate.setHours(0,0,0,0); // Normaliser for dagen
+
+        const slotInfo = findBestSlotForTask(targetDate, taskDurationHours, taskId || null);
+
+        if (slotInfo.slotFound) {
+            taskData.scheduledStart = slotInfo.start.toISOString();
+            taskData.scheduledEnd = slotInfo.end.toISOString();
+            console.log(`Oppgave ${taskData.name} vil bli plassert på ${targetDate.toLocaleDateString()}: ${slotInfo.start.toLocaleTimeString()} - ${slotInfo.end.toLocaleTimeString()}`);
+        } else {
+            // Hvis ingen plass, men det er en eksisterende oppgave som redigeres, og den hadde en planlagt tid på en *annen* dag,
+            // behold den gamle planlagte tiden hvis den nye datoen er full.
+            // Eller, mer aggressivt: hvis ny dato er full, nullstill planlagt tid.
+            const existingTask = taskId ? allTasks.find(t => t.id === taskId) : null;
+            if (existingTask && existingTask.scheduledStart && new Date(existingTask.scheduledStart).toISOString().split('T')[0] !== taskData.dueDate) {
+                // Bruker prøver å flytte til en full dag. Nullstill planlagt tid.
+                taskData.scheduledStart = null;
+                taskData.scheduledEnd = null;
+                showDayFullMessage(slotInfo.message || `Dagen ${targetDate.toLocaleDateString('no-NO')} er full. Oppgaven lagres med fristen, men uten spesifikk planlagt tid.`);
+            } else if (!existingTask || !existingTask.scheduledStart) { // Ny oppgave eller eksisterende uten planlagt tid
+                showDayFullMessage(slotInfo.message || `Dagen ${targetDate.toLocaleDateString('no-NO')} er full. Oppgaven lagres med fristen, men uten spesifikk planlagt tid.`);
+                taskData.scheduledStart = null;
+                taskData.scheduledEnd = null;
+            } else {
+                // Beholder eksisterende scheduledStart/End hvis dagen er den samme og den er full (dette bør håndteres av eventDrop)
+                // For modal save, hvis dagen er den samme og full, og vi ikke fant ny plass, er det best å nullstille.
+                taskData.scheduledStart = null;
+                taskData.scheduledEnd = null;
+                 showDayFullMessage(slotInfo.message || `Dagen ${targetDate.toLocaleDateString('no-NO')} er full. Oppgaven lagres med fristen, men uten spesifikk planlagt tid.`);
+            }
+        }
+    } else { // Ingen dato eller ingen/ugyldig varighet
+        // Hvis oppgaven tidligere hadde en planlagt tid, men dato/varighet fjernes/ugyldiggjøres, nullstill planlagt tid.
+        const existingTask = taskId ? allTasks.find(t => t.id === taskId) : null;
+        if (existingTask && (existingTask.scheduledStart || existingTask.scheduledEnd)) {
+            taskData.scheduledStart = null;
+            taskData.scheduledEnd = null;
+            console.log(`Fjerner planlagt tid for oppgave ${taskId} da dato/varighet er fjernet/ugyldig.`);
+        }
     }
 
     isSubmittingTask = true;
@@ -537,24 +589,16 @@ function handleSaveTask_Tasks() {
         .then(response => {
             if (response.success) {
                 closeModal('taskModal');
-                // Hent alle tasks på nytt for å sikre at allTasks er oppdatert,
-                // inkludert eventuelle scheduledStart/End som kan ha blitt satt av andre prosesser.
-                return fetchTasks_Tasks().then(() => { 
-                    if (currentView_Tasks === 'kanban') {
-                        renderTaskBoard_Tasks();
-                    } else {
-                        initializeOrUpdateCalendar_Tasks(); 
-                        // Hvis en oppgave som ble redigert var en del av dagens plan,
-                        // kan det være lurt å kjøre scheduleDailyTasks() på nytt.
-                        // For nå, la brukeren gjøre det manuelt.
-                    }
-                });
+                // Viktig: Hent alle data på nytt for å sikre at `allTasks` og kalenderen er synkronisert med backend.
+                return fetchInitialData_Tasks(); 
             } else {
                 throw new Error(response.message || 'Ukjent feil ved lagring fra server');
             }
         })
         .catch(error => {
             alert(`Kunne ikke lagre oppgave: ${error.message}`);
+            // Selv ved feil, prøv å hente data på nytt for å resynkronisere UI hvis mulig.
+            fetchInitialData_Tasks(); 
         })
         .finally(() => {
             isSubmittingTask = false;
@@ -565,9 +609,9 @@ function handleSaveTask_Tasks() {
         });
 }
 
+
 // --- Slettefunksjoner ---
 function confirmDeleteTask_Tasks(taskId, taskName) {
-    // ... (som før) ...
     if (!taskId || !taskName) return;
     const modal = document.getElementById('confirmDeleteTaskModal');
     const nameEl = document.getElementById('delete-task-name-modal');
@@ -587,9 +631,6 @@ function confirmDeleteTask_Tasks(taskId, taskName) {
 }
 
 function deleteTask_Tasks() {
-    // ... (som før) ...
-    // Ved sletting, hvis oppgaven hadde scheduledStart/End, vil de forsvinne med raden i backend.
-    // Frontend `allTasks` oppdateres, og kalenderen vil reflektere dette.
     if (isDeletingTask) return;
     const taskIdEl = document.getElementById('delete-task-id-modal');
     const taskId = taskIdEl ? taskIdEl.value : null;
@@ -605,12 +646,13 @@ function deleteTask_Tasks() {
     postDataToScript_Tasks(dataToSend)
         .then(response => {
             if (response.success) {
+                // Fjern oppgaven fra allTasks og re-render
                 allTasks = allTasks.filter(task => task.id !== taskId);
+                closeModal('confirmDeleteTaskModal');
                 if (currentView_Tasks === 'kanban') {
                     renderTaskBoard_Tasks();
                 } else {
                      initializeOrUpdateCalendar_Tasks(); 
-                     // Slettede oppgaver vil ikke lenger vises, verken frist-basert eller auto-planlagt.
                 }
             } else { throw new Error(response.message || "Ukjent feil ved sletting på server."); }
         })
@@ -619,21 +661,17 @@ function deleteTask_Tasks() {
             isDeletingTask = false;
             if (deleteButton) deleteButton.disabled = false;
             if (cancelButton) cancelButton.disabled = false;
-            closeModal('confirmDeleteTaskModal');
             if(taskIdEl) taskIdEl.value = '';
         });
 }
 
 // --- Drag and Drop (Kanban) & Kalender ---
-function handleDragStart_Tasks(event) {
-    // ... (som før) ...
+function handleDragStart_Tasks(event) { /* (For Kanban) */
     if (!event.target.classList.contains('task-card')) return;
     draggedTaskId = event.target.getAttribute('data-task-id');
     setTimeout(() => event.target.classList.add('dragging'), 0);
 }
-
-function handleDragEnd_Tasks(event) {
-    // ... (som før) ...
+function handleDragEnd_Tasks(event) { /* (For Kanban) */
     if (event.target.classList.contains('task-card')) {
         event.target.classList.remove('dragging');
     }
@@ -641,9 +679,7 @@ function handleDragEnd_Tasks(event) {
             .forEach(list => list.classList.remove('drag-over'));
     draggedTaskId = null;
 }
-
-function handleDragOver_Tasks(event) {
-    // ... (som før) ...
+function handleDragOver_Tasks(event) { /* (For Kanban) */
     event.preventDefault();
     const targetList = event.currentTarget;
     if(targetList.classList.contains('task-list')){
@@ -651,17 +687,13 @@ function handleDragOver_Tasks(event) {
         event.dataTransfer.dropEffect = 'move';
     }
 }
-
-function handleDragLeave_Tasks(event) {
-    // ... (som før) ...
+function handleDragLeave_Tasks(event) { /* (For Kanban) */
     const targetList = event.currentTarget;
     if (targetList.classList.contains('task-list') && !targetList.contains(event.relatedTarget)) {
         targetList.classList.remove('drag-over');
     }
 }
-
-function handleDrop_Tasks(event) { // For Kanban
-    // ... (som før) ...
+function handleDrop_Tasks(event) { /* (For Kanban) */
     event.preventDefault();
     const targetList = event.currentTarget;
     if (!targetList.classList.contains('task-list')) return;
@@ -685,23 +717,28 @@ function handleDrop_Tasks(event) { // For Kanban
     }
     draggedTaskId = null;
 }
-
-function updateTaskStatus_Tasks(taskId, newStatus) { // For Kanban status endring
-    // ... (som før) ...
+function updateTaskStatus_Tasks(taskId, newStatus) { /* (For Kanban status endring) */
     console.log(`Oppdaterer status for ${taskId} til ${newStatus} (bruker: ${currentUserSuffix})`);
     const taskData = { action: 'updateTask', id: taskId, status: newStatus, user: currentUserSuffix }; 
+    
+    // Hvis oppgaven settes til "Ferdig", nullstill planlagt tid
+    if (newStatus.toLowerCase() === 'ferdig') {
+        const task = allTasks.find(t => t.id === taskId);
+        if (task && (task.scheduledStart || task.scheduledEnd)) {
+            taskData.scheduledStart = null;
+            taskData.scheduledEnd = null;
+        }
+    }
+
     const taskIndex = allTasks.findIndex(t => t.id === taskId);
     let originalTaskData = null;
     if (taskIndex > -1) {
-        originalTaskData = { ...allTasks[taskIndex] }; // Lag kopi for tilbakestilling
+        originalTaskData = { ...allTasks[taskIndex] }; 
         allTasks[taskIndex].status = newStatus;
-        if (newStatus.toLowerCase() === 'ferdig' && TASK_COMPLETED_COL) { // Antatt TASK_COMPLETED_COL er definert i backend
+        if (newStatus.toLowerCase() === 'ferdig') {
             allTasks[taskIndex].completedDate = new Date().toISOString().split('T')[0];
-            // Hvis en oppgave settes til ferdig, bør kanskje scheduledStart/End nullstilles?
-            // taskData.scheduledStart = null; // Send med for å nullstille i backend
-            // taskData.scheduledEnd = null;
-            // allTasks[taskIndex].scheduledStart = null;
-            // allTasks[taskIndex].scheduledEnd = null;
+            allTasks[taskIndex].scheduledStart = null; // Oppdater lokalt også
+            allTasks[taskIndex].scheduledEnd = null;
         } else {
             allTasks[taskIndex].completedDate = null;
         }
@@ -712,31 +749,27 @@ function updateTaskStatus_Tasks(taskId, newStatus) { // For Kanban status endrin
             if (!response.success) {
                 alert(`Kunne ikke oppdatere status: ${response.message || 'Ukjent feil'}. Tilbakestiller.`);
                  if (taskIndex > -1 && originalTaskData) {
-                    allTasks[taskIndex] = originalTaskData; // Tilbakestill til original
-                    if (currentView_Tasks === 'kanban') renderTaskBoard_Tasks(); 
-                    else initializeOrUpdateCalendar_Tasks();
-                 } else { 
-                    fetchInitialData_Tasks(); // Hent alt på nytt
+                    allTasks[taskIndex] = originalTaskData; 
                  }
+                 fetchInitialData_Tasks(); // Full re-fetch for å være sikker
             } else {
-                 if (currentView_Tasks === 'calendar') initializeOrUpdateCalendar_Tasks();
-                 else if (currentView_Tasks === 'kanban') renderTaskBoard_Tasks(); // Re-render kanban for å reflektere endring
+                 // Suksess, allTasks er allerede optimistisk oppdatert.
+                 // Re-render den aktuelle visningen.
+                 if (currentView_Tasks === 'kanban') renderTaskBoard_Tasks();
+                 else initializeOrUpdateCalendar_Tasks();
             }
         })
         .catch(error => {
              alert(`Nettverksfeil ved oppdatering av status: ${error.message}. Tilbakestiller.`);
               if (taskIndex > -1 && originalTaskData) {
                  allTasks[taskIndex] = originalTaskData;
-                 if (currentView_Tasks === 'kanban') renderTaskBoard_Tasks();
-                 else initializeOrUpdateCalendar_Tasks();
-              } else {
-                 fetchInitialData_Tasks();
               }
+              fetchInitialData_Tasks(); // Full re-fetch
         });
 }
 
+
 function switchView_Tasks(viewToShow) {
-    // ... (som før) ...
     if (viewToShow === currentView_Tasks) return;
     const kanbanContainer = document.getElementById('task-board-container');
     const calendarContainer = document.getElementById('calendar-view-container');
@@ -760,6 +793,101 @@ function switchView_Tasks(viewToShow) {
     console.log(`Byttet oppgavevisning til: ${currentView_Tasks} for ${currentUserSuffix}`);
 }
 
+// --- Hjelpefunksjoner for Kalenderlogikk ---
+
+/**
+ * Finner den beste ledige plassen for en oppgave på en gitt dag.
+ * Tar hensyn til arbeidstid, lunsj og andre allerede planlagte oppgaver.
+ * @param {Date} targetDate - Dagen oppgaven skal plasseres.
+ * @param {number} taskDurationHours - Oppgavens varighet i timer.
+ * @param {string|null} ignoreTaskId - ID-en til oppgaven som flyttes/redigeres.
+ * @returns {object} { slotFound: boolean, start?: Date, end?: Date, message?: string }
+ */
+function findBestSlotForTask(targetDate, taskDurationHours, ignoreTaskId = null) {
+    const dayStart = new Date(targetDate);
+    dayStart.setHours(WORKING_DAY_START_HOUR, 0, 0, 0);
+
+    const dayEnd = new Date(targetDate);
+    dayEnd.setHours(WORKING_DAY_END_HOUR, 0, 0, 0);
+
+    const lunchStart = new Date(targetDate);
+    lunchStart.setHours(LUNCH_BREAK_START_HOUR, 0, 0, 0);
+    const lunchEnd = new Date(lunchStart.getTime() + LUNCH_BREAK_DURATION_HOURS * 60 * 60000);
+
+    const taskDurationMs = taskDurationHours * 60 * 60 * 1000;
+
+    const otherTasksOnDay = allTasks.filter(task => {
+        if (task.id === ignoreTaskId) return false;
+        if (!task.scheduledStart || !task.scheduledEnd) return false; // Kun de med gyldig planlagt tid
+        const taskScheduledDate = new Date(task.scheduledStart);
+        return taskScheduledDate.getFullYear() === targetDate.getFullYear() &&
+               taskScheduledDate.getMonth() === targetDate.getMonth() &&
+               taskScheduledDate.getDate() === targetDate.getDate();
+    }).sort((a, b) => new Date(a.scheduledStart) - new Date(b.scheduledStart));
+
+    let currentTime = new Date(dayStart);
+
+    while (currentTime.getTime() < dayEnd.getTime()) {
+        let potentialStart = new Date(currentTime);
+        let potentialEnd = new Date(potentialStart.getTime() + taskDurationMs);
+
+        // Juster for lunsj
+        if (potentialStart < lunchEnd && potentialEnd > lunchStart) { 
+            if (potentialStart < lunchStart || (potentialStart >= lunchStart && potentialStart < lunchEnd)) {
+                 potentialStart = new Date(lunchEnd);
+                 potentialEnd = new Date(potentialStart.getTime() + taskDurationMs);
+            }
+        }
+        
+        if (potentialEnd > dayEnd) {
+            return { slotFound: false, message: "Ikke nok tid igjen på arbeidsdagen." };
+        }
+
+        let collision = false;
+        for (const existingTask of otherTasksOnDay) {
+            const existingStart = new Date(existingTask.scheduledStart);
+            const existingEnd = new Date(existingTask.scheduledEnd);
+            if (potentialStart < existingEnd && potentialEnd > existingStart) {
+                collision = true;
+                currentTime = new Date(existingEnd); 
+                break; 
+            }
+        }
+
+        if (!collision) {
+            // Sjekk totalt antall timer på dagen
+            let totalHoursForDayExcludingCurrent = 0;
+            otherTasksOnDay.forEach(ot => {
+                totalHoursForDayExcludingCurrent += (new Date(ot.scheduledEnd).getTime() - new Date(ot.scheduledStart).getTime()) / (60 * 60 * 1000);
+            });
+            const totalHoursWithNewTask = totalHoursForDayExcludingCurrent + taskDurationHours;
+            const maxWorkHours = WORKING_DAY_END_HOUR - WORKING_DAY_START_HOUR - LUNCH_BREAK_DURATION_HOURS;
+
+            if (totalHoursWithNewTask > maxWorkHours + 0.01) { // 0.01 for float buffer
+                // Fortsett å lete, kanskje det er en mindre luke senere, men hvis vi er her, er denne luken for stor for dagen.
+                // Dette er en forenkling. En mer robust sjekk ville vurdert alle mulige plasseringer.
+                // For nå, hvis den *første* ledige luken gjør dagen for lang, antar vi at det er et problem.
+                // Dette kan forbedres ved å la løkken fortsette og sjekke totaltid kun hvis en luke er funnet.
+                // For nå, la oss si at hvis denne luken gjør dagen for lang, så er det ikke plass.
+                // return { slotFound: false, message: `Legge til denne oppgaven (${taskDurationHours}t) vil overskride dagens arbeidstid (totalt ${totalHoursWithNewTask.toFixed(1)}t > ${maxWorkHours}t).` };
+                // La oss heller la den prøve neste luke.
+                currentTime.setMinutes(currentTime.getMinutes() + MINIMUM_SLOT_MINUTES); // Prøv neste slot
+                continue;
+            }
+            return { slotFound: true, start: potentialStart, end: potentialEnd };
+        }
+        // Hvis kollisjon, og currentTime ble oppdatert, vil løkken fortsette.
+        // Ellers, inkrementer for å unngå evig løkke.
+        if (collision && currentTime.getTime() <= potentialStart.getTime()) { 
+             currentTime.setMinutes(currentTime.getMinutes() + MINIMUM_SLOT_MINUTES);
+        } else if (!collision) { // Burde ikke nås hvis logikken over er korrekt
+            currentTime.setMinutes(currentTime.getMinutes() + MINIMUM_SLOT_MINUTES);
+        }
+    }
+    return { slotFound: false, message: "Ingen passende ledig tid funnet på dagen." };
+}
+
+
 function initializeOrUpdateCalendar_Tasks() {
     const calendarEl = document.getElementById('calendar');
     if (!calendarEl) {
@@ -770,30 +898,28 @@ function initializeOrUpdateCalendar_Tasks() {
     const eventsToShow = [];
     const filteredTasks = filterTasks_Tasks(allTasks);
 
-    // Legg til både frist-baserte og allerede planlagte oppgaver
     filteredTasks.forEach(task => {
-        if (task.scheduledStart && task.scheduledEnd) { // Hvis oppgaven har en lagret planlegging
+        if (task.scheduledStart && task.scheduledEnd && !isNaN(new Date(task.scheduledStart)) && !isNaN(new Date(task.scheduledEnd))) { 
             const colors = getEventColorsForStatus_Tasks(task.status);
-            let title = `Autom: ${task.name} (${task.customer || '?'})`;
+            let title = task.name; 
             if (task.recurrenceRule && task.recurrenceRule !== 'Aldri') title = `🔄 ${title}`;
             
             eventsToShow.push({
-                id: `scheduled-${task.id}-${new Date(task.scheduledStart).toISOString().slice(0,10)}`, // ID for planlagt forekomst
+                id: task.id, 
                 title: title,
-                start: task.scheduledStart, // Bruk lagret tid
-                end: task.scheduledEnd,     // Bruk lagret tid
-                extendedProps: { ...task, scheduled: true, originalId: task.id },
+                start: task.scheduledStart, 
+                end: task.scheduledEnd,     
+                extendedProps: { ...task, isScheduledExplicitly: true, originalTask: task }, 
                 backgroundColor: colors.backgroundColor,
                 borderColor: colors.borderColor,
                 textColor: colors.textColor,
-                editable: true // GJØR DENNE REDIGERBAR
+                editable: true 
             });
-        } else if (task.dueDate) { // Ellers, vis basert på frist
-            const fristEvent = formatSingleTaskForDueDateCalendar(task);
+        } else if (task.dueDate) { 
+            const fristEvent = formatSingleTaskForDueDateCalendar(task); 
             if (fristEvent) eventsToShow.push(fristEvent);
         }
     });
-
 
     if (calendarInstance) { 
         calendarInstance.removeAllEvents(); 
@@ -813,69 +939,82 @@ function initializeOrUpdateCalendar_Tasks() {
                 allDaySlot: false, 
                 headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek' },
                 events: eventsToShow, 
-                editable: true, // Generelt redigerbart, spesifikke hendelser kan overstyre
-                eventDrop: function(info) { 
-                    const eventId = info.event.id;
-                    const newStart = info.event.start;
-                    const newEnd = info.event.end || new Date(newStart.getTime() + (info.oldEvent.end.getTime() - info.oldEvent.start.getTime())); // Behold varighet hvis end ikke finnes
+                editable: true, 
+                eventDrop: async function(info) { 
+                    hideDayFullMessage(); 
+                    const droppedTaskId = info.event.id;
+                    const taskBeingDropped = allTasks.find(t => t.id === droppedTaskId);
 
-                    let taskDataForBackend = { user: currentUserSuffix, action: 'updateTask' };
-                    let originalTaskUniqueId; // For å finne i allTasks
-                    let isScheduledEvent = false;
-
-                    if (String(eventId).startsWith('scheduled-')) {
-                        isScheduledEvent = true;
-                        originalTaskUniqueId = info.event.extendedProps.originalId;
-                        taskDataForBackend.id = originalTaskUniqueId;
-                        taskDataForBackend.scheduledStart = newStart.toISOString();
-                        taskDataForBackend.scheduledEnd = newEnd.toISOString();
-                        console.log(`Automatisk planlagt oppgave ${originalTaskUniqueId} flyttet til ${newStart.toISOString()} - ${newEnd.toISOString()}`);
-                    } else { // Frist-basert hendelse
-                        originalTaskUniqueId = eventId;
-                        taskDataForBackend.id = originalTaskUniqueId;
-                        taskDataForBackend.dueDate = newStart.toISOString().split('T')[0]; 
-                        // Hvis en frist-basert flyttes, bør kanskje scheduledStart/End nullstilles?
-                        // taskDataForBackend.scheduledStart = null;
-                        // taskDataForBackend.scheduledEnd = null;
-                        console.log(`Frist-basert oppgave ${originalTaskUniqueId} flyttet, ny frist: ${taskDataForBackend.dueDate}`);
+                    if (!taskBeingDropped) {
+                        console.error("Fant ikke oppgaven som ble flyttet:", droppedTaskId);
+                        info.revert();
+                        return;
                     }
-                    
-                    const taskIndex = allTasks.findIndex(t => t.id === originalTaskUniqueId);
-                    let oldTaskState = null;
-                    if(taskIndex > -1) oldTaskState = {...allTasks[taskIndex]};
 
+                    const taskDurationHours = parseFloat(String(taskBeingDropped.estimatedTime).replace(',', '.')) || DEFAULT_TASK_DURATION_HOURS;
+                    if (taskDurationHours <= 0) {
+                        alert("Kan ikke planlegge oppgave uten gyldig varighet (må være > 0).");
+                        info.revert();
+                        return;
+                    }
 
-                    // Optimistisk oppdatering av allTasks
-                    if (taskIndex > -1) {
-                        if (isScheduledEvent) {
-                            allTasks[taskIndex].scheduledStart = newStart.toISOString();
-                            allTasks[taskIndex].scheduledEnd = newEnd.toISOString();
-                        } else {
-                            allTasks[taskIndex].dueDate = newStart.toISOString().split('T')[0];
-                            // allTasks[taskIndex].scheduledStart = null; // Hvis det skal nullstilles
-                            // allTasks[taskIndex].scheduledEnd = null;
+                    const targetDate = new Date(info.event.start); 
+                    targetDate.setHours(0,0,0,0); 
+
+                    const slotInfo = findBestSlotForTask(targetDate, taskDurationHours, droppedTaskId);
+
+                    if (slotInfo.slotFound) {
+                        const taskDataForBackend = {
+                            action: 'updateTask',
+                            id: droppedTaskId,
+                            user: currentUserSuffix,
+                            scheduledStart: slotInfo.start.toISOString(),
+                            scheduledEnd: slotInfo.end.toISOString(),
+                            dueDate: slotInfo.start.toISOString().split('T')[0] 
+                        };
+
+                        const taskIndex = allTasks.findIndex(t => t.id === droppedTaskId);
+                        let oldTaskState = null;
+                        if(taskIndex > -1) {
+                            oldTaskState = {...allTasks[taskIndex]}; 
+                            allTasks[taskIndex].scheduledStart = slotInfo.start.toISOString();
+                            allTasks[taskIndex].scheduledEnd = slotInfo.end.toISOString();
+                            allTasks[taskIndex].dueDate = slotInfo.start.toISOString().split('T')[0];
                         }
-                    }
+                        
+                        // Update event in calendar directly for smoother UI
+                        info.event.setStart(slotInfo.start);
+                        info.event.setEnd(slotInfo.end);
+                        // No need to call initializeOrUpdateCalendar_Tasks() here, as it will cause a flicker.
+                        // The local allTasks is updated, and the event object is updated.
 
-
-                    postDataToScript_Tasks(taskDataForBackend)
-                        .then(response => {
+                        try {
+                            const response = await postDataToScript_Tasks(taskDataForBackend);
                             if (response.success) {
-                                 console.log(`Oppgave ${originalTaskUniqueId} lagret i backend.`);
-                                 // fetchInitialData_Tasks(); // Eller bare oppdater allTasks lokalt og re-render kalender om nødvendig
-                            } else { 
-                                console.error("Feil ved oppdatering via kalender (backend):", response.message);
-                                alert(`Kunne ikke lagre endring for oppgave "${info.event.title.replace(/^(Autom\.:\s*)/,'').replace(/^[CW]:\s*/, '').replace(/^🔄\s*/, '')}": ${response.message || 'Ukjent serverfeil'}. Endringen er tilbakestilt.`);
-                                info.revert(); 
-                                if(taskIndex > -1 && oldTaskState) allTasks[taskIndex] = oldTaskState; // Tilbakestill allTasks
+                                console.log(`Oppgave ${droppedTaskId} flyttet og lagret: ${slotInfo.start.toLocaleString()} - ${slotInfo.end.toLocaleString()}`);
+                                // If other tasks on the same day need re-arranging, a full re-render might be needed.
+                                // For now, assume only the dropped task's position is final.
+                                // To re-evaluate all tasks on that day:
+                                // reEvaluateAndAdjustTasksOnDate(targetDate, droppedTaskId); 
+                                // initializeOrUpdateCalendar_Tasks(); // Then re-render
+                            } else {
+                                showDayFullMessage(`Lagring feilet: ${response.message}. Flytting tilbakestilt.`);
+                                console.error("Feil ved lagring av flyttet oppgave:", response.message);
+                                if(taskIndex > -1 && oldTaskState) allTasks[taskIndex] = oldTaskState; 
+                                info.revert(); // Revert the event in FullCalendar
+                                // initializeOrUpdateCalendar_Tasks(); // Re-render to show reverted state
                             }
-                        })
-                        .catch(error => { 
-                            console.error("Nettverksfeil ved oppdatering via kalender:", error);
-                            alert(`Nettverksfeil. Kunne ikke lagre endring for "${info.event.title.replace(/^(Autom\.:\s*)/,'').replace(/^[CW]:\s*/, '').replace(/^🔄\s*/, '')}". Endringen er tilbakestilt.`);
+                        } catch (error) {
+                            showDayFullMessage(`Nettverksfeil ved lagring. Flytting tilbakestilt.`);
+                            console.error("Nettverksfeil ved lagring av flyttet oppgave:", error);
+                            if(taskIndex > -1 && oldTaskState) allTasks[taskIndex] = oldTaskState; 
                             info.revert();
-                            if(taskIndex > -1 && oldTaskState) allTasks[taskIndex] = oldTaskState; // Tilbakestill allTasks
-                        });
+                            // initializeOrUpdateCalendar_Tasks();
+                        }
+                    } else {
+                        showDayFullMessage(slotInfo.message || "Ingen passende ledig tid funnet, eller dagen er full. Flytting tilbakestilt.");
+                        info.revert();
+                    }
                 },
                 eventClick: function(info) { 
                     if (info.event.id) openEditTaskModal_Tasks(info.event.id); 
@@ -892,18 +1031,18 @@ function initializeOrUpdateCalendar_Tasks() {
 }
 
 
-// Hjelpefunksjon for å formatere ENKELT task-objekt for frist-basert visning
+// Hjelpefunksjon for å formatere ENKELT task-objekt for frist-basert visning (default tid)
 function formatSingleTaskForDueDateCalendar(task) {
     if (!task.dueDate) return null;
 
     const colors = getEventColorsForStatus_Tasks(task.status);
-    let title = `${task.name} (${task.customer || '?'})`;
+    let title = `${task.name}`; 
     if (task.recurrenceRule && task.recurrenceRule !== 'Aldri') {
         title = `🔄 ${title}`;
     }
 
     const startDate = new Date(task.dueDate);
-    startDate.setHours(DEFAULT_TASK_START_HOUR, 0, 0, 0);
+    startDate.setHours(DEFAULT_TASK_START_HOUR, 0, 0, 0); 
 
     let endDate = new Date(startDate);
     const estimatedTimeString = String(task.estimatedTime).replace(',', '.');
@@ -917,21 +1056,18 @@ function formatSingleTaskForDueDateCalendar(task) {
     }
 
     return {
-        id: task.id, // Original task ID
+        id: task.id, 
         title: title,
         start: startDate.toISOString(),
         end: endDate.toISOString(),
-        extendedProps: { ...task, scheduled: false }, // Marker som ikke-automatisk planlagt her
+        extendedProps: { ...task, isScheduledExplicitly: false, originalTask: task }, 
         backgroundColor: colors.backgroundColor,
         borderColor: colors.borderColor,
         textColor: colors.textColor,
-        editable: true // Frist-baserte er alltid redigerbare (for frist)
+        editable: true 
     };
 }
-
-
 function getEventColorsForStatus_Tasks(status) {
-    // ... (som før) ...
     let backgroundColor = 'var(--accent-primary)'; 
     let borderColor = 'var(--accent-secondary)';
     let textColor = '#ffffff'; 
@@ -940,187 +1076,10 @@ function getEventColorsForStatus_Tasks(status) {
         case 'pågår':   backgroundColor = 'var(--bar-yellow)'; borderColor = '#ffa000'; textColor = '#000000'; break;
         case 'venter':  backgroundColor = '#ff9800'; borderColor = '#fb8c00'; textColor = '#000000'; break;
         case 'ferdig':  backgroundColor = 'var(--bar-green)'; borderColor = '#388E3C'; textColor = '#ffffff'; break;
+        default: // Fallback for andre statuser eller hvis status er null/undefined
+            backgroundColor = '#9e9e9e'; borderColor = '#757575'; textColor = '#ffffff'; break;
     }
     return { backgroundColor, borderColor, textColor };
 }
 
-// --- NY FUNKSJON FOR AUTOMATISK PLANLEGGING (med backend lagring) ---
-async function scheduleDailyTasks(targetDate = new Date()) { // Endret til async for å håndtere flere updates
-    if (!calendarInstance) {
-        alert("Kalenderen er ikke initialisert. Prøv å bytte til kalendervisning først.");
-        return;
-    }
-    console.log("Starter automatisk planlegging for dato:", targetDate.toLocaleDateString('no-NO'));
-
-    let tasksToSchedule = allTasks.filter(task => {
-        const status = task.status?.toLowerCase();
-        if (status === 'ferdig') return false;
-        const customerMatch = currentCustomerFilter_Tasks === 'all' || task.customer === currentCustomerFilter_Tasks;
-        const relevantStatus = status === 'ny' || status === 'pågår' || status === 'venter';
-        return customerMatch && relevantStatus;
-    });
-
-    tasksToSchedule.sort((a, b) => {
-        const priorityOrder = { 'Høy': 1, 'Medium': 2, 'Lav': 3, '': 4 };
-        const priorityA = priorityOrder[a.priority || ''] || 4;
-        const priorityB = priorityOrder[b.priority || ''] || 4;
-        if (priorityA !== priorityB) return priorityA - priorityB;
-
-        const dueDateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
-        const dueDateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
-        if (dueDateA !== dueDateB) return dueDateA - dueDateB;
-        
-        const estimatedTimeA = parseFloat(String(a.estimatedTime).replace(',', '.')) || Infinity;
-        const estimatedTimeB = parseFloat(String(b.estimatedTime).replace(',', '.')) || Infinity;
-        return estimatedTimeA - estimatedTimeB;
-    });
-
-    console.log("Oppgaver som skal planlegges:", tasksToSchedule.map(t => `${t.name} (Prio: ${t.priority || 'N/A'}, Frist: ${t.dueDate || 'N/A'}, Varighet: ${t.estimatedTime || DEFAULT_TASK_DURATION_HOURS}t)`));
-
-    let currentTime = new Date(targetDate);
-    currentTime.setHours(WORKING_DAY_START_HOUR, 0, 0, 0);
-    const endOfWorkDay = new Date(targetDate);
-    endOfWorkDay.setHours(WORKING_DAY_END_HOUR, 0, 0, 0);
-    const lunchStart = new Date(targetDate);
-    lunchStart.setHours(LUNCH_BREAK_START_HOUR, 0, 0, 0);
-    const lunchEnd = new Date(lunchStart.getTime() + LUNCH_BREAK_DURATION_HOURS * 60 * 60000);
-
-    const newCalendarEvents = [];
-    const updatePromises = [];
-
-    const targetDateString = targetDate.toISOString().slice(0,10);
-    
-    // Fjern tidligere *automatisk planlagte* (men ikke frist-baserte) hendelser for DENNE dagen
-    calendarInstance.getEvents().forEach(event => {
-        if (event.extendedProps.scheduled && event.start.toISOString().slice(0,10) === targetDateString) {
-            event.remove();
-        }
-        // Nullstill også scheduledStart/End i allTasks for de som var planlagt i dag, men ikke blir det nå
-        const taskInAllTasks = allTasks.find(t => t.id === event.extendedProps.originalId);
-        if (taskInAllTasks && taskInAllTasks.scheduledStart && new Date(taskInAllTasks.scheduledStart).toISOString().slice(0,10) === targetDateString) {
-            // Dette er litt aggressivt. Kanskje bare fjerne de som ikke blir planlagt på nytt?
-            // For nå, la oss se hvordan det fungerer uten å nullstille her, da nye tider vil overskrive.
-        }
-    });
-
-
-    for (const task of tasksToSchedule) {
-        const estimatedTimeString = String(task.estimatedTime).replace(',', '.');
-        let taskDurationHours = parseFloat(estimatedTimeString);
-        if (isNaN(taskDurationHours) || taskDurationHours <= 0) {
-            taskDurationHours = DEFAULT_TASK_DURATION_HOURS; 
-        }
-        const taskDurationMinutes = taskDurationHours * 60;
-
-        if (currentTime >= lunchStart && currentTime < lunchEnd) {
-            currentTime = new Date(lunchEnd);
-        }
-        
-        let taskStartTimeCandidate = new Date(currentTime);
-        let taskEndTimeCandidate = new Date(taskStartTimeCandidate.getTime() + taskDurationMinutes * 60000);
-
-        if (taskStartTimeCandidate < lunchEnd && taskEndTimeCandidate > lunchStart) {
-            currentTime = new Date(lunchEnd);
-            taskStartTimeCandidate = new Date(currentTime);
-            taskEndTimeCandidate = new Date(taskStartTimeCandidate.getTime() + taskDurationMinutes * 60000);
-        }
-
-        if (taskEndTimeCandidate <= endOfWorkDay) {
-            const colors = getEventColorsForStatus_Tasks(task.status);
-            let title = `Autom: ${task.name} (${task.customer || '?'})`;
-            if (task.recurrenceRule && task.recurrenceRule !== 'Aldri') title = `🔄 ${title}`;
-
-            const eventData = {
-                id: `scheduled-${task.id}-${targetDateString}-${taskStartTimeCandidate.getTime()}`,
-                title: title,
-                start: taskStartTimeCandidate.toISOString(),
-                end: taskEndTimeCandidate.toISOString(),
-                extendedProps: { ...task, scheduled: true, originalId: task.id },
-                backgroundColor: colors.backgroundColor,
-                borderColor: colors.borderColor,
-                textColor: colors.textColor,
-                editable: true // GJØR DENNE REDIGERBAR
-            };
-            newCalendarEvents.push(eventData);
-
-            // Forbered backend update
-            const taskDataForBackend = {
-                action: 'updateTask',
-                id: task.id,
-                user: currentUserSuffix,
-                scheduledStart: eventData.start,
-                scheduledEnd: eventData.end
-            };
-            
-            // Legg til i promises for å sende til backend
-            updatePromises.push(
-                postDataToScript_Tasks(taskDataForBackend).then(response => {
-                    if (response.success) {
-                        console.log(`Oppgave ${task.id} planlagt tid lagret i backend.`);
-                        // Oppdater allTasks lokalt
-                        const taskIndex = allTasks.findIndex(t => t.id === task.id);
-                        if (taskIndex > -1) {
-                            allTasks[taskIndex].scheduledStart = eventData.start;
-                            allTasks[taskIndex].scheduledEnd = eventData.end;
-                        }
-                    } else {
-                        console.error(`Feil ved lagring av planlagt tid for ${task.id}:`, response.message);
-                        // Ikke kast feil her for å la andre oppdateringer fortsette, men logg
-                    }
-                    return response; // Returner respons for Promise.all
-                }).catch(error => {
-                    console.error(`Nettverksfeil ved lagring av planlagt tid for ${task.id}:`, error);
-                    return {success: false, message: error.message}; // Returner feilobjekt
-                })
-            );
-            currentTime = new Date(taskEndTimeCandidate);
-        } else {
-            console.log(`Oppgave "${task.name}" (${taskDurationHours}t) kunne ikke planlegges fullstendig i dag.`);
-        }
-    }
-
-    // Vent på at alle backend-oppdateringer er ferdige
-    if (updatePromises.length > 0) {
-        const progressBar = document.getElementById('schedule-progress-bar'); // Anta at du har en progress bar
-        const progressText = document.getElementById('schedule-progress-text');
-        if(progressBar) progressBar.style.width = '0%';
-        if(progressText) progressText.textContent = `Lagrer ${updatePromises.length} planlagte oppgaver...`;
-
-        const results = await Promise.all(updatePromises);
-        let successfulUpdates = results.filter(r => r.success).length;
-        let failedUpdates = results.length - successfulUpdates;
-
-        if(progressText) progressText.textContent = `Lagring fullført: ${successfulUpdates} lagret, ${failedUpdates} feilet.`;
-        if(progressBar) progressBar.style.width = '100%'; // Eller en mer nøyaktig progressjon
-
-        console.log(`Automatisk planlegging: ${successfulUpdates} oppgaver lagret, ${failedUpdates} feilet.`);
-        if (failedUpdates > 0) {
-            alert(`Noen planlagte tider kunne ikke lagres i backend. Sjekk konsollen for detaljer.`);
-        } else if (successfulUpdates > 0) {
-            alert(`${successfulUpdates} oppgaver ble planlagt og lagret for i dag.`);
-        } else if (newCalendarEvents.length > 0 && successfulUpdates === 0) {
-             alert("Oppgaver ble planlagt, men ingen kunne lagres i backend. Sjekk konsollen.");
-        }
-    }
-
-
-    if (calendarInstance && newCalendarEvents.length > 0) {
-        calendarInstance.addEventSource(newCalendarEvents);
-        console.log(`${newCalendarEvents.length} oppgaver ble forsøkt planlagt og lagt til i kalenderen for ${targetDateString}.`);
-    } else if (newCalendarEvents.length === 0 && tasksToSchedule.length > 0) {
-        console.log("Ingen oppgaver kunne planlegges innenfor tidsrammen for", targetDateString);
-        if (updatePromises.length === 0) alert("Ingen av de aktuelle oppgavene kunne planlegges innenfor den gjenværende arbeidstiden i dag.");
-    } else if (updatePromises.length === 0) {
-        console.log("Ingen oppgaver å planlegge eller kalender ikke klar.");
-        alert("Ingen oppgaver funnet for planlegging, eller kalenderen er ikke klar.");
-    }
-    
-    // initializeOrUpdateCalendar_Tasks(); // Kall denne for å re-tegne kalenderen med allTasks som kilde til sannhet
-    // Dette vil nå hente både frist-baserte og de nylig lagrede scheduledStart/End fra allTasks
-    // Dette er viktig for å sikre at kalenderen reflekterer det som *faktisk* er lagret (eller forsøkt lagret).
-    // Men, scheduleDailyTasks legger allerede til newCalendarEvents, så dette kan føre til duplikater hvis ikke håndtert rett.
-    // La oss heller sørge for at initializeOrUpdateCalendar_Tasks korrekt viser både frist-baserte OG scheduled fra allTasks.
-    // Den gjør allerede dette nå.
-
-    return newCalendarEvents;
-}
+// `scheduleDailyTasks` funksjonen er fjernet.
