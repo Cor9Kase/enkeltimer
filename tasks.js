@@ -478,7 +478,7 @@ function handleSaveTask_Tasks() {
         .then(response => {
             if (response.success) {
                 closeModal('taskModal');
-                return fetchTasks_Tasks().then(() => {
+                return fetchTasks_Tasks().then(() => { // Hent oppdatert liste
                     if (currentView_Tasks === 'kanban') renderTaskBoard_Tasks();
                     else initializeOrUpdateCalendar_Tasks();
                 });
@@ -621,10 +621,13 @@ function updateTaskStatus_Tasks(taskId, newStatus) {
                 alert(`Kunne ikke oppdatere status: ${response.message || 'Ukjent feil'}. Tilbakestiller.`);
                  if (taskIndex > -1 && originalStatus) {
                     allTasks[taskIndex].status = originalStatus;
-                    renderTaskBoard_Tasks();
-                 } else {
+                    renderTaskBoard_Tasks(); // Re-render for å vise korrekt status
+                 } else { // Hvis vi ikke fant den lokalt, hent alt på nytt
                     fetchTasks_Tasks().then(renderTaskBoard_Tasks);
                  }
+            } else {
+                // Suksess, den optimistiske oppdateringen er korrekt.
+                // Kanban-tavlen er allerede visuelt oppdatert av drag-and-drop.
             }
         })
         .catch(error => {
@@ -664,52 +667,87 @@ function switchView_Tasks(viewToShow) {
 
 function initializeOrUpdateCalendar_Tasks() {
     const calendarEl = document.getElementById('calendar');
-    if (!calendarEl) return;
+    if (!calendarEl) {
+        console.error("Kalenderelement #calendar ikke funnet!");
+        return;
+    }
     
     const filteredTasks = filterTasks_Tasks(allTasks);
     const formattedTasks = formatTasksForCalendar_Simple_Tasks(filteredTasks);
 
-    if (calendarInstance) {
+    if (calendarInstance) { // Hvis kalenderen allerede er initialisert, bare oppdater hendelsene
         calendarInstance.removeAllEvents();
         calendarInstance.addEventSource(formattedTasks);
         return;
     }
+
+    // Initialiser kalenderen for første gang
     try {
         calendarInstance = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth', locale: 'no',
+            initialView: 'dayGridMonth',
+            locale: 'no',
             headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek' },
             events: formattedTasks,
-            editable: true, 
+            editable: true, // Tillat dra-og-slipp
             eventDrop: function(info) {
                 const taskId = info.event.id;
-                const newDueDate = info.event.start.toISOString().split('T')[0];
-                const taskToUpdate = allTasks.find(t => t.id === taskId);
-                if (taskToUpdate && taskToUpdate.dueDate === newDueDate) return;
-                const oldDueDate = taskToUpdate ? taskToUpdate.dueDate : null;
-                if (taskToUpdate) taskToUpdate.dueDate = newDueDate;
+                const newDueDate = info.event.start.toISOString().split('T')[0]; 
+                
+                console.log(`Oppgave ${taskId} flyttet i kalenderen til ${newDueDate}.`);
 
-                const taskData = { action: 'updateTask', id: taskId, dueDate: newDueDate, user: currentUserSuffix };
+                const taskToUpdate = allTasks.find(t => t.id === taskId);
+                const oldDueDate = taskToUpdate ? taskToUpdate.dueDate : null;
+
+                if (taskToUpdate && taskToUpdate.dueDate === newDueDate) {
+                    console.log("Dato er den samme, ingen backend-oppdatering nødvendig.");
+                    return; 
+                }
+                
+                // Optimistisk UI-oppdatering av den lokale datamodellen
+                if (taskToUpdate) {
+                    taskToUpdate.dueDate = newDueDate;
+                }
+
+                const taskData = { 
+                    action: 'updateTask', 
+                    id: taskId, 
+                    dueDate: newDueDate, 
+                    user: currentUserSuffix // Send med brukeren som eier oppgavelisten
+                };
+                
                 postDataToScript_Tasks(taskData)
                     .then(response => {
                         if (!response.success) {
-                            alert("Kunne ikke lagre ny frist. Endringen er tilbakestilt.");
-                            info.revert();
-                            if(taskToUpdate && oldDueDate) taskToUpdate.dueDate = oldDueDate;
+                            console.error("Feil ved oppdatering av frist via kalender (backend):", response.message);
+                            alert(`Kunne ikke lagre ny frist for oppgave "${info.event.title.replace(/^[CW]:\s*/, '').replace(/^🔄\s*/, '')}": ${response.message || 'Ukjent serverfeil'}. Endringen er tilbakestilt.`);
+                            info.revert(); // FullCalendar tilbakestiller hendelsen visuelt
+                            if(taskToUpdate && oldDueDate) {
+                                taskToUpdate.dueDate = oldDueDate; // Tilbakestill lokal data også
+                            }
                         } else {
-                             console.log(`Frist for ${taskId} oppdatert til ${newDueDate}.`);
-                             if (currentView_Tasks === 'kanban') renderTaskBoard_Tasks();
+                             console.log(`Frist for oppgave ${taskId} lagret i backend som ${newDueDate}.`);
+                             // Hvis Kanban er synlig, re-render den for å reflektere ny sortering/frist
+                             if (currentView_Tasks === 'kanban') {
+                                 renderTaskBoard_Tasks();
+                             }
+                             // Kalenderen er allerede visuelt oppdatert av FullCalendar
                         }
                     })
                     .catch(error => {
-                        alert("Nettverksfeil. Kunne ikke lagre ny frist. Endringen er tilbakestilt.");
+                        console.error("Nettverksfeil ved oppdatering av frist via kalender:", error);
+                        alert(`Nettverksfeil. Kunne ikke lagre ny frist for "${info.event.title.replace(/^[CW]:\s*/, '').replace(/^🔄\s*/, '')}". Endringen er tilbakestilt.`);
                         info.revert();
-                        if(taskToUpdate && oldDueDate) taskToUpdate.dueDate = oldDueDate;
+                        if(taskToUpdate && oldDueDate) {
+                            taskToUpdate.dueDate = oldDueDate; // Tilbakestill lokal data
+                        }
                     });
             },
-            eventClick: function(info) { if (info.event.id) openEditTaskModal_Tasks(info.event.id); },
+            eventClick: function(info) { 
+                if (info.event.id) openEditTaskModal_Tasks(info.event.id); 
+            },
             eventMouseEnter: showCalendarTooltip,
             eventMouseLeave: hideCalendarTooltip,
-            height: 650, 
+            height: 650, // Eller 'auto' hvis du foretrekker det
         });
         calendarInstance.render();
     } catch (e) { console.error("FEIL ved initialisering av FullCalendar (tasks):", e); }
@@ -718,7 +756,7 @@ function initializeOrUpdateCalendar_Tasks() {
 function formatTasksForCalendar_Simple_Tasks(tasks) {
     console.log(`Formaterer ${tasks.length} oppgaver for kalender (bruker: ${currentUserSuffix})`);
     return tasks
-        .filter(task => task.dueDate)
+        .filter(task => task.dueDate) // Kun oppgaver med frist
         .map(task => {
             const colors = getEventColorsForStatus_Tasks(task.status);
             let title = `${task.name} (${task.customer || '?'})`;
@@ -728,9 +766,9 @@ function formatTasksForCalendar_Simple_Tasks(tasks) {
             return {
                 id: task.id,
                 title: title,
-                start: task.dueDate,
-                allDay: true,
-                extendedProps: task,
+                start: task.dueDate, // FullCalendar håndterer tidssoner basert på input
+                allDay: true, // Anta at alle oppgaver er heldagsoppgaver i kalenderen
+                extendedProps: task, // Legg hele task-objektet her for tooltip og eventClick
                 backgroundColor: colors.backgroundColor,
                 borderColor: colors.borderColor,
                 textColor: colors.textColor
@@ -739,9 +777,10 @@ function formatTasksForCalendar_Simple_Tasks(tasks) {
 }
 
 function getEventColorsForStatus_Tasks(status) {
-    let backgroundColor = 'var(--accent-primary)';
+    let backgroundColor = 'var(--accent-primary)'; // Default
     let borderColor = 'var(--accent-secondary)';
-    let textColor = '#ffffff';
+    let textColor = '#ffffff'; // Default for mørke bakgrunner
+
     switch (status?.toLowerCase()) {
         case 'ny':      backgroundColor = '#64b5f6'; borderColor = '#42a5f5'; textColor = '#000000'; break;
         case 'pågår':   backgroundColor = 'var(--bar-yellow)'; borderColor = '#ffa000'; textColor = '#000000'; break;
