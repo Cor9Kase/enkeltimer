@@ -109,7 +109,14 @@ function showCalendarTooltip(eventInfo) {
     if (task.priority) content += ` | Prioritet: ${task.priority}`;
     content += `<br>`;
     if (task.estimatedTime) content += `Estimert: ${task.estimatedTime}t<br>`;
-    if (task.description) content += `Beskrivelse: ${task.description.substring(0, 70)}${task.description.length > 70 ? '...' : ''}<br>`;
+    
+    // FIKS: Sjekk om task.description er en streng før substring kalles
+    if (task.description && typeof task.description === 'string') {
+        content += `Beskrivelse: ${task.description.substring(0, 70)}${task.description.length > 70 ? '...' : ''}<br>`;
+    } else if (task.description) { // Hvis den finnes, men ikke er en streng, konverter til streng
+        content += `Beskrivelse: ${String(task.description).substring(0, 70)}${String(task.description).length > 70 ? '...' : ''}<br>`;
+    }
+
     if (task.recurrenceRule && task.recurrenceRule !== 'Aldri') {
         content += `<span style="color: var(--accent-primary);">Gjentar: ${task.recurrenceRule}`;
         if (task.recurrenceEndDate) content += ` til ${new Date(task.recurrenceEndDate).toLocaleDateString('no-NO')}`;
