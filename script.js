@@ -569,24 +569,6 @@ function closeModal(modalId) {
    }
 }
 
-// Konverterer HH:MM:SS til desimaltimer, avrundet til nærmeste kvarter
-function parseHHMMSSToDecimalHours(timeString) {
-    if (!timeString || typeof timeString !== 'string') return null;
-    const parts = timeString.split(':');
-    if (parts.length !== 3) return null;
-
-    const hours = parseInt(parts[0], 10);
-    const minutes = parseInt(parts[1], 10);
-    const seconds = parseInt(parts[2], 10);
-
-    if (isNaN(hours) || isNaN(minutes) || isNaN(seconds) ||
-        hours < 0 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) {
-        return null;
-    }
-    const totalSecondsValue = (hours * 3600) + (minutes * 60) + seconds;
-    const decimalHours = totalSecondsValue / 3600;
-    return Math.round(decimalHours * 4) / 4; // Avrund til nærmeste 0.25
-}
 
 
 // Sender inn logget tid (potensielt redigert)
@@ -863,7 +845,7 @@ function sendDataToGoogleScript(data, successMessage) {
   });
 }
 
-function testConnection() { /* ... (som før, sendDataToGoogleScript håndterer 'user') ... */ 
+function testConnection() { /* ... (som før, sendDataToGoogleScript håndterer 'user') ... */
   if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'DIN_NETTAPP_URL_HER') {
        alert("FEIL: GOOGLE_SCRIPT_URL er ikke satt i script.js!"); return;
   }
@@ -881,4 +863,6 @@ function testConnection() { /* ... (som før, sendDataToGoogleScript håndterer 
           alert(`Tilkoblingstest FEIL for ${currentUserSuffix}:\n\n${error.message}`);
       });
 }
+
+// time-utils.js definerer parseHHMMSSToDecimalHours
 
