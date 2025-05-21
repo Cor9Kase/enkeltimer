@@ -661,7 +661,20 @@ function submitTime() {
     });
 }
 
-function showEditCustomer(customerId) { /* ... (som før) ... */ }
+function showEditCustomer(customerId) {
+  const index = parseInt(customerId);
+  if (isNaN(index) || index < 0 || index >= customers.length) return;
+  const customer = customers[index];
+  const modal = document.getElementById('editCustomerModal');
+  const idEl = document.getElementById('edit-customer-id');
+  const nameEl = document.getElementById('edit-customer-name');
+  const hoursEl = document.getElementById('edit-customer-hours');
+  if (!modal || !idEl || !nameEl || !hoursEl) return;
+  idEl.value = index;
+  nameEl.value = customer.name;
+  hoursEl.value = customer.availableHours;
+  modal.style.display = 'block';
+}
 
 // Oppretter ny kunde, bruker potensielt redigert tid
 function createNewCustomer() {
@@ -726,7 +739,7 @@ function createNewCustomer() {
     });
 }
 
-function updateCustomer() { /* ... (som før, men husk å sende user i dataToSend) ... */ 
+function updateCustomer() {
    if (isSubmitting) return;
   const idEl = document.getElementById('edit-customer-id');
   const nameEl = document.getElementById('edit-customer-name');
@@ -775,8 +788,19 @@ function updateCustomer() { /* ... (som før, men husk å sende user i dataToSen
       if (updateButton) { updateButton.disabled = false; updateButton.textContent = 'Lagre endringer';}
     });
 }
-function confirmDeleteCustomer(customerId) { /* ... (som før) ... */ }
-function deleteCustomer() { /* ... (som før, men husk å sende user i dataToSend) ... */ 
+function confirmDeleteCustomer(customerId) {
+  const index = parseInt(customerId);
+  if (isNaN(index) || index < 0 || index >= customers.length) return;
+  const customer = customers[index];
+  const modal = document.getElementById('confirmDeleteModal');
+  const idEl = document.getElementById('delete-customer-id');
+  const nameEl = document.getElementById('delete-customer-name');
+  if (!modal || !idEl || !nameEl) return;
+  idEl.value = index;
+  nameEl.textContent = customer.name;
+  modal.style.display = 'block';
+}
+function deleteCustomer() {
   if (isSubmitting) return;
   const idEl = document.getElementById('delete-customer-id');
   if(!idEl) return;
@@ -863,7 +887,7 @@ function sendDataToGoogleScript(data, successMessage) {
   });
 }
 
-function testConnection() { /* ... (som før, sendDataToGoogleScript håndterer 'user') ... */ 
+function testConnection() {
   if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'DIN_NETTAPP_URL_HER') {
        alert("FEIL: GOOGLE_SCRIPT_URL er ikke satt i script.js!"); return;
   }
